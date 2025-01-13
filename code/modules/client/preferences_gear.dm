@@ -996,3 +996,8 @@ GLOBAL_LIST_EMPTY(gear_datums_by_name)
 	display_name = "Cut-throat razor"
 	path = /obj/item/weapon/straight_razor
 	cost = 3
+
+/datum/gear/misc/watch
+	display_name = "Cheap wrist watch"
+	path = /obj/item/clothing/accessory/wrist/watch
+	cost = 1 // Cheap and crappy
