@@ -147,7 +147,7 @@
 	new_human.equip_to_slot_or_del(new /obj/item/explosive/plastic/breaching_charge, WEAR_IN_JACKET)
 	new_human.equip_to_slot_or_del(new /obj/item/tool/crowbar/tactical, WEAR_IN_JACKET)
 
-	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/rifle/l42a3/marksman, WEAR_J_STORE)
+	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/rifle/l64a3/marksman, WEAR_J_STORE)
 
 	new_human.equip_to_slot_or_del(new /obj/item/storage/belt/marine/rmc/l42a3/marksman, WEAR_WAIST)
 

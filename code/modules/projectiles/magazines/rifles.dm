@@ -149,6 +149,13 @@
 	bonus_overlay = "m4ra_ex"
 	max_rounds = 35
 
+/obj/item/ammo_magazine/rifle/m4ra/extended
+	name = "\improper M4RA extended magazine (10x24mm)"
+	desc = "A magazine of 10x24mm rounds for use in the M4RA battle rifle. Holds an additional 10 rounds, up to 35."
+	icon_state = "m4ra_extended"
+	bonus_overlay = "m4ra_ex"
+	max_rounds = 35
+
 /obj/item/ammo_magazine/rifle/m4ra/rubber
 	name = "M4RA rubber magazine (10x24mm)"
 	desc = "A magazine of less than lethal rubber 10x24mm rounds for use in the M4RA battle rifle."
@@ -280,8 +287,31 @@
 	max_rounds = 300
 	gun_type = /obj/item/weapon/gun/rifle/lmg
 	flags_magazine = AMMUNITION_CANNOT_REMOVE_BULLETS|AMMUNITION_REFILLABLE|AMMUNITION_SLAP_TRANSFER
+	flags_atom = FPRINT|CONDUCT|MAP_COLOR_INDEX
 	ammo_band_icon = "+m41ae2_band"
 	ammo_band_icon_empty = "+m41ae2_band_e"
+
+/obj/item/ammo_magazine/rifle/lmg/Initialize(...)
+	. = ..()
+	select_gamemode_skin(type)
+
+/obj/item/ammo_magazine/rifle/lmg/select_gamemode_skin(expected_type, list/override_icon_state, list/override_protection)
+	. = ..()
+	var/new_base_icon_state
+	switch(SSmapping.configs[GROUND_MAP].camouflage_type)
+		if("snow")
+			base_mag_icon = new_base_icon_state ? new_base_icon_state : "s_" + initial(icon_state)
+			. = TRUE
+		if("desert")
+			base_mag_icon = new_base_icon_state ? new_base_icon_state : "d_" + initial(icon_state)
+			. = TRUE
+		if("classic")
+			base_mag_icon = new_base_icon_state ? new_base_icon_state : "c_" + initial(icon_state)
+			. = TRUE
+		if("urban")
+			base_mag_icon = new_base_icon_state ? new_base_icon_state : "u_" + initial(icon_state)
+			. = TRUE
+	return .
 
 /obj/item/ammo_magazine/rifle/lmg/holo_target
 	name = "\improper M41AE2 ammo box (10x24mm holo-target)"
@@ -595,6 +625,38 @@
 	desc = "A 8.88mm toxin magazine."
 	default_ammo = /datum/ammo/bullet/rifle/l23/ap/toxin
 	ammo_band_color = AMMO_BAND_COLOR_TOXIN
+
+//-------------------------------------------------------
+// L64A3 BATTLE RIFLE - TWE MARKSMAN RIFLE
+
+/obj/item/ammo_magazine/rifle/l64
+	name = "\improper L64A3 magazine (8.88x51mm)"
+	desc = "A magazine of 8.88x51mm rounds for use in the L64A3 battle rifle."
+	caliber = "8.88x51mm"
+	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/TWE/assault_rifles.dmi'
+	icon_state = "l23"
+	default_ammo = /datum/ammo/bullet/rifle/l23
+	max_rounds = 20
+	gun_type = /obj/item/weapon/gun/rifle/l64a3
+
+/obj/item/ammo_magazine/rifle/l64/ap
+	name = "\improper L64A3 armor-piercing magazine (8.88x51mm)"
+	desc = "A magazine of armor-piercing 8.88x51mm rounds for use in the L64A3 battle rifle."
+	default_ammo = /datum/ammo/bullet/rifle/l23/ap
+	ammo_band_color = AMMO_BAND_COLOR_AP
+
+//-------------------------------------------------------
+// AK-4047 PULSE ASSAULT RIFLE - UPP PRIMARY RIFLE
+
+/obj/item/ammo_magazine/rifle/ak4047
+	name = "\improper AK-4047 magazine (10x24mm)"
+	desc = "A 10mm assault rifle magazine compatible with the AK-4047 pulse assault rifle."
+	caliber = "10x24mm"
+	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/UPP/assault_rifles.dmi'
+	icon_state = "ak4047"
+	default_ammo = /datum/ammo/bullet/rifle
+	max_rounds = 40
+	gun_type = /obj/item/weapon/gun/rifle/ak4047
 
 //--------------------------------------------------------
 //XM51 BREACHING SHOTGUN
