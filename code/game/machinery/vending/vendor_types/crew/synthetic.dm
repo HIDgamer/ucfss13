@@ -242,6 +242,13 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth_snowflake, list(
 	list("Sunglasses", 12, /obj/item/clothing/glasses/sunglasses, null, VENDOR_ITEM_REGULAR),
 	list("Welding Goggles", 12, /obj/item/clothing/glasses/welding, null, VENDOR_ITEM_REGULAR),
 
+	list("GLOVES", 0, null, null, null),
+	list("Marine Combat Gloves", 12, /obj/item/clothing/gloves/marine, null, VENDOR_ITEM_REGULAR),
+	list("Marine Black Combat Gloves", 12, /obj/item/clothing/gloves/marine/black, null, VENDOR_ITEM_REGULAR),
+	list("Marine Brown Combat Gloves", 12, /obj/item/clothing/gloves/marine/brown, null, VENDOR_ITEM_REGULAR),
+	list("Marine Grey Combat Gloves", 12, /obj/item/clothing/gloves/marine/grey, null, VENDOR_ITEM_REGULAR),
+	list("Marine Fingerless Combat Gloves", 12, /obj/item/clothing/gloves/marine/fingerless, null, VENDOR_ITEM_REGULAR),
+
 	list("SHOES", 0, null, null, null),
 	list("Boots", 12, /obj/item/clothing/shoes/marine, null, VENDOR_ITEM_REGULAR),
 	list("Shoes, Black", 12, /obj/item/clothing/shoes/black, null, VENDOR_ITEM_REGULAR),
