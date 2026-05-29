@@ -65,6 +65,8 @@
 	)
 	icon_state = "M2C_gun_mount"
 	item_state = "M2C_gun_mount"
+	pixel_x = -5
+	hud_offset = -5
 	var/rounds = 0
 	var/overheat_value = 0
 	var/anti_cadehugger_range = 1
@@ -87,6 +89,11 @@
 		icon_name += "_e"
 
 	icon_state = icon_name
+
+/obj/item/device/m2c_gun/get_examine_text(mob/user) //Let us see how much ammo we got in this thing.
+	. = ..()
+	if(rounds && (ishuman(user) || HAS_TRAIT(user, TRAIT_OPPOSABLE_THUMBS)))
+		. += SPAN_NOTICE("It has [rounds] round\s out of 125 rounds.")
 
 /obj/item/device/m2c_gun/proc/check_can_setup(mob/user, turf/rotate_check, turf/open/OT, list/ACR)
 	if(!ishuman(user) && !HAS_TRAIT(user, TRAIT_OPPOSABLE_THUMBS))
@@ -206,6 +213,7 @@
 	rounds_max = 125
 	ammo = /datum/ammo/bullet/machinegun/auto
 	fire_delay = 0.1 SECONDS
+	gun_has_gamemode_skin = FALSE
 	var/grip_dir = null
 	var/fold_time = 1.5 SECONDS
 	var/repair_time = 5 SECONDS
