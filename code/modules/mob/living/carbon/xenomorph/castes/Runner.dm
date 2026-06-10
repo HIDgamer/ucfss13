@@ -53,14 +53,12 @@
 
 	base_actions = list(
 		/datum/action/xeno_action/onclick/xeno_resting,
-		/datum/action/xeno_action/onclick/regurgitate,
 		/datum/action/xeno_action/watch_xeno,
 		/datum/action/xeno_action/activable/tail_stab,
 		/datum/action/xeno_action/onclick/xenohide,
 		/datum/action/xeno_action/activable/pounce/runner,
 		/datum/action/xeno_action/activable/runner_skillshot,
 		/datum/action/xeno_action/onclick/toggle_long_range/runner,
-		/datum/action/xeno_action/onclick/tacmap,
 	)
 	inherent_verbs = list(
 		/mob/living/carbon/xenomorph/proc/vent_crawl,
@@ -84,6 +82,7 @@
 	pull_multiplier *= 0.85
 	if(is_zoomed)
 		zoom_out()
+
 
 /datum/behavior_delegate/runner_base
 	name = "Base Runner Behavior Delegate"
