@@ -2,8 +2,8 @@
 #define APC_WIRE_IDSCAN 2
 
 GLOBAL_LIST_INIT(apc_wire_descriptions, list(
-		APC_WIRE_MAIN_POWER   = "Main power",
-		APC_WIRE_IDSCAN   = "ID scanner"
+    "[APC_WIRE_MAIN_POWER]" = "Main power",
+    "[APC_WIRE_IDSCAN]" = "ID scanner"
 	))
 
 #define APC_COVER_CLOSED 0
@@ -959,10 +959,10 @@ GLOBAL_LIST_INIT(apc_wire_descriptions, list(
 		area.update_power_channels(FALSE, FALSE, FALSE)
 
 /obj/structure/machinery/power/apc/proc/get_wire_descriptions()
-	return list(
-		APC_WIRE_MAIN_POWER   = "Main power",
-		APC_WIRE_IDSCAN    = "ID scanner"
-	)
+    var/list/descriptions = list()
+    descriptions["[APC_WIRE_MAIN_POWER]"] = "Main power"
+    descriptions["[APC_WIRE_IDSCAN]"] = "ID scanner"
+    return descriptions
 
 /obj/structure/machinery/power/apc/proc/isWireCut(wire)
 	var/wireFlag = getWireFlag(wire)

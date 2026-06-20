@@ -1198,120 +1198,111 @@
 	else
 		overlays += "+[base_icon]_full"
 
-/obj/item/storage/belt/gun/on_stored_atom_del(atom/movable/AM)
-	if(!isgun(AM))
-		return
-	holstered_guns -= AM
-	for(var/slot in holster_slots)
-		if(AM == holster_slots[slot]["gun"])
-			holster_slots[slot]["gun"] = null
-
-			update_gun_icon(slot)
-			return
-
-/obj/item/storage/belt/gun/attack_hand(mob/user, mods)
-	if(length(holstered_guns) && ishuman(user) && loc == user)
-		var/obj/item/I
-		if(mods && mods["alt"] && length(contents) > length(holstered_guns)) //Withdraw the most recently inserted magazine, if possible.
-			var/list/magazines = contents - holstered_guns
-			I = magazines[length(magazines)]
-		else //Otherwise find and draw the last-inserted gun.
-			I = holstered_guns[length(holstered_guns)]
-		I.attack_hand(user)
-		return
-
-	..()
-
 /obj/item/storage/belt/gun/proc/update_gun_icon(slot) //We do not want to use regular update_icon as it's called for every item inserted. Not worth the icon math.
-	var/mob/living/carbon/human/user = loc
-	var/obj/item/weapon/gun/current_gun = holster_slots[slot]["gun"]
-	if(current_gun)
-		/*
-		Have to use a workaround here, otherwise images won't display properly at all times.
-		Reason being, transform is not displayed when right clicking/alt+clicking an object,
-		so it's necessary to pre-load the potential states so the item actually shows up
-		correctly without having to rotate anything. Preloading weapon icons also makes
-		sure that we don't have to do any extra calculations.
-		*/
-		playsound(src, drawSound, 7, TRUE)
-		var/image/gun_underlay = image('icons/obj/items/clothing/belts/holstered_guns.dmi', current_gun.base_gun_icon)
-		if(gun_has_gamemode_skin && current_gun.map_specific_decoration)
-			switch(SSmapping.configs[GROUND_MAP].camouflage_type)
-				if("snow")
-					gun_underlay = image('icons/obj/items/clothing/belts/holstered_guns.dmi', "s_" + current_gun.base_gun_icon)
-				if("desert")
-					gun_underlay = image('icons/obj/items/clothing/belts/holstered_guns.dmi', "d_" + current_gun.base_gun_icon)
-				if("classic")
-					gun_underlay = image('icons/obj/items/clothing/belts/holstered_guns.dmi', "c_" + current_gun.base_gun_icon)
-				if("urban")
-					gun_underlay = image('icons/obj/items/clothing/belts/holstered_guns.dmi', "u_" + current_gun.base_gun_icon)
-		gun_underlay.pixel_x = holster_slots[slot]["icon_x"]
-		gun_underlay.pixel_y = holster_slots[slot]["icon_y"]
-		gun_underlay.color = current_gun.color
-		gun_underlay.transform = holster_slots[slot]["underlay_transform"]
-		holster_slots[slot]["underlay_sprite"] = gun_underlay
-		underlays += gun_underlay
+    var/mob/living/carbon/human/user = loc
 
-		icon_state += "_g"
-		item_state = icon_state
-	else
-		playsound(src, sheatheSound, 7, TRUE)
-		underlays -= holster_slots[slot]["underlay_sprite"]
-		holster_slots[slot]["underlay_sprite"] = null
+    // SAFETY CHECK: Ensure the slot list actually exists before reading from it
+    var/list/slot_data = holster_slots[slot]
+    if(!istype(slot_data))
+        return
 
-		icon_state = copytext(icon_state,1,-2)
-		item_state = icon_state
+    var/obj/item/weapon/gun/current_gun = slot_data["gun"]
+    if(current_gun)
+        /*
+        Have to use a workaround here, otherwise images won't display properly at all times.
+        Reason being, transform is not displayed when right clicking/alt+clicking an object,
+        so it's necessary to pre-load the potential states so the item actually shows up
+        correctly without having to rotate anything. Preloading weapon icons also makes
+        sure that we don't have to do any extra calculations.
+        */
+        playsound(src, drawSound, 7, TRUE)
+        var/image/gun_underlay = image('icons/obj/items/clothing/belts/holstered_guns.dmi', current_gun.base_gun_icon)
+        if(gun_has_gamemode_skin && current_gun.map_specific_decoration)
+            switch(SSmapping.configs[GROUND_MAP].camouflage_type)
+                if("snow")
+                    gun_underlay = image('icons/obj/items/clothing/belts/holstered_guns.dmi', "s_" + current_gun.base_gun_icon)
+                if("desert")
+                    gun_underlay = image('icons/obj/items/clothing/belts/holstered_guns.dmi', "d_" + current_gun.base_gun_icon)
+                if("classic")
+                    gun_underlay = image('icons/obj/items/clothing/belts/holstered_guns.dmi', "c_" + current_gun.base_gun_icon)
+                if("urban")
+                    gun_underlay = image('icons/obj/items/clothing/belts/holstered_guns.dmi', "u_" + current_gun.base_gun_icon)
+        gun_underlay.pixel_x = slot_data["icon_x"]
+        gun_underlay.pixel_y = slot_data["icon_y"]
+        gun_underlay.color = current_gun.color
+        gun_underlay.transform = slot_data["underlay_transform"]
+        slot_data["underlay_sprite"] = gun_underlay
+        underlays += gun_underlay
 
-	if(istype(user))
-		if(src == user.belt)
-			user.update_inv_belt()
-		else if(src == user.s_store)
-			user.update_inv_s_store()
+        icon_state += "_g"
+        item_state = icon_state
+    else
+        playsound(src, sheatheSound, 7, TRUE)
+        underlays -= slot_data["underlay_sprite"]
+        slot_data["underlay_sprite"] = null
+
+        icon_state = copytext(icon_state,1,-2)
+        item_state = icon_state
+
+    if(istype(user))
+        if(src == user.belt)
+            user.update_inv_belt()
+        else if(src == user.s_store)
+            user.update_inv_s_store()
 
 //There are only two types here that can be inserted, and they are mutually exclusive. We only track the gun.
 /obj/item/storage/belt/gun/can_be_inserted(obj/item/W, mob/user, stop_messages = FALSE) //We don't need to stop messages, but it can be left in.
-	. = ..()
-	if(!.)
-		return
+    . = ..()
+    if(!.)
+        return
 
-	if(isgun(W))
-		for(var/slot in holster_slots)
-			if(!holster_slots[slot]["gun"]) //Open holster.
-				return
+    if(isgun(W))
+        for(var/slot in holster_slots)
+            var/list/slot_data = holster_slots[slot]
+            if(!istype(slot_data))
+                continue
+            if(!slot_data["gun"]) //Open holster.
+                return
 
-		if(!stop_messages) //No open holsters.
-			if(length(holster_slots) == 1)
-				to_chat(usr, SPAN_WARNING("[src] already holds a gun."))
-			else
-				to_chat(usr, SPAN_WARNING("[src] doesn't have any empty holsters."))
-		return FALSE
+        if(!stop_messages) //No open holsters.
+            if(length(holster_slots) == 1)
+                to_chat(usr, SPAN_WARNING("[src] already holds a gun."))
+            else
+                to_chat(usr, SPAN_WARNING("[src] doesn't have any empty holsters."))
+        return FALSE
 
-	else if(length(contents) - length(holstered_guns) >= storage_slots - length(holster_slots)) //Compare amount of nongun items in storage with usable ammo pockets.
-		if(!stop_messages)
-			to_chat(usr, SPAN_WARNING("[src] can't hold any more ammo."))
-		return FALSE
+    else if(length(contents) - length(holstered_guns) >= storage_slots - length(holster_slots)) //Compare amount of nongun items in storage with usable ammo pockets.
+        if(!stop_messages)
+            to_chat(usr, SPAN_WARNING("[src] can't hold any more ammo."))
+        return FALSE
 
 /obj/item/storage/belt/gun/_item_insertion(obj/item/W, prevent_warning = FALSE)
-	if(isgun(W))
-		holstered_guns += W
-		for(var/slot in holster_slots)
-			if(holster_slots[slot]["gun"])
-				continue
-			holster_slots[slot]["gun"] = W
-			update_gun_icon(slot)
-			break
-	..()
+    if(isgun(W))
+        holstered_guns += W
+        for(var/slot in holster_slots)
+            var/list/slot_data = holster_slots[slot]
+            if(!istype(slot_data))
+                continue
+            if(slot_data["gun"])
+                continue
+            slot_data["gun"] = W
+            update_gun_icon(slot)
+            break
+    ..()
 
 /obj/item/storage/belt/gun/_item_removal(obj/item/W, atom/new_location)
-	if(isgun(W))
-		holstered_guns -= W
-		for(var/slot in holster_slots)
-			if(holster_slots[slot]["gun"] != W)
-				continue
-			holster_slots[slot]["gun"] = null
-			update_gun_icon(slot)
-			break
-	..()
+    if(isgun(W))
+        holstered_guns -= W
+        for(var/slot in holster_slots)
+            var/list/slot_data = holster_slots[slot]
+            if(!istype(slot_data))
+                continue
+            if(slot_data["gun"] != W)
+                continue
+            slot_data["gun"] = null
+            update_gun_icon(slot)
+            break
+    ..()
 
 /obj/item/storage/belt/gun/dump_ammo_to(obj/item/ammo_magazine/ammo_dumping, mob/user, amount_to_dump)
 	if(user.action_busy)
@@ -1692,10 +1683,16 @@
 	skip_fullness_overlays = TRUE
 
 /obj/item/storage/belt/gun/m44/gunslinger/Initialize()
-	var/matrix/M = matrix()
-	M.Scale(-1, 1) //Flip the sprite of the second gun.
-	holster_slots["2"]["underlay_transform"] = M
-	. = ..()
+    var/matrix/M = matrix()
+    M.Scale(-1, 1)
+    if(!holster_slots)
+        holster_slots = list()
+    if(!holster_slots["2"])
+        holster_slots["2"] = list()
+    var/list/slot_data = holster_slots["2"]
+    if(istype(slot_data))
+        slot_data["underlay_transform"] = M
+    . = ..()
 
 /obj/item/storage/belt/gun/m44/gunslinger/full/fill_preset_inventory()
 	handle_item_insertion(new /obj/item/weapon/gun/revolver/m44())

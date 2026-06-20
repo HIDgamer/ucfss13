@@ -9,15 +9,15 @@
 #define AIRLOCK_WIRE_ELECTRIFY   9
 
 GLOBAL_LIST_INIT(airlock_wire_descriptions, list(
-		AIRLOCK_WIRE_MAIN_POWER   = "Main power",
-		AIRLOCK_WIRE_BACKUP_POWER = "Backup power",
-		AIRLOCK_WIRE_DOOR_BOLTS   = "Door bolts",
-		AIRLOCK_WIRE_OPEN_DOOR = "Door motors",
-		AIRLOCK_WIRE_IDSCAN    = "ID scanner",
-		AIRLOCK_WIRE_LIGHT = "Bolt lights",
-		AIRLOCK_WIRE_SAFETY    = "Proximity sensor",
-		AIRLOCK_WIRE_SPEED = "Motor speed override",
-		AIRLOCK_WIRE_ELECTRIFY = "Ground safety"
+	"Main power",
+	"Backup power",
+	"Door bolts",
+	"Door motors",
+	"ID scanner",
+	"Bolt lights",
+	"Proximity sensor",
+	"Motor speed override",
+	"Ground safety"
 	))
 
 /obj/structure/machinery/door/airlock

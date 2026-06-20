@@ -397,11 +397,11 @@
 //**************/
 
 /obj/structure/machinery/smartfridge/proc/get_wire_descriptions()
-	return list(
-		FRIDGE_WIRE_SHOCK   = "Ground safety",
-		FRIDGE_WIRE_SHOOT_INV  = "Dispenser motor control",
-		FRIDGE_WIRE_IDSCAN  = "ID scanner"
-	)
+    var/list/descriptions = list()
+    descriptions["[FRIDGE_WIRE_SHOCK]"] = "Ground safety"
+    descriptions["[FRIDGE_WIRE_SHOOT_INV]"] = "Dispenser motor control"
+    descriptions["[FRIDGE_WIRE_IDSCAN]"] = "ID scanner"
+    return descriptions
 
 /obj/structure/machinery/smartfridge/proc/cut(wire)
 	wires ^= getWireFlag(wire)
