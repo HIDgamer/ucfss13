@@ -622,39 +622,39 @@ Pressure: <span class='dl[pressure_dangerlevel]'>[environment_pressure]</span>kP
 	return dat
 
 /obj/structure/machinery/alarm/proc/return_controls()
-	var/output = ""//"<B>[alarm_zone] Air [name]</B><HR>"
+    var/output = ""
 
-	switch(screen)
-		if (AALARM_SCREEN_MAIN)
-			if(alarm_area.atmosalm)
-				output += "<a href='byond://?src=\ref[src];atmos_reset=1'>Reset - Area Atmospheric Alarm</a><hr>"
-			else
-				output += "<a href='byond://?src=\ref[src];atmos_alarm=1'>Activate - Area Atmospheric Alarm</a><hr>"
+    switch(screen)
+        if (AALARM_SCREEN_MAIN)
+            if(alarm_area.atmosalm)
+                output += "<a href='byond://?src=\ref[src];atmos_reset=1'>Reset - Area Atmospheric Alarm</a><hr>"
+            else
+                output += "<a href='byond://?src=\ref[src];atmos_alarm=1'>Activate - Area Atmospheric Alarm</a><hr>"
 
-			output += {"
+            output += {"
 <a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_SCRUB]'>Scrubbers Control</a><br>
 <a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_VENT]'>Vents Control</a><br>
 <a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_MODE]'>Set environmentals mode</a><br>
 <a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_SENSORS]'>Sensor Settings</a><br>
 <HR>
 "}
-			if (mode==AALARM_MODE_PANIC)
-				output += "[SET_CLASS("<B>PANIC SYPHON ACTIVE</B>", INTERFACE_RED)]<br><A href='byond://?src=\ref[src];mode=[AALARM_MODE_SCRUBBING]'>Turn syphoning off</A>"
-			else
-				output += "<A href='byond://?src=\ref[src];mode=[AALARM_MODE_PANIC]'>[SET_CLASS("ACTIVATE PANIC SYPHON IN AREA", INTERFACE_RED)]</A>"
+            if (mode==AALARM_MODE_PANIC)
+                output += "[SET_CLASS("<B>PANIC SYPHON ACTIVE</B>", INTERFACE_RED)]<br><A href='byond://?src=\ref[src];mode=[AALARM_MODE_SCRUBBING]'>Turn syphoning off</A>"
+            else
+                output += "<A href='byond://?src=\ref[src];mode=[AALARM_MODE_PANIC]'>[SET_CLASS("ACTIVATE PANIC SYPHON IN AREA", INTERFACE_RED)]</A>"
 
 
-		if (AALARM_SCREEN_VENT)
-			var/sensor_data = ""
-			if(length(alarm_area.air_vent_names))
-				for(var/id_tag in alarm_area.air_vent_names)
-					var/long_name = alarm_area.air_vent_names[id_tag]
-					var/list/data = alarm_area.air_vent_info[id_tag]
-					if(!data)
-						continue;
-					var/state = ""
+        if (AALARM_SCREEN_VENT)
+            var/sensor_data = ""
+            if(length(alarm_area.air_vent_names))
+                for(var/id_tag in alarm_area.air_vent_names)
+                    var/long_name = alarm_area.air_vent_names[id_tag]
+                    var/list/data = alarm_area.air_vent_info[id_tag]
+                    if(!data)
+                        continue;
+                    var/state = ""
 
-					sensor_data += {"
+                    sensor_data += {"
 <B>[long_name]</B>[state]<BR>
 <B>Operating:</B>
 <A href='byond://?src=\ref[src];id_tag=[id_tag];command=power;val=[!data["power"]]'>[data["power"]?"on":"off"]</A>
@@ -676,27 +676,27 @@ Pressure: <span class='dl[pressure_dangerlevel]'>[environment_pressure]</span>kP
 <A href='byond://?src=\ref[src];id_tag=[id_tag];command=set_external_pressure;val=[ONE_ATMOSPHERE]'> (reset) </A>
 <BR>
 "}
-					if (data["direction"] == "siphon")
-						sensor_data += {"
+                    if (data["direction"] == "siphon")
+                        sensor_data += {"
 <B>Direction:</B>
 siphoning
 <BR>
 "}
-					sensor_data += {"<HR>"}
-			else
-				sensor_data = "No vents connected.<BR>"
-			output = {"<a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_MAIN]'>Main menu</a><br>[sensor_data]"}
-		if (AALARM_SCREEN_SCRUB)
-			var/sensor_data = ""
-			if(length(alarm_area.air_scrub_names))
-				for(var/id_tag in alarm_area.air_scrub_names)
-					var/long_name = alarm_area.air_scrub_names[id_tag]
-					var/list/data = alarm_area.air_scrub_info[id_tag]
-					if(!data)
-						continue;
-					var/state = ""
+                    sensor_data += {"<HR>"}
+            else
+                sensor_data = "No vents connected.<BR>"
+            output = {"<a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_MAIN]'>Main menu</a><br>[sensor_data]"}
+        if (AALARM_SCREEN_SCRUB)
+            var/sensor_data = ""
+            if(length(alarm_area.air_scrub_names))
+                for(var/id_tag in alarm_area.air_scrub_names)
+                    var/long_name = alarm_area.air_scrub_names[id_tag]
+                    var/list/data = alarm_area.air_scrub_info[id_tag]
+                    if(!data)
+                        continue;
+                    var/state = ""
 
-					sensor_data += {"
+                    sensor_data += {"
 <B>[long_name]</B>[state]<BR>
 <B>Operating:</B>
 <A href='byond://?src=\ref[src];id_tag=[id_tag];command=power;val=[!data["power"]]'>[data["power"]?"on":"off"]</A><BR>
@@ -704,8 +704,8 @@ siphoning
 <A href='byond://?src=\ref[src];id_tag=[id_tag];command=scrubbing;val=[!data["scrubbing"]]'>[data["scrubbing"]?"scrubbing":"syphoning"]</A><BR>
 "}
 
-					if(data["scrubbing"])
-						sensor_data += {"
+                    if(data["scrubbing"])
+                        sensor_data += {"
 <B>Filtering:</B>
 Carbon Dioxide
 <A href='byond://?src=\ref[src];id_tag=[id_tag];command=co2_scrub;val=[!data["filter_co2"]]'>[data["filter_co2"]?"on":"off"]</A>;
@@ -715,33 +715,34 @@ Nitrous Oxide
 <A href='byond://?src=\ref[src];id_tag=[id_tag];command=n2o_scrub;val=[!data["filter_n2o"]]'>[data["filter_n2o"]?"on":"off"]</A>
 <BR>
 "}
-					sensor_data += {"
+                    sensor_data += {"
 <B>Panic syphon:</B> [data["panic"] ? "[SET_CLASS("<B>PANIC SYPHON ACTIVATED</B>", INTERFACE_RED)]" : ""]
 <A href='byond://?src=\ref[src];id_tag=[id_tag];command=panic_siphon;val=[!data["panic"]]'>[data["panic"] ? "[SET_CLASS("Deactivate", INTERFACE_BLUE)]" : "[SET_CLASS("Activate", INTERFACE_RED)]"]</A><BR>
 <HR>
 "}
-			else
-				sensor_data = "No scrubbers connected.<BR>"
-			output = {"<a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_MAIN]'>Main menu</a><br>[sensor_data]"}
+            else
+                sensor_data = "No scrubbers connected.<BR>"
+            output = {"<a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_MAIN]'>Main menu</a><br>[sensor_data]"}
 
-		if (AALARM_SCREEN_MODE)
-			output += "<a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_MAIN]'>Main menu</a><br><b>Air machinery mode for the area:</b><ul>"
-			var/list/modes = list(AALARM_MODE_SCRUBBING   = "Filtering - Scrubs out contaminants",\
-				AALARM_MODE_REPLACEMENT = SET_CLASS("Replace Air - Siphons out air while replacing", INTERFACE_BLUE),\
-				AALARM_MODE_PANIC    = SET_CLASS("Panic - Siphons air out of the room", INTERFACE_RED),\
-				AALARM_MODE_CYCLE    = SET_CLASS("Cycle - Siphons air before replacing", INTERFACE_RED),\
-				AALARM_MODE_FILL = SET_CLASS("Fill - Shuts off scrubbers and opens vents", INTERFACE_GREEN),\
-				AALARM_MODE_OFF  = SET_CLASS("Off - Shuts off vents and scrubbers", INTERFACE_BLUE)
-			)
-			for (var/m=1,m<=length(modes),m++)
-				if (mode==m)
-					output += "<li><A href='byond://?src=\ref[src];mode=[m]'><b>[modes[m]]</b></A> (selected)</li>"
-				else
-					output += "<li><A href='byond://?src=\ref[src];mode=[m]'>[modes[m]]</A></li>"
-			output += "</ul>"
+        if (AALARM_SCREEN_MODE)
+            output += "<a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_MAIN]'>Main menu</a><br><b>Air machinery mode for the area:</b><ul>"
+            var/list/modes = list()
+            modes["[AALARM_MODE_SCRUBBING]"] = "Filtering - Scrubs out contaminants"
+            modes["[AALARM_MODE_REPLACEMENT]"] = SET_CLASS("Replace Air - Siphons out air while replacing", INTERFACE_BLUE)
+            modes["[AALARM_MODE_PANIC]"] = SET_CLASS("Panic - Siphons air out of the room", INTERFACE_RED)
+            modes["[AALARM_MODE_CYCLE]"] = SET_CLASS("Cycle - Siphons air before replacing", INTERFACE_RED)
+            modes["[AALARM_MODE_FILL]"] = SET_CLASS("Fill - Shuts off scrubbers and opens vents", INTERFACE_GREEN)
+            modes["[AALARM_MODE_OFF]"] = SET_CLASS("Off - Shuts off vents and scrubbers", INTERFACE_BLUE)
 
-		if (AALARM_SCREEN_SENSORS)
-			output += {"
+            for (var/m=1,m<=length(modes),m++)
+                if (mode==m)
+                    output += "<li><A href='byond://?src=\ref[src];mode=[m]'><b>[modes["[m]"]]</b></A> (selected)</li>"
+                else
+                    output += "<li><A href='byond://?src=\ref[src];mode=[m]'>[modes["[m]"]]</A></li>"
+            output += "</ul>"
+
+        if (AALARM_SCREEN_SENSORS)
+            output += {"
 <a href='byond://?src=\ref[src];screen=[AALARM_SCREEN_MAIN]'>Main menu</a><br>
 <b>Alarm thresholds:</b><br>
 Partial pressure for gases
@@ -757,33 +758,33 @@ table tr:first-child th:first-child { border: none;}
 <table cellspacing=0>
 <TR><th></th><th class=dl2>min2</th><th class=dl1>min1</th><th class=dl1>max1</th><th class=dl2>max2</th></TR>
 "}
-			var/list/gases = list(
-				"oxygen"  = "O<sub>2</sub>",
-				"carbon dioxide" = "CO<sub>2</sub>",
-				"phoron"  = "Toxin",
-				"other"   = "Other",)
+            var/list/gases = list(
+                "oxygen"  = "O<sub>2</sub>",
+                "carbon dioxide" = "CO<sub>2</sub>",
+                "phoron"  = "Toxin",
+                "other"   = "Other",)
 
-			var/list/selected
-			for (var/g in gases)
-				output += "<TR><th>[gases[g]]</th>"
-				selected = TLV[g]
-				for(var/i = 1, i <= 4, i++)
-					output += "<td><A href='byond://?src=\ref[src];command=set_threshold;env=[g];var=[i]'>[selected[i] >= 0 ? selected[i] :"OFF"]</A></td>"
-				output += "</TR>"
+            var/list/selected
+            for (var/g in gases)
+                output += "<TR><th>[gases[g]]</th>"
+                selected = TLV[g]
+                for(var/i = 1, i <= 4, i++)
+                    output += "<td><A href='byond://?src=\ref[src];command=set_threshold;env=[g];var=[i]'>[selected[i] >= 0 ? selected[i] :"OFF"]</A></td>"
+                output += "</TR>"
 
-			selected = TLV["pressure"]
-			output += " <TR><th>Pressure</th>"
-			for(var/i = 1, i <= 4, i++)
-				output += "<td><A href='byond://?src=\ref[src];command=set_threshold;env=pressure;var=[i]'>[selected[i] >= 0 ? selected[i] :"OFF"]</A></td>"
-			output += "</TR>"
+            selected = TLV["pressure"]
+            output += " <TR><th>Pressure</th>"
+            for(var/i = 1, i <= 4, i++)
+                output += "<td><A href='byond://?src=\ref[src];command=set_threshold;env=pressure;var=[i]'>[selected[i] >= 0 ? selected[i] :"OFF"]</A></td>"
+            output += "</TR>"
 
-			selected = TLV["temperature"]
-			output += "<TR><th>Temperature</th>"
-			for(var/i = 1, i <= 4, i++)
-				output += "<td><A href='byond://?src=\ref[src];command=set_threshold;env=temperature;var=[i]'>[selected[i] >= 0 ? selected[i] :"OFF"]</A></td>"
-			output += "</TR></table>"
+            selected = TLV["temperature"]
+            output += "<TR><th>Temperature</th>"
+            for(var/i = 1, i <= 4, i++)
+                output += "<td><A href='byond://?src=\ref[src];command=set_threshold;env=temperature;var=[i]'>[selected[i] >= 0 ? selected[i] :"OFF"]</A></td>"
+            output += "</TR></table>"
 
-	return output
+    return output
 
 /obj/structure/machinery/alarm/Topic(href, href_list)
 	if(..() || !( Adjacent(usr) || isRemoteControlling(usr)) ) // dont forget calling super in machine Topics -walter0o

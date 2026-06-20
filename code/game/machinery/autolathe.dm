@@ -447,10 +447,10 @@
 		S.amount = multiplier
 
 /obj/structure/machinery/autolathe/proc/get_wire_descriptions()
-	return list(
-		AUTOLATHE_WIRE_HACK = "Item template controller",
-		AUTOLATHE_WIRE_SHOCK = "Ground safety"
-	)
+    var/list/descriptions = list()
+    descriptions["[AUTOLATHE_WIRE_HACK]"] = "Item template controller"
+    descriptions["[AUTOLATHE_WIRE_SHOCK]"] = "Ground safety"
+    return descriptions
 
 /obj/structure/machinery/autolathe/proc/isWireCut(wire)
 	return !(wires & getWireFlag(wire))
