@@ -13,6 +13,7 @@
 	damage = 40
 	penetration= ARMOR_PENETRATION_TIER_2
 	shrapnel_chance = SHRAPNEL_CHANCE_TIER_2
+	shell_casing = /obj/effect/decal/cleanable/ammo_casing
 
 /datum/ammo/bullet/pistol/setup_faction_clash_values()
 	. = ..()
@@ -101,6 +102,7 @@
 	sound_override = null
 
 	accuracy = HIT_ACCURACY_TIER_4
+	shell_casing = null
 
 // Used by M1911, Deagle and KT-42
 /datum/ammo/bullet/pistol/heavy
