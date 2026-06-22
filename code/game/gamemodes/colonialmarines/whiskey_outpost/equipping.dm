@@ -52,10 +52,8 @@ Make the USCM proud!"}
 
 
 //*************************************
-//----------------CMP-------------
+//---------------- Chief MP -------------
 //*************************************/
-
-//Chief MP
 /datum/job/command/warrant/whiskey
 	title = JOB_WO_CHIEF_POLICE
 	selection_class = "job_honor_guard_sl"
