@@ -354,6 +354,9 @@
 	dropship.crashing = TRUE
 	dropship.is_hijacked = TRUE
 
+	if(SShijack.hijack_status == HIJACK_OBJECTIVES_NOT_STARTED)
+		SShijack.hijack_status = HIJACK_OBJECTIVES_SHIP_INBOUND
+
 	hijack.fire()
 	GLOB.alt_ctrl_disabled = TRUE
 

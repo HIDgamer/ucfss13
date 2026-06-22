@@ -7,6 +7,7 @@
 	var/target_ship_section
 	var/hijacked_bypass_aa = FALSE
 	var/final_announcement = FALSE
+	var/aa_intercepted = FALSE
 
 /datum/dropship_hijack/almayer/proc/crash_landing()
 	//break APCs
@@ -51,6 +52,7 @@
 	// Break the ultra-reinforced windows.
 	// Break the briefing windows.
 	SEND_GLOBAL_SIGNAL(COMSIG_GLOB_HIJACK_IMPACTED)
+	UnregisterSignal(SSdcs, COMSIG_GLOB_HIJACK_LANDED)
 	RegisterSignal(SSdcs, COMSIG_GLOB_HIJACK_LANDED, PROC_REF(finish_landing))
 
 	// Sleep while the explosions do their job
@@ -65,7 +67,8 @@
 
 /datum/dropship_hijack/almayer/proc/finish_landing()
 	SShijack.announce_status_on_crash()
-	SSticker.hijack_ocurred()
+	if(!aa_intercepted)
+		SSticker.hijack_ocurred()
 
 /datum/dropship_hijack/almayer/proc/fire()
 	if(!shuttle || !crash_site)
@@ -92,6 +95,7 @@
 
 	target_site.name = "[shuttle] crash site"
 	target_site.id = "crash_site_[shuttle.id]"
+	target_site.register(replace = TRUE) // re-register with the correct id since Initialize() fires before id is set
 
 /datum/dropship_hijack/almayer/proc/check()
 	check_AA()
@@ -116,7 +120,8 @@
 		if(!offset_target)
 			offset_target = target // Welp the offsetting failed so...
 		crash_site.forceMove(offset_target)
-		marine_announcement("A hostile aircraft on course for the [target_ship_section] has been successfully deterred.", "IX-50 MGAD System", logging = ARES_LOG_SECURITY)
+		marine_announcement("A hostile aircraft on course for the [target_ship_section] has been successfully engaged and destroyed.", "IX-50 MGAD System", logging = ARES_LOG_SECURITY)
+		xeno_announcement(SPAN_XENOANNOUNCE("High caliber tracers begin ripping past the dropship!"), "everything", XENO_HIJACK_ANNOUNCE)
 		target_ship_section = new_target_ship_section
 		// TODO mobs not alerted
 		for(var/area/internal_area in shuttle.shuttle_areas)
@@ -126,8 +131,60 @@
 					to_chat(M, SPAN_DANGER("You feel the ship turning sharply as it adjusts its course!"))
 					shake_camera(M, 60, 2)
 			playsound_area(internal_area, 'sound/effects/antiair_explosions.ogg')
+		addtimer(CALLBACK(src, PROC_REF(aa_interception), shuttle), 5 SECONDS)
 
 	hijacked_bypass_aa = TRUE
+
+/datum/dropship_hijack/almayer/proc/aa_interception(/obj/docking_port/mobile/shuttle)
+	if(prob(15))
+		// AA damaged the dropship but failed to stop it — let it crash normally into the Almayer
+		marine_announcement("WARNING: Hostile aircraft has survived AA interception! Brace for impact!", "IX-50 MGAD System", logging = ARES_LOG_SECURITY)
+		return
+
+	aa_intercepted = TRUE
+
+	// Redirect the crash site to the planet so the shuttle crashes there with its occupants
+	var/obj/docking_port/stationary/planet_lz = SSshuttle.getDock(pick(DROPSHIP_LZ1, DROPSHIP_LZ2))
+	if(planet_lz)
+		crash_site.forceMove(planet_lz.loc)
+
+	spawn_aa_crash_debris()
+
+	xeno_announcement(SPAN_XENOANNOUNCE("AA fire tears through the hull! The dropship spirals toward the ground!"), "everything", XENO_HIJACK_ANNOUNCE)
+	marine_announcement("Hostile aircraft has been struck by AA fire and is going down! Wreckage inbound to planet surface!", "IX-50 MGAD System", logging = ARES_LOG_SECURITY)
+
+	// Round ends in 3 minutes as a marine minor victory — AA stopped the Almayer strike
+	addtimer(CALLBACK(src, PROC_REF(aa_crash_round_end)), 3 MINUTES)
+
+/datum/dropship_hijack/almayer/proc/aa_crash_round_end()
+	SSticker.mode.round_finished = MODE_INFESTATION_M_MINOR
+
+/datum/dropship_hijack/almayer/proc/spawn_aa_crash_debris()
+	var/list/lz_turfs = list()
+	var/obj/docking_port/stationary/lz1 = SSshuttle.getDock(DROPSHIP_LZ1)
+	var/obj/docking_port/stationary/lz2 = SSshuttle.getDock(DROPSHIP_LZ2)
+	if(lz1)
+		lz_turfs += lz1.return_turfs()
+	if(lz2)
+		lz_turfs += lz2.return_turfs()
+	if(!length(lz_turfs))
+		return
+
+	// Fire effects at the landing zones — burning wreckage
+	for(var/i = 1 to rand(4, 7))
+		var/turf/fire_turf = pick(lz_turfs)
+		INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(flame_radius), create_cause_data("dropship crash"), rand(2, 5), fire_turf, 10, 5, FLAMESHAPE_DEFAULT, null)
+
+	// Small impact craters
+	for(var/i = 1 to rand(3, 5))
+		var/turf/sploded = pick(lz_turfs)
+		INVOKE_ASYNC(GLOBAL_PROC, GLOBAL_PROC_REF(cell_explosion), sploded, 150, 10, EXPLOSION_FALLOFF_SHAPE_LINEAR, null, create_cause_data("dropship crash"))
+
+	// Scattered debris — metal sheets and rods from the destroyed hull
+	for(var/i = 1 to rand(8, 15))
+		new /obj/item/stack/sheet/metal(pick(lz_turfs), rand(2, 5))
+	for(var/i = 1 to rand(5, 10))
+		new /obj/item/stack/rods(pick(lz_turfs), rand(1, 3))
 
 /datum/dropship_hijack/almayer/proc/check_final_approach()
 	// if our duration isn't far enough away
