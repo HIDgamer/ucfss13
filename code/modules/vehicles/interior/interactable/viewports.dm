@@ -27,6 +27,11 @@
 	desc = "Hey, I can see my base from here!"
 	icon_state = "viewport_simple"
 
+/obj/structure/interior_viewport/med
+	name = "External Cameras Terminal"
+	desc = "A small terminal connected to the external cameras of a vehicle, allowing a 360-degree visual survey of vehicle surroundings. This one is equipped with a built-in medical HUD."
+	icon_state = "viewport_med"
+
 //van's frontal window viewport
 /obj/structure/interior_viewport/simple/windshield
 	name = "windshield"
