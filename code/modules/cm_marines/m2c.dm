@@ -213,6 +213,7 @@
 	health = 230
 	health_max = 230
 	display_ammo = FALSE
+	has_smoke = TRUE
 	var/list/cadeblockers = list()
 	var/cadeblockers_range = 1
 	var/stationary = FALSE
