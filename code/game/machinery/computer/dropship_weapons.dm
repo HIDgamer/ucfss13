@@ -440,8 +440,6 @@
 			if(upgraded != MATRIX_NVG)
 				to_chat(user, SPAN_WARNING("The matrix is not upgraded with night vision."))
 				return FALSE
-			if(user.client?.prefs?.night_vision_preference)
-				matrix_color = user.client.prefs.nv_color_list[user.client.prefs.night_vision_preference]
 			SEND_SIGNAL(src, COMSIG_CAMERA_SET_NVG, 5, matrix_color)
 			return TRUE
 

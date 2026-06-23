@@ -1100,16 +1100,9 @@ GLOBAL_LIST_EMPTY_TYPED(gear_datums_by_name, /datum/gear)
 	cost = 1 //The cadmium poisoning pays for the discounted cost longterm
 	allowed_origins = USCM_ORIGINS
 
-/datum/gear/misc/dogtags
-	display_name = "Attachable Dogtags"
-	path = /obj/item/clothing/accessory/dogtags
-	cost = 1
-	slot = WEAR_IN_ACCESSORY
-	allowed_origins = USCM_ORIGINS
-
 /datum/gear/misc/patch_uscm
 	display_name = "Falling Falcons shoulder patch, squad specific"
-	path = /obj/item/clothing/accessory/patch/falcon/squad_main
+	path = /obj/item/clothing/accessory/patch/falcon
 	cost = 1
 	slot = WEAR_IN_ACCESSORY
 	allowed_origins = USCM_ORIGINS
@@ -1138,10 +1131,6 @@ GLOBAL_LIST_EMPTY_TYPED(gear_datums_by_name, /datum/gear)
 	path = /obj/item/weapon/straight_razor
 	cost = 2
 
-/datum/gear/misc/watch
-	display_name = "Cheap wrist watch"
-	path = /obj/item/clothing/accessory/wrist/watch
-	cost = 1 // Cheap and crappy
 
 // Civilian only
 
