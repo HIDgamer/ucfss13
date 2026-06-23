@@ -21,22 +21,13 @@ type PickerData = {
   body_type: string;
   skin_color: string;
   body_size: string;
-
-  body_presentation: string;
 };
 
 export const BodyPicker = () => {
-  const { act, data } = useBackend<PickerData>();
+  const { data } = useBackend<PickerData>();
 
-  const {
-    icon,
-    body_size,
-    body_type,
-    skin_color,
-    body_types,
-    body_sizes,
-    body_presentation,
-  } = data;
+  const { icon, body_size, body_type, skin_color, body_types, body_sizes } =
+    data;
 
   const [picker, setPicker] = useState<'type' | 'size' | undefined>();
 
@@ -49,7 +40,7 @@ export const BodyPicker = () => {
   )[0];
 
   return (
-    <Window width={415} height={180} theme={'crtblue'}>
+    <Window width={390} height={180} theme={'crtblue'}>
       <Window.Content className="BodyPicker">
         {picker && (
           <Modal m={1}>
@@ -62,7 +53,7 @@ export const BodyPicker = () => {
               <Stack.Item>
                 <DmIcon
                   icon={icon}
-                  icon_state={`${skin_color}_torso_${body_size}_${body_type}_${body_presentation}`}
+                  icon_state={`${skin_color}_torso_${body_size}_${body_type}`}
                   width={'128px'}
                   mt={-5}
                 />
@@ -81,7 +72,7 @@ export const BodyPicker = () => {
                         <DmIcon
                           position="relative"
                           icon={icon}
-                          icon_state={`${skin_color}_torso_${body_size}_${unselectedBodyType.icon}_${body_presentation}`}
+                          icon_state={`${skin_color}_torso_${body_size}_${unselectedBodyType.icon}`}
                           width={'80px'}
                           right={'22px'}
                           bottom={'18px'}
@@ -103,7 +94,7 @@ export const BodyPicker = () => {
                         <DmIcon
                           position="relative"
                           icon={icon}
-                          icon_state={`${skin_color}_torso_${unselectedBodySize.icon}_${body_type}_${body_presentation}`}
+                          icon_state={`${skin_color}_torso_${unselectedBodySize.icon}_${body_type}`}
                           width={'80px'}
                           right={'22px'}
                           bottom={'18px'}
@@ -113,28 +104,6 @@ export const BodyPicker = () => {
                   </Button>
                 </Stack.Item>
               </Stack>
-            </Stack>
-          </Stack.Item>
-          <Stack.Item>
-            <Stack vertical fill>
-              <Stack.Item>
-                <Button
-                  onClick={() => act('body_presentation', { picked: 'm' })}
-                  height="5em"
-                  lineHeight="5em"
-                  icon="mars"
-                  selected={body_presentation === 'm'}
-                />
-              </Stack.Item>
-              <Stack.Item>
-                <Button
-                  height="5em"
-                  lineHeight="5em"
-                  onClick={() => act('body_presentation', { picked: 'f' })}
-                  icon="venus"
-                  selected={body_presentation === 'f'}
-                />
-              </Stack.Item>
             </Stack>
           </Stack.Item>
           <Stack.Item>
@@ -154,15 +123,8 @@ const TypePicker = (props: {
 
   const { picker, toUse } = props;
 
-  const {
-    body_type,
-    body_types,
-    skin_color,
-    body_size,
-    body_sizes,
-    icon,
-    body_presentation,
-  } = data;
+  const { body_type, body_types, skin_color, body_size, body_sizes, icon } =
+    data;
 
   const toIterate = toUse === 'type' ? body_types : body_sizes;
 
@@ -185,8 +147,8 @@ const TypePicker = (props: {
                 icon={icon}
                 icon_state={
                   toUse === 'type'
-                    ? `${skin_color}_torso_${body_size}_${type.icon}_${body_presentation}`
-                    : `${skin_color}_torso_${type.icon}_${body_type}_${body_presentation}`
+                    ? `${skin_color}_torso_${body_size}_${type.icon}`
+                    : `${skin_color}_torso_${type.icon}_${body_type}`
                 }
                 width={'80px'}
               />
