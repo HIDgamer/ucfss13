@@ -81,6 +81,7 @@
 
 	GLOB.living_xeno_list -= src
 	GLOB.xeno_mob_list -= src
+	SSxeno.processable_xeno_list -= src
 	SSmob.living_misc_mobs += src
 	GLOB.hellhound_list += src
 
