@@ -15,15 +15,6 @@
 	var/mob/dead/observer/G = usr
 	G.follow()
 
-/atom/movable/screen/ghost/minimap
-	name = "Minimap"
-	icon_state = "minimap"
-
-/atom/movable/screen/ghost/minimap/Click()
-	var/mob/dead/observer/ghost = usr
-
-	ghost.minimap.action_activate()
-
 /atom/movable/screen/ghost/reenter_corpse
 	name = "Reenter corpse"
 	icon_state = "reenter_corpse"
@@ -40,6 +31,15 @@
 	var/client/client = usr.client
 	client.toggle_ghost_hud()
 
+/atom/movable/screen/ghost/minimap
+	name = "Minimap"
+	icon_state = "minimap"
+
+/atom/movable/screen/ghost/minimap/Click()
+	var/mob/dead/observer/ghost = usr
+
+	ghost.minimap.action_activate()
+
 /datum/hud/ghost/New(mob/owner, ui_style='icons/mob/hud/human_white.dmi', ui_color, ui_alpha = 230)
 	. = ..()
 	var/atom/movable/screen/using
@@ -51,10 +51,6 @@
 	using = new /atom/movable/screen/ghost/minimap()
 	using.screen_loc = ui_ghost_slot3
 	static_inventory += using
-
-	// using = new /atom/movable/screen/ghost/follow_human()
-	// using.screen_loc = ui_ghost_slot3
-	// static_inventory += using
 
 	using = new /atom/movable/screen/ghost/reenter_corpse()
 	using.screen_loc = ui_ghost_slot4

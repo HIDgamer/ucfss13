@@ -98,3 +98,6 @@
 
 /// From /mob/living/carbon/xenomorph/proc/do_evolve()
 #define COMSIG_XENO_EVOLVE_TO_NEW_CASTE "xeno_evolve_to_new_caste"
+
+/// From /mob/living/carbon/human/proc/check_hive_xeno_count() when humans become visible on xeno tacmap during hijack: ()
+#define COMSIG_XENO_REVEAL_TACMAP "xeno_reveal_tacmap"

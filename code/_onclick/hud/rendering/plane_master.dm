@@ -187,8 +187,7 @@
 /atom/movable/screen/plane_master/escape_menu
 	name = "Escape Menu"
 	plane = ESCAPE_MENU_PLANE
-	appearance_flags = PLANE_MASTER|NO_CLIENT_COLOR
-	render_relay_plane = RENDER_PLANE_MASTER
+	render_relay_plane = null
 
 /atom/movable/screen/plane_master/displacement
 	name = "displacement plane"
@@ -196,3 +195,11 @@
 	plane = DISPLACEMENT_PLATE_RENDER_LAYER
 	render_target = DISPLACEMENT_PLATE_RENDER_TARGET
 	render_relay_plane = null
+
+/atom/movable/screen/plane_master/minimap
+	name = "minimap plane"
+	plane = TACMAP_PLANE
+	appearance_flags = PLANE_MASTER|NO_CLIENT_COLOR|PIXEL_SCALE
+	render_relay_plane = null
+	var/cur_x_shift = 0
+	var/cur_y_shift = 0

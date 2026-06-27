@@ -76,28 +76,47 @@
 	use_power = USE_POWER_IDLE
 	density = TRUE
 	idle_power_usage = 2
-	var/datum/tacmap/map
-	///flags that we want to be shown when you interact with this table
-	var/minimap_type = MINIMAP_FLAG_USCM
-	///The faction that is intended to use this structure (determines type of tacmap used)
-	var/faction = FACTION_MARINE
+	var/minimap_flag = MINIMAP_FLAG_USCM
+	var/drawing = TRUE
 
-/obj/structure/machinery/prop/almayer/CICmap/Initialize()
+/obj/structure/machinery/prop/almayer/CICmap/Initialize(mapload, ...)
 	. = ..()
-
-	if (faction == FACTION_MARINE)
-		map = new /datum/tacmap/drawing(src, minimap_type)
-	else
-		map = new(src, minimap_type) // Non-drawing version
+	AddComponent(/datum/component/tacmap, has_drawing_tools=drawing, minimap_flag=minimap_flag, has_update=drawing, drawing=drawing)
 
 /obj/structure/machinery/prop/almayer/CICmap/Destroy()
-	QDEL_NULL(map)
 	return ..()
 
 /obj/structure/machinery/prop/almayer/CICmap/attack_hand(mob/user)
 	. = ..()
+	if(.)
+		return
+	if(interact_checks(user))
+		return TRUE
 
-	map.tgui_interact(user)
+	if(locate(/atom/movable/screen/minimap) in user.client.screen) //This seems like the most effective way to do this without some wacky code
+		to_chat(user, SPAN_WARNING("You already have a minimap open!"))
+		return
+	var/datum/component/tacmap/tacmap_component = GetComponent(/datum/component/tacmap)
+	tacmap_component.show_tacmap(user)
+	RegisterSignal(user, COMSIG_MOVABLE_MOVED, PROC_REF(on_move), user)
+
+///Returns true if something prevents the user from interacting with this. used mainly with the drawtable
+/obj/structure/machinery/prop/almayer/CICmap/proc/interact_checks(mob/user)
+	if(!user.client)
+		return TRUE
+
+/obj/structure/machinery/prop/almayer/CICmap/on_unset_interaction(mob/user)
+	. = ..()
+	var/datum/component/tacmap/tacmap_component = GetComponent(/datum/component/tacmap)
+	tacmap_component.on_unset_interaction(user)
+
+//Bugfix to handle cases for ghosts/observers that dont automatically close uis on move.
+/obj/structure/machinery/prop/almayer/CICmap/proc/on_move(mob/source, oldloc)
+	SIGNAL_HANDLER
+	if(Adjacent(source))
+		return
+	on_unset_interaction(source)
+	UnregisterSignal(source, COMSIG_MOVABLE_MOVED)
 
 /obj/structure/machinery/prop/almayer/CICmap/computer
 	name = "map terminal"
@@ -107,16 +126,154 @@
 	density = FALSE
 
 /obj/structure/machinery/prop/almayer/CICmap/upp
-	minimap_type = MINIMAP_FLAG_UPP
-	faction = FACTION_UPP
+	minimap_flag = MINIMAP_FLAG_UPP
 
 /obj/structure/machinery/prop/almayer/CICmap/clf
-	minimap_type = MINIMAP_FLAG_CLF
-	faction = FACTION_CLF
+	minimap_flag = MINIMAP_FLAG_CLF
 
 /obj/structure/machinery/prop/almayer/CICmap/pmc
-	minimap_type = MINIMAP_FLAG_WY
-	faction = FACTION_PMC
+	minimap_flag = MINIMAP_FLAG_PMC
+
+/// A placeable surface (attackby()/auto_align()) that also shows the tacmap when interacted with, via the same tacmap component every other CICmap subtype uses.
+/obj/structure/machinery/prop/almayer/CICmap/table
+	name = "map table"
+	desc = "A large flat map table used for planning operations. It's large enough it can even be used as a proper table."
+	icon = 'icons/obj/structures/props/almayer/almayer_props96.dmi'
+	icon_state = "maptable"
+	layer = TABLE_LAYER
+	light_system = STATIC_LIGHT
+	light_color = "#DAE2FF"
+	light_power = 1
+	light_range = 2.5
+	light_pixel_x = 16
+	light_pixel_y = 32
+	bound_width = 64
+	bound_height = 96
+
+/obj/structure/machinery/prop/almayer/CICmap/table/attackby(obj/item/attacking_item, mob/user, click_data)
+	if(!user.drop_inv_item_to_loc(attacking_item, loc))
+		return
+
+	auto_align(attacking_item, click_data)
+	user.next_move = world.time + 2
+	return TRUE
+
+/// Places a dropped item where it was actually clicked on the table's sprite, matching the same click-to-place idiom code/game/objects/structures/surface.dm already uses.
+/obj/structure/machinery/prop/almayer/CICmap/table/proc/auto_align(obj/item/new_item, click_data)
+	if(!new_item.center_of_mass) // Clothing, material stacks, generally items with large sprites where exact placement would be unhandy.
+		new_item.pixel_x = rand(-new_item.randpixel, new_item.randpixel)
+		new_item.pixel_y = rand(-new_item.randpixel, new_item.randpixel)
+		new_item.pixel_z = 0
+		return
+
+	if(!click_data)
+		return
+
+	if(!click_data[ICON_X] || !click_data[ICON_Y])
+		return
+
+	// Calculation to apply new pixelshift.
+	var/mouse_x = text2num(click_data[ICON_X])-1 // Ranging from 0 to 31
+	var/mouse_y = text2num(click_data[ICON_Y])-1
+
+	var/cell_x = clamp(floor(mouse_x/CELLSIZE), 0, CELLS-1) // Ranging from 0 to CELLS-1
+	var/cell_y = clamp(floor(mouse_y/CELLSIZE), 0, CELLS-1)
+
+	var/list/center = cached_key_number_decode(new_item.center_of_mass)
+
+	new_item.pixel_x = (CELLSIZE * (cell_x + 0.5)) - center["x"]
+	new_item.pixel_y = (CELLSIZE * (cell_y + 0.5)) - center["y"]
+	new_item.pixel_z = 0
+
+/obj/structure/machinery/prop/almayer/CICmap/table/update_icon()
+	..()
+
+	overlays.Cut()
+
+	if(!(stat & NOPOWER))
+		var/image/source_image = image(src.icon, icon_state = "[icon_state]_e")
+		overlays += emissive_appearance(source_image.icon, source_image.icon_state)
+		overlays += mutable_appearance(source_image.icon, source_image.icon_state)
+		light_power = 1
+	else return
+
+/obj/structure/machinery/prop/almayer/CICmap/table/clf
+	minimap_flag = MINIMAP_FLAG_CLF
+
+/obj/structure/machinery/prop/almayer/CICmap/table/upp
+	minimap_flag = MINIMAP_FLAG_UPP
+
+/obj/structure/machinery/prop/almayer/CICmap/table/pmc
+	minimap_flag = MINIMAP_FLAG_PMC
+
+/// A 32x32 single-tile piece of the same table, for map spots where the full 64x96 bound-box footprint doesn't fit cleanly.
+/obj/structure/machinery/prop/almayer/CICmap/table/segment
+	icon = 'icons/obj/structures/props/maptable.dmi'
+	icon_state = "v_maptable1"
+	bound_width = 32
+	bound_height = 32
+	light_pixel_x = 0
+	light_pixel_y = 0
+
+/obj/structure/machinery/prop/almayer/CICmap/table/segment/one
+	icon_state = "v_maptable1"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/segment/two
+	icon_state = "v_maptable2"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/segment/three
+	icon_state = "v_maptable3"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/segment/four
+	icon_state = "v_maptable4"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/segment/five
+	icon_state = "v_maptable5"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/segment/six
+	icon_state = "v_maptable6"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal
+	icon_state = "h_maptable"
+	bound_width = 96
+	bound_height = 64
+	light_pixel_x = 32
+	light_pixel_y = 16
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal/clf
+	minimap_flag = MINIMAP_FLAG_CLF
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal/upp
+	minimap_flag = MINIMAP_FLAG_UPP
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal/pmc
+	minimap_flag = MINIMAP_FLAG_PMC
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal/segment
+	icon = 'icons/obj/structures/props/maptable.dmi'
+	icon_state = "h_maptable1"
+	bound_width = 32
+	bound_height = 32
+	light_pixel_x = 0
+	light_pixel_y = 0
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal/segment/one
+	icon_state = "h_maptable1"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal/segment/two
+	icon_state = "h_maptable2"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal/segment/three
+	icon_state = "h_maptable3"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal/segment/four
+	icon_state = "h_maptable4"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal/segment/five
+	icon_state = "h_maptable5"
+
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal/segment/six
+	icon_state = "h_maptable6"
 
 //Nonpower using props
 
