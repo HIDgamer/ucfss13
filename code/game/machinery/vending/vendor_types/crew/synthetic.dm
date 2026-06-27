@@ -402,7 +402,7 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth_snowflake, list(
 /obj/structure/machinery/cm_vending/own_points/experimental_tools/redeem_token(obj/item/coin/marine/token, mob/user)
 	if(token.token_type == VEND_TOKEN_SYNTH)
 		if(user.drop_inv_item_to_loc(token, src))
-			available_points = 50
+			available_points = 60
 			available_points_to_display = available_points
 			to_chat(user, SPAN_NOTICE("You insert \the [token] into \the [src]."))
 			return TRUE
@@ -414,12 +414,10 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth_snowflake, list(
 GLOBAL_LIST_INIT(cm_vending_synth_tools, list(
 	list("PK-130", 0, null, null, null),
 	list("PK-130 SIMI Wrist-Mounted Computer", 25, /obj/item/clothing/gloves/synth, null, VENDOR_ITEM_REGULAR),
-	list("PK-130 Repair Mode", 15, /obj/item/device/simi_chip/repair, null, VENDOR_ITEM_RECOMMENDED),
-	list("PK-130 Protection Mode", 10, /obj/item/device/simi_chip/protect, null, VENDOR_ITEM_REGULAR),
-	list("PK-130 Anchor Mode", 5, /obj/item/device/simi_chip/anchor, null, VENDOR_ITEM_REGULAR),
-	list("PK-130 Motion Detector", 5, /obj/item/device/simi_chip/motion_detector, null, VENDOR_ITEM_REGULAR),
-	list("PK-130 Tactical Map", 5, /obj/item/device/simi_chip/tactical_map, null, VENDOR_ITEM_REGULAR),
-	list("PK-130 Rescue Hook", 10, /obj/item/device/simi_chip/rescue_hook, null, VENDOR_ITEM_REGULAR),
+	list("PK-130 Motion Detector", 10, /obj/item/device/simi_chip/motion_detector, null, VENDOR_ITEM_REGULAR),
+	list("PK-130 Ocular Upgrade", 10, /obj/item/device/simi_chip/laser_designator, null, VENDOR_ITEM_REGULAR),
+	list("PK-130 Extended Battery", 10, /obj/item/device/simi_chip/battery_upgrade, null, VENDOR_ITEM_REGULAR),
+	list("PK-130 LTM", 10, /obj/item/device/simi_chip/live_tactical_map, null, VENDOR_ITEM_REGULAR),
 
 	list("UTILITY & SELF DEFENSE TOOLS", 0, null, null, null),
 	list("Telescopic Baton", 25, /obj/item/weapon/telebaton, null, VENDOR_ITEM_REGULAR),
@@ -430,7 +428,6 @@ GLOBAL_LIST_INIT(cm_vending_synth_tools, list(
 	list("Autocompressor", 25, /obj/item/clothing/suit/auto_cpr, null, VENDOR_ITEM_REGULAR),
 	list("Compact Defibrillator", 25, /obj/item/device/defibrillator/compact, null, VENDOR_ITEM_REGULAR),
 	list("Portable Dialysis Machine", 25, /obj/item/tool/portadialysis, null, VENDOR_ITEM_REGULAR),
-	list("Crew Monitor", 10, /obj/item/tool/crew_monitor, null, VENDOR_ITEM_REGULAR),
 
 	list("CONSTRUCTION TOOLS", 0, null, null, null),
 	list("Breaching Hammer", 25, /obj/item/weapon/twohanded/breacher/synth, null, VENDOR_ITEM_REGULAR),
