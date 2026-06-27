@@ -6,7 +6,7 @@
 
 import { storage } from 'common/storage';
 
-import { setClientTheme, THEMES } from '../themes';
+import { setClientTheme } from '../themes';
 import {
   addHighlightSetting,
   loadSettings,
@@ -31,6 +31,8 @@ const setGlobalFontFamily = (fontFamily) => {
 
 export const settingsMiddleware = (store) => {
   let initialized = false;
+  // Apply dark immediately so BYOND window isn't white while storage loads asynchronously.
+  setClientTheme('dark', null);
   return (next) => (action) => {
     const { type, payload } = action;
     if (!initialized) {
@@ -46,21 +48,12 @@ export const settingsMiddleware = (store) => {
       type === removeHighlightSetting.type ||
       type === updateHighlightSetting.type
     ) {
-      // Set client theme
-      let theme = payload?.theme;
-      if (!theme) {
-        store.dispatch(
-          updateSettings({
-            theme: THEMES[0],
-          }),
-        );
-        theme = THEMES[0];
-      }
-      setClientTheme(theme);
-      // Pass action to get an updated state
+      // Pass action first so state is fully updated (including migration)
       next(action);
       const settings = selectSettings(store.getState());
-      // Update global UI font size
+      // Apply client theme using the updated base + color preset
+      setClientTheme(settings.theme, settings.colorPreset);
+      // Update global UI font size/family
       setGlobalFontSize(settings.fontSize);
       setGlobalFontFamily(settings.fontFamily);
       // Save settings to the web storage

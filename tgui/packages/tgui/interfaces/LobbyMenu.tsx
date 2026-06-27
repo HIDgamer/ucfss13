@@ -181,7 +181,7 @@ export const LobbyMenu = () => {
                       buttons={
                         <Button icon="xmark" onClick={() => setModal(false)} />
                       }
-                      className="styledText"
+                      className="styledText crtTheme"
                     >
                       <Stack>
                         <Stack.Item>
@@ -258,6 +258,7 @@ const ModalConfirm = (props: PropsWithChildren) => {
       buttons={<Button mb={5} onClick={() => setModal!(false)} icon={'x'} />}
       p={3}
       title={'Confirm'}
+      className="crtTheme"
     >
       {children}
     </Section>
@@ -313,6 +314,19 @@ const LobbyButtons = (props: {
                         setHidden(true);
                       }}
                     />
+                  </Box>
+                </Stack.Item>
+                <Stack.Item>
+                  <Box
+                    className="styledText"
+                    style={{
+                      fontSize: '0.6em',
+                      opacity: 0.65,
+                      whiteSpace: 'nowrap',
+                      letterSpacing: '0.05em',
+                    }}
+                  >
+                    {round_start ? '[ STANDBY ]' : '[ ACTIVE ]'}
                   </Box>
                 </Stack.Item>
               </Stack>
