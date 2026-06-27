@@ -75,7 +75,6 @@ export const TacmapAdminPanel = (props) => {
           </Stack.Item>
           <Stack.Item mx={0} basis="content">
             <PageComponent
-              svg={pageIndex === 0 ? uscm_svg : xeno_svg}
               ckeys={pageIndex === 0 ? uscm_ckeys : xeno_ckeys}
               names={pageIndex === 0 ? uscm_names : xeno_names}
               times={pageIndex === 0 ? uscm_times : xeno_times}
@@ -87,9 +86,14 @@ export const TacmapAdminPanel = (props) => {
             <div justify="center" align="center" fontSize="30px">
               <DrawnMap
                 key={last_update_time + pageIndex}
-                svgData={pageIndex === 0 ? uscm_svg : xeno_svg}
-                flatImage={pageIndex === 0 ? uscm_map : xeno_map}
+                flatImage={(pageIndex === 0 ? uscm_map : xeno_map) || ''}
                 backupImage={map_fallback}
+              />
+              <DrawnMap
+                key={last_update_time + pageIndex + 2} // +2 because the other page is +1
+                flatImage={(pageIndex === 0 ? uscm_svg : xeno_svg) || ''}
+                backupImage={map_fallback}
+                showLoading={false}
               />
             </div>
           </Stack.Item>
@@ -147,25 +151,27 @@ const FactionPage = (props) => {
           <Flex.Item grow={1} align="center" m={1} p={0.2}>
             {names[ckey_index]} ({ckey}) - {times[ckey_index]}
           </Flex.Item>
-          <Flex.Item grow={0} basis="content" mr={0.5} mt={0.8}>
-            <Button.Confirm
-              icon="trash"
-              color="white"
-              confirmColor="bad"
-              textAlign="center"
-              verticalAlignContent="bottom"
-              width={6.5}
-              disabled={selected_map !== ckey_index || svg === null}
-              onClick={() =>
-                act('delete', {
-                  uscm: is_uscm,
-                  index: ckey_index,
-                })
-              }
-            >
-              Delete
-            </Button.Confirm>
-          </Flex.Item>
+          {ckey_index === ckeys.length - 1 && ckey !== 'DELETED' && (
+            <Flex.Item grow={0} basis="content" mr={0.5} mt={0.8}>
+              <Button.Confirm
+                icon="trash"
+                color="white"
+                confirmColor="bad"
+                textAlign="center"
+                verticalAlignContent="bottom"
+                width={6.5}
+                disabled={selected_map !== ckey_index || svg === null}
+                onClick={() =>
+                  act('delete', {
+                    uscm: is_uscm,
+                    index: ckey_index,
+                  })
+                }
+              >
+                Delete
+              </Button.Confirm>
+            </Flex.Item>
+          )}
         </Flex>
       ))}
     </Section>

@@ -199,6 +199,46 @@ CIVILIAN
 		SKILL_FIREMAN = SKILL_FIREMAN_SKILLED,
 	)
 
+/datum/skills/civilian/survivor/clf/leader
+	name = "Survivor CLF Leader"
+	additional_skills = list(
+		SKILL_ENGINEER = SKILL_ENGINEER_TRAINED,
+		SKILL_CQC = SKILL_CQC_SKILLED,
+		SKILL_LEADERSHIP = SKILL_LEAD_EXPERT,
+		SKILL_OVERWATCH = SKILL_OVERWATCH_TRAINED,
+		SKILL_FIREMAN = SKILL_FIREMAN_EXPERT,
+		SKILL_CONSTRUCTION = SKILL_CONSTRUCTION_ENGI,
+		SKILL_JTAC = SKILL_JTAC_EXPERT,
+	)
+
+/datum/skills/civilian/survivor/clf/combat_medic
+	name = "Survivor CLF Medic"
+	additional_skills = list(
+		SKILL_MEDICAL = SKILL_MEDICAL_MEDIC,
+		SKILL_SURGERY = SKILL_SURGERY_TRAINED,
+		SKILL_FIREMAN = SKILL_FIREMAN_EXPERT,
+	)
+
+/datum/skills/civilian/survivor/clf/combat_engineer
+	name = "Survivor CLF Engineer"
+	additional_skills = list(
+		SKILL_ENGINEER = SKILL_ENGINEER_TRAINED,
+		SKILL_CONSTRUCTION = SKILL_CONSTRUCTION_ENGI,
+		SKILL_FIREMAN = SKILL_FIREMAN_EXPERT,
+		SKILL_POWERLOADER = SKILL_POWERLOADER_TRAINED,
+	)
+
+/datum/skills/civilian/survivor/clf/coordinator
+	name = "Survivor CLF Coordinator"
+	additional_skills = list(
+		SKILL_ENGINEER = SKILL_ENGINEER_TRAINED,
+		SKILL_LEADERSHIP = SKILL_LEAD_MASTER,
+		SKILL_OVERWATCH = SKILL_OVERWATCH_TRAINED,
+		SKILL_FIREMAN = SKILL_FIREMAN_EXPERT,
+		SKILL_JTAC = SKILL_JTAC_EXPERT,
+		SKILL_INTEL = SKILL_INTEL_TRAINED,
+	)
+
 /datum/skills/civilian/survivor/scientist
 	name = "Survivor Scientist"
 	additional_skills = list(

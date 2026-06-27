@@ -7,6 +7,13 @@
 	languages = ALL_HUMAN_LANGUAGES
 	faction = FACTION_MARINE
 
+	paygrades = list(PAY_SHORT_CIV = JOB_PLAYTIME_TIER_0)
+	role_comm_title = "CIV"
+	minimap_icon = "cia_ia"
+	minimap_background = "background_civillian"
+	idtype = /obj/item/card/id/adaptive
+
+
 /datum/equipment_preset/cia/New()
 	. = ..()
 	access = get_access(ACCESS_LIST_MARINE_ALL) + list(ACCESS_CIA)

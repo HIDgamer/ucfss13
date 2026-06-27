@@ -148,7 +148,7 @@
 					serialized["background_icon"] = human.assigned_squad.background_icon
 				else
 					serialized["background_icon"] = human.assigned_equipment_preset?.minimap_background
-
+				
 				if(istype(get_area(human), /area/tdome))
 					in_thunderdome += list(serialized)
 				else if(human.job in FAX_RESPONDER_JOB_LIST)
