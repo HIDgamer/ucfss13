@@ -9,6 +9,7 @@ import {
   Section,
   Slider,
   Stack,
+  Table,
   Tabs,
   Tooltip,
 } from '../components';
@@ -88,142 +89,139 @@ export const PlayerPanel = (props) => {
   } = data;
 
   return (
-    <Window title={`${mob_name} Player Panel`} width={600} height={500}>
+    <Window
+      title={`${mob_name} Player Panel`}
+      width={620}
+      height={540}
+      theme="crtgreen"
+    >
       <Window.Content scrollable>
-        <Section md={1}>
-          <Stack>
-            <Stack.Item width="80px" color="label">
-              Name:
-            </Stack.Item>
-            <Stack.Item grow={1} align="right">
-              {(!!hasPermission(data, 'set_name') && (
-                <Input
-                  width={25}
-                  value={mob_name}
-                  onChange={(e, value) => act('set_name', { name: value })}
-                />
-              )) ||
-                mob_name}
-            </Stack.Item>
-          </Stack>
-          <Stack mt={1}>
-            <Stack.Item width="80px" color="label">
-              Mob Type:
-            </Stack.Item>
-            <Stack.Item grow={1} align="right">
-              {mob_type}
-            </Stack.Item>
-            <Stack.Item align="right">
-              <Button
-                icon="window-restore"
-                disabled={!hasPermission(data, 'access_variables')}
-                onClick={() => act('access_variables')}
-              >
-                Access Variables
-              </Button>
-            </Stack.Item>
-            <Stack.Item>
-              <Button
-                icon="window-restore"
-                disabled={!hasPermission(data, 'show_notes')}
-                onClick={() => act('access_playtimes')}
-              >
-                View Playtimes
-              </Button>
-            </Stack.Item>
-          </Stack>
-          <Stack mt={1}>
-            <Stack.Item width="80px" color="label">
-              Client:
-            </Stack.Item>
-            <Stack.Item grow={1} align="left">
-              {((canModifyCkey || !client_key) &&
-                hasPermission(data, 'set_ckey') && (
+        <Section title="Identity" mb={1}>
+          <Table>
+            <Table.Row>
+              <Table.Cell color="label" width="90px">
+                Name
+              </Table.Cell>
+              <Table.Cell>
+                {(!!hasPermission(data, 'set_name') && (
                   <Input
-                    value={client_ckey}
-                    onChange={(e, value) => act('set_ckey', { ckey: value })}
+                    fluid
+                    value={mob_name}
+                    onChange={(e, value) => act('set_name', { name: value })}
                   />
-                )) || <Box inline>{client_key}</Box>}
-            </Stack.Item>
-            {!!client_ckey && (
-              <Stack.Item align="right">
-                {!!hasPermission(data, 'set_name') && (
-                  <Button
-                    ml={1}
-                    icon={canModifyCkey ? 'lock-open' : 'lock'}
-                    onClick={() => setModifyCkey(!canModifyCkey)}
-                    color={canModifyCkey ? 'average' : 'good'}
-                  >
-                    {canModifyCkey ? 'Unlocked' : 'Locked'}
-                  </Button>
-                )}
-                <Button
-                  ml={1}
-                  icon="comment-dots"
-                  disabled={!hasPermission(data, 'private_message')}
-                  onClick={() => act('private_message')}
-                >
-                  Private Message
-                </Button>
-                <Button
-                  ml={1}
-                  icon="phone-alt"
-                  disabled={!hasPermission(data, 'subtle_message')}
-                  onClick={() => act('subtle_message')}
-                >
-                  Subtle Message
-                </Button>
-              </Stack.Item>
-            )}
-          </Stack>
-          {client_rank && (
-            <Stack mt={1}>
-              <Stack.Item width="80px" color="label">
-                Rank:
-              </Stack.Item>
-              <Stack.Item grow={1} align="left">
+                )) ||
+                  mob_name}
+              </Table.Cell>
+              <Table.Cell collapsing>
                 <Button
                   icon="window-restore"
-                  disabled={!hasPermission(data, 'access_admin_datum')}
-                  onClick={() => act('access_admin_datum')}
-                >
-                  {client_rank}
-                </Button>
-              </Stack.Item>
-              <Stack.Item align="right">
+                  disabled={!hasPermission(data, 'access_variables')}
+                  onClick={() => act('access_variables')}
+                  tooltip="Access Variables"
+                  tooltipPosition="bottom-end"
+                />
                 <Button
-                  ml={1}
-                  icon="exclamation-triangle"
-                  disabled={!hasPermission(data, 'alert_message')}
-                  onClick={() => act('alert_message')}
-                >
-                  Alert Message
-                </Button>
-              </Stack.Item>
-            </Stack>
-          )}
-          {client_age && (
-            <Stack mt={1}>
-              <Stack.Item width="80px" color="label">
-                Account age:
-              </Stack.Item>
-              <Stack.Item grow={1} align="right">
-                {client_age}
-              </Stack.Item>
-            </Stack>
-          )}
-          {first_join && (
-            <Stack mt={1}>
-              <Stack.Item width="80px" color="label">
-                <Tooltip content="This is estimated, and depending on database integrity, may not be accurate to a user's first join date.">
-                  <Box position="relative">First join:</Box>
-                </Tooltip>
-              </Stack.Item>
-              <Stack.Item grow={1} align="right">
-                {first_join}
-              </Stack.Item>
-            </Stack>
-          )}
+                  ml={0.5}
+                  icon="clock"
+                  disabled={!hasPermission(data, 'show_notes')}
+                  onClick={() => act('access_playtimes')}
+                  tooltip="View Playtimes"
+                  tooltipPosition="bottom-end"
+                />
+              </Table.Cell>
+            </Table.Row>
+            <Table.Row>
+              <Table.Cell color="label">Mob Type</Table.Cell>
+              <Table.Cell colSpan={2}>{mob_type}</Table.Cell>
+            </Table.Row>
+            <Table.Row>
+              <Table.Cell color="label">Client</Table.Cell>
+              <Table.Cell>
+                {((canModifyCkey || !client_key) &&
+                  hasPermission(data, 'set_ckey') && (
+                    <Input
+                      fluid
+                      value={client_ckey}
+                      onChange={(e, value) => act('set_ckey', { ckey: value })}
+                    />
+                  )) || <Box inline>{client_key || '—'}</Box>}
+              </Table.Cell>
+              <Table.Cell collapsing>
+                {!!client_ckey && (
+                  <Stack>
+                    {!!hasPermission(data, 'set_name') && (
+                      <Stack.Item>
+                        <Button
+                          icon={canModifyCkey ? 'lock-open' : 'lock'}
+                          onClick={() => setModifyCkey(!canModifyCkey)}
+                          color={canModifyCkey ? 'average' : 'good'}
+                          tooltip={canModifyCkey ? 'Lock ckey' : 'Unlock ckey'}
+                          tooltipPosition="bottom-end"
+                        />
+                      </Stack.Item>
+                    )}
+                    <Stack.Item>
+                      <Button
+                        icon="comment-dots"
+                        disabled={!hasPermission(data, 'private_message')}
+                        onClick={() => act('private_message')}
+                        tooltip="Private Message"
+                        tooltipPosition="bottom-end"
+                      />
+                    </Stack.Item>
+                    <Stack.Item>
+                      <Button
+                        icon="phone-alt"
+                        disabled={!hasPermission(data, 'subtle_message')}
+                        onClick={() => act('subtle_message')}
+                        tooltip="Subtle Message"
+                        tooltipPosition="bottom-end"
+                      />
+                    </Stack.Item>
+                  </Stack>
+                )}
+              </Table.Cell>
+            </Table.Row>
+            {client_rank && (
+              <Table.Row>
+                <Table.Cell color="label">Rank</Table.Cell>
+                <Table.Cell>
+                  <Button
+                    icon="user-shield"
+                    disabled={!hasPermission(data, 'access_admin_datum')}
+                    onClick={() => act('access_admin_datum')}
+                  >
+                    {client_rank}
+                  </Button>
+                </Table.Cell>
+                <Table.Cell collapsing>
+                  <Button
+                    icon="exclamation-triangle"
+                    disabled={!hasPermission(data, 'alert_message')}
+                    onClick={() => act('alert_message')}
+                    tooltip="Alert Message"
+                    tooltipPosition="bottom-end"
+                  />
+                </Table.Cell>
+              </Table.Row>
+            )}
+            {client_age && (
+              <Table.Row>
+                <Table.Cell color="label">Account age</Table.Cell>
+                <Table.Cell colSpan={2}>{client_age}</Table.Cell>
+              </Table.Row>
+            )}
+            {first_join && (
+              <Table.Row>
+                <Table.Cell color="label">
+                  <Tooltip content="Estimated — may not reflect actual first join if database integrity is incomplete.">
+                    <Box>First join</Box>
+                  </Tooltip>
+                </Table.Cell>
+                <Table.Cell colSpan={2}>{first_join}</Table.Cell>
+              </Table.Row>
+            )}
+          </Table>
         </Section>
         <Stack grow={1}>
           <Stack.Item>

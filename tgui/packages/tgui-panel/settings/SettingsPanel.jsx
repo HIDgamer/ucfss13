@@ -20,11 +20,12 @@ import {
   Stack,
   Tabs,
   TextArea,
+  Tooltip,
 } from 'tgui/components';
 
 import { ChatPageSettings } from '../chat';
 import { clearChat, rebuildChat, saveChatToDisk } from '../chat/actions';
-import { THEMES } from '../themes';
+import { CRT_THEMES, THEMES } from '../themes';
 import {
   addHighlightSetting,
   changeSettingsTab,
@@ -75,26 +76,104 @@ export const SettingsPanel = (props) => {
   );
 };
 
+const ThemeSwatch = ({ name, config, selected, onSelect }) => (
+  <Tooltip content={config ? config.label : name}>
+    <Box
+      inline
+      mr={0.5}
+      mb={0.5}
+      style={{
+        cursor: 'pointer',
+        width: '1.6em',
+        height: '1.6em',
+        backgroundColor: config ? config.bg : name === 'dark' ? '#202020' : '#e8e8e8',
+        border: selected
+          ? `2px solid ${config ? config.fg : name === 'dark' ? '#a4bad6' : '#333'}`
+          : '2px solid transparent',
+        outline: selected ? '1px solid rgba(255,255,255,0.3)' : 'none',
+        boxSizing: 'border-box',
+        position: 'relative',
+      }}
+      onClick={() => onSelect(name)}
+    >
+      {config && (
+        <Box
+          style={{
+            position: 'absolute',
+            bottom: '2px',
+            right: '2px',
+            width: '6px',
+            height: '6px',
+            backgroundColor: config.fg,
+            borderRadius: '50%',
+          }}
+        />
+      )}
+    </Box>
+  </Tooltip>
+);
+
 export const SettingsGeneral = (props) => {
-  const { theme, fontFamily, fontSize, lineHeight } =
+  const { theme, colorPreset, fontFamily, fontSize, lineHeight } =
     useSelector(selectSettings);
   const dispatch = useDispatch();
   const [freeFont, setFreeFont] = useState(false);
+
+  const selectBase = (value) => dispatch(updateSettings({ theme: value }));
+  const selectPreset = (value) =>
+    dispatch(updateSettings({ colorPreset: value === 'none' ? null : value }));
+
   return (
     <Section>
       <LabeledList>
         <LabeledList.Item label="Theme">
-          <Dropdown
-            selected={theme}
-            options={THEMES}
-            onSelected={(value) =>
-              dispatch(
-                updateSettings({
-                  theme: value,
-                }),
-              )
-            }
-          />
+          <Stack vertical>
+            <Stack.Item>
+              <Stack align="center">
+                <Stack.Item>
+                  <ThemeSwatch
+                    name="dark"
+                    config={null}
+                    selected={theme === 'dark'}
+                    onSelect={selectBase}
+                  />
+                  <ThemeSwatch
+                    name="light"
+                    config={null}
+                    selected={theme === 'light'}
+                    onSelect={selectBase}
+                  />
+                </Stack.Item>
+                <Stack.Item color="label" fontSize="0.85em">
+                  Base ({theme === 'light' ? 'Light' : 'Dark'})
+                </Stack.Item>
+              </Stack>
+            </Stack.Item>
+            <Stack.Item>
+              <Stack align="center">
+                <Stack.Item>
+                  <ThemeSwatch
+                    name="none"
+                    config={null}
+                    selected={!colorPreset}
+                    onSelect={() => selectPreset('none')}
+                  />
+                  {Object.entries(CRT_THEMES).map(([key, cfg]) => (
+                    <ThemeSwatch
+                      key={key}
+                      name={key}
+                      config={cfg}
+                      selected={colorPreset === key}
+                      onSelect={selectPreset}
+                    />
+                  ))}
+                </Stack.Item>
+                <Stack.Item color="label" fontSize="0.85em">
+                  CRT ({colorPreset ? CRT_THEMES[colorPreset]?.label : 'None'})
+                </Stack.Item>
+              </Stack>
+            </Stack.Item>
+          </Stack>
         </LabeledList.Item>
         <LabeledList.Item label="Font style">
           <Stack inline align="center">
