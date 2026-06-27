@@ -24,7 +24,8 @@ const initialState = {
   fontSize: 13,
   fontFamily: FONTS[0],
   lineHeight: 1.2,
-  theme: 'light',
+  theme: 'dark',       // base UI mode: 'dark' | 'light'
+  colorPreset: null,   // CRT color overlay: null | 'crt-green' | 'crt-amber' | ...
   adminMusicVolume: 0.2,
   // Keep these two state vars for compatibility with other servers
   highlightText: '',
@@ -59,6 +60,23 @@ export const settingsReducer = (state = initialState, action) => {
       ...state,
       ...payload,
     };
+
+    // Migrate: old saves stored CRT themes in `theme` (e.g. 'crt-green').
+    // Split into base theme + colorPreset so dark/light base is independent.
+    if (nextState.theme && nextState.theme.startsWith('crt-')) {
+      nextState.colorPreset = nextState.theme;
+      nextState.theme = 'dark';
+    }
+    // Migrate: old saves lack the `colorPreset` key entirely (pre-split schema).
+    // In that era 'light' was the default, not an intentional choice — reset to dark.
+    if (!('colorPreset' in payload) && nextState.theme === 'light') {
+      nextState.theme = 'dark';
+      nextState.colorPreset = null;
+    }
+    // Ensure base theme is always valid
+    if (nextState.theme !== 'dark' && nextState.theme !== 'light') {
+      nextState.theme = 'dark';
+    }
     // Lazy init the list for compatibility reasons
     if (!nextState.highlightSettings) {
       nextState.highlightSettings = [defaultHighlightSetting.id];

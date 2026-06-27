@@ -867,18 +867,110 @@
 		admin_holder.chempanel()
 	return
 
+// ─── Create Humans — TGUI datum ──────────────────────────────────────────────
+
+/datum/admin_spawn_humans
+	var/datum/admins/admin_datum
+
+/datum/admin_spawn_humans/New(datum/admins/AD)
+	admin_datum = AD
+
+/datum/admin_spawn_humans/Destroy()
+	admin_datum = null
+	return ..()
+
+/datum/admin_spawn_humans/tgui_interact(mob/user, datum/tgui/ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new /datum/tgui(user, src, "AdminSpawnHumans", "Create Humans")
+		ui.open()
+
+/datum/admin_spawn_humans/ui_state(mob/user)
+	return GLOB.admin_state
+
+/datum/admin_spawn_humans/ui_static_data(mob/user)
+	var/list/data = list()
+	var/list/presets = list()
+	for(var/p in GLOB.gear_name_presets_list)
+		presets += p
+	data["presets"] = presets
+	return data
+
+/datum/admin_spawn_humans/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	. = ..()
+	if(.)
+		return
+	var/mob/user = ui.user
+	if(!check_client_rights(user.client, R_SPAWN))
+		return
+
+	if(action == "spawn")
+		if(SSticker?.current_state < GAME_STATE_PLAYING)
+			to_chat(user, SPAN_WARNING("Wait until the game has started."))
+			return TRUE
+
+		var/job_name = params["job"]
+		if(!job_name || !(job_name in GLOB.gear_name_presets_list))
+			return TRUE
+
+		var/count = clamp(text2num(params["count"]), 1, 100)
+		var/spawn_range = clamp(text2num(params["range"]), 0, 10)
+		var/spawn_as = params["spawn_as"] || "npc"
+		var/equip_with = params["equip_with"] || "full"
+
+		var/turf/spawn_turf = get_turf(user)
+		var/list/turfs = list()
+		if(spawn_range)
+			for(var/turf/T in range(spawn_range, spawn_turf))
+				if(!T || istype(T, /turf/closed)) continue
+				turfs += T
+		else
+			turfs = list(spawn_turf)
+
+		if(!length(turfs))
+			return TRUE
+
+		var/list/humans = list()
+		for(var/i = 1 to count)
+			var/turf/T = pick(turfs)
+			var/mob/living/carbon/human/H = new(T)
+			if(!H.hud_used)
+				H.create_hud()
+			if(spawn_as == "freed")
+				admin_datum.owner.free_for_ghosts(H)
+			arm_equipment(H, job_name, TRUE, FALSE)
+			humans += H
+
+			if(equip_with == "no_equipment")
+				for(var/obj/item/I in H)
+					if(istype(I, /obj/item/card/id/)) continue
+					qdel(I)
+			else if(equip_with == "no_weapons")
+				for(var/obj/item/I in H.GetAllContents(3))
+					if(istype(I, /obj/item/ammo_magazine) || istype(I, /obj/item/weapon) || istype(I, /obj/item/explosive))
+						qdel(I)
+
+		if(spawn_as == "ert")
+			var/datum/emergency_call/custom/em_call = new()
+			var/name = input(user, "Name your ERT:", "ERT Name", "Admin spawned humans") as text|null
+			em_call.name = name || "Admin spawned humans"
+			em_call.mob_max = length(humans)
+			em_call.players_to_offer = humans
+			em_call.owner = admin_datum.owner
+
+			var/ql = tgui_alert(user, "Broadcast the beacon launch to all players?", "Announce?", list("Yes", "No"), 20 SECONDS)
+			var/ar = tgui_alert(user, "Announce beacon received message?", "Announce?", list("Yes", "No"), 20 SECONDS)
+			em_call.activate(ql != "Yes", ar == "Yes")
+
+		message_admins("[key_name_admin(user)] created [count] humans as [job_name] at [get_area(user)]")
+		return TRUE
+
 /datum/admins/var/create_humans_html = null
 /datum/admins/proc/create_humans(mob/user)
 	if(!GLOB.gear_name_presets_list)
 		return
-
-	if(!create_humans_html)
-		var/equipment_presets = jointext(GLOB.gear_name_presets_list, ";")
-		create_humans_html = file2text('html/create_humans.html')
-		create_humans_html = replacetext(create_humans_html, "null /* object types */", "\"[equipment_presets]\"")
-		create_humans_html = replacetext(create_humans_html, "/* href token */", RawHrefToken(forceGlobal = TRUE))
-
-	show_browser(user, replacetext(create_humans_html, "/* ref src */", "\ref[src]"), "Create Humans", "create_humans", "size=450x720")
+	var/datum/admin_spawn_humans/datum = new(src)
+	datum.tgui_interact(user)
 
 /client/proc/create_humans()
 	set name = "Create Humans"
@@ -886,17 +978,107 @@
 	if(admin_holder)
 		admin_holder.create_humans(usr)
 
+// ─── Create Xenos — TGUI datum ───────────────────────────────────────────────
+
+/datum/admin_spawn_xenos
+	var/datum/admins/admin_datum
+
+/datum/admin_spawn_xenos/New(datum/admins/AD)
+	admin_datum = AD
+
+/datum/admin_spawn_xenos/Destroy()
+	admin_datum = null
+	return ..()
+
+/datum/admin_spawn_xenos/tgui_interact(mob/user, datum/tgui/ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new /datum/tgui(user, src, "AdminSpawnXenos", "Create Xenos")
+		ui.open()
+
+/datum/admin_spawn_xenos/ui_state(mob/user)
+	return GLOB.admin_state
+
+/datum/admin_spawn_xenos/ui_static_data(mob/user)
+	var/list/data = list()
+	var/list/hives = list()
+	for(var/h in ALL_XENO_HIVES)
+		hives += h
+	data["hives"] = hives
+	var/list/castes = list()
+	for(var/c in ALL_XENO_CASTES)
+		castes += c
+	data["castes"] = castes
+	return data
+
+/datum/admin_spawn_xenos/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	. = ..()
+	if(.)
+		return
+	var/mob/user = ui.user
+	if(!check_client_rights(user.client, R_SPAWN))
+		return
+
+	if(action == "spawn")
+		if(SSticker?.current_state < GAME_STATE_PLAYING)
+			to_chat(user, SPAN_WARNING("Wait until the game has started."))
+			return TRUE
+
+		var/xeno_hive = params["hive"]
+		var/xeno_caste = params["caste"]
+		if(!xeno_hive || !xeno_caste)
+			return TRUE
+
+		var/count = clamp(text2num(params["count"]), 1, 100)
+		var/spawn_range = clamp(text2num(params["range"]), 0, 10)
+		var/spawn_as = params["spawn_as"] || "npc"
+
+		var/turf/spawn_turf = get_turf(user)
+		var/list/turfs = list()
+		if(spawn_range)
+			for(var/turf/T in range(spawn_range, spawn_turf))
+				if(!T || istype(T, /turf/closed)) continue
+				turfs += T
+		else
+			turfs = list(spawn_turf)
+
+		if(!length(turfs))
+			return TRUE
+
+		var/caste_type = GLOB.RoleAuthority.get_caste_by_text(xeno_caste)
+		if(!caste_type)
+			to_chat(user, SPAN_WARNING("Unknown xeno caste: [xeno_caste]"))
+			return TRUE
+
+		var/list/xenos = list()
+		for(var/i = 1 to count)
+			var/turf/T = pick(turfs)
+			var/mob/living/carbon/xenomorph/X = new caste_type(T, null, xeno_hive)
+			if(!X.hud_used)
+				X.create_hud()
+			if(spawn_as == "freed")
+				admin_datum.owner.free_for_ghosts(X)
+			xenos += X
+
+		if(spawn_as == "ert")
+			var/datum/emergency_call/custom/em_call = new()
+			var/name = input(user, "Name your ERT:", "ERT Name", "Admin spawned xenos") as text|null
+			em_call.name = name || "Admin spawned xenos"
+			em_call.mob_max = length(xenos)
+			em_call.players_to_offer = xenos
+			em_call.owner = admin_datum.owner
+
+			var/ql = tgui_alert(user, "Broadcast the beacon launch to all players?", "Announce?", list("Yes", "No"), 20 SECONDS)
+			var/ar = tgui_alert(user, "Announce beacon received message?", "Announce?", list("Yes", "No"), 20 SECONDS)
+			em_call.activate(ql != "Yes", ar == "Yes")
+
+		message_admins("[key_name_admin(user)] created [count] xenos as [xeno_caste] ([xeno_hive]) at [get_area(user)]")
+		return TRUE
+
 /datum/admins/var/create_xenos_html = null
 /datum/admins/proc/create_xenos(mob/user)
-	if(!create_xenos_html)
-		var/hive_types = jointext(ALL_XENO_HIVES, ";")
-		var/xeno_types = jointext(ALL_XENO_CASTES, ";")
-		create_xenos_html = file2text('html/create_xenos.html')
-		create_xenos_html = replacetext(create_xenos_html, "null /* hive paths */", "\"[hive_types]\"")
-		create_xenos_html = replacetext(create_xenos_html, "null /* xeno paths */", "\"[xeno_types]\"")
-		create_xenos_html = replacetext(create_xenos_html, "/* href token */", RawHrefToken(forceGlobal = TRUE))
-
-	show_browser(user, replacetext(create_xenos_html, "/* ref src */", "\ref[src]"), "Create Xenos", "create_xenos", "size=450x630")
+	var/datum/admin_spawn_xenos/datum = new(src)
+	datum.tgui_interact(user)
 
 /client/proc/create_xenos()
 	set name = "Create Xenos"

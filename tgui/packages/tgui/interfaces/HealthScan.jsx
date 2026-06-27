@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import { useBackend } from '../backend';
 import {
   Box,
@@ -26,11 +28,29 @@ export const HealthScan = (props) => {
     limbs_damaged,
     damaged_organs,
     ui_mode,
+    dead,
+    permadead,
+    health,
   } = data;
+
+  const [colorEnabled, setColorEnabled] = useState(true);
 
   const bodyscanner = detail_level >= 1;
   const Synthetic = species === 'Synthetic';
   const theme = Synthetic ? 'hackerman' : bodyscanner ? 'ntos' : 'default';
+
+  const statusGlow =
+    colorEnabled
+      ? permadead
+        ? 'rgba(40,0,0,0.6)'
+        : dead
+          ? 'rgba(180,0,0,0.25)'
+          : health < 30
+            ? 'rgba(180,80,0,0.2)'
+            : health < 70
+              ? 'rgba(160,140,0,0.15)'
+              : 'transparent'
+      : 'transparent';
 
   return (
     <Window
@@ -38,8 +58,67 @@ export const HealthScan = (props) => {
       height={bodyscanner ? 700 : 600}
       theme={theme}
       title={'Patient: ' + patient}
+      buttons={
+        <Button
+          icon={colorEnabled ? 'eye' : 'eye-slash'}
+          tooltip={colorEnabled ? 'Disable damage tinting' : 'Enable damage tinting'}
+          selected={colorEnabled}
+          compact
+          onClick={() => setColorEnabled(!colorEnabled)}
+        />
+      }
     >
-      <Window.Content scrollable>
+      <style>{`
+        @keyframes hs-heartbeat {
+          0%   { transform: scale(1);   opacity: 1; }
+          14%  { transform: scale(1.25); opacity: 0.9; }
+          28%  { transform: scale(1);   opacity: 1; }
+          42%  { transform: scale(1.2); opacity: 0.9; }
+          70%  { transform: scale(1);   opacity: 1; }
+          100% { transform: scale(1);   opacity: 1; }
+        }
+        @keyframes hs-danger-pulse {
+          0%   { opacity: 1; }
+          50%  { opacity: 0.4; }
+          100% { opacity: 1; }
+        }
+        @keyframes hs-scan-line {
+          0%   { top: -4px; }
+          100% { top: 100%; }
+        }
+        @keyframes hs-fadein {
+          from { opacity: 0; transform: translateY(-4px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        .hs-heartbeat {
+          display: inline-block;
+          animation: hs-heartbeat 1.2s ease-in-out infinite;
+          transform-origin: center;
+        }
+        .hs-danger { animation: hs-danger-pulse 1s ease-in-out infinite; }
+        .hs-fadein { animation: hs-fadein 0.3s ease-out; }
+        .hs-scanline-container {
+          position: relative;
+          overflow: hidden;
+        }
+        .hs-scanline-container::after {
+          content: '';
+          position: absolute;
+          left: 0; right: 0;
+          height: 3px;
+          background: linear-gradient(transparent, rgba(100,200,255,0.18), transparent);
+          animation: hs-scan-line 3s linear infinite;
+          pointer-events: none;
+          z-index: 1;
+        }
+      `}</style>
+      <Window.Content
+        scrollable
+        style={{
+          background: `${statusGlow}`,
+          transition: 'background 1s ease',
+        }}
+      >
         <Patient />
         {limbs_damaged ? <ScannerLimbs /> : null}
         {has_chemicals ? <ScannerChems /> : null}
@@ -108,7 +187,35 @@ const Patient = (props) => {
   const Synthetic = species === 'Synthetic';
 
   return (
-    <Section>
+    <Section
+      title={
+        <Box style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+          {!dead && !ui_mode && (
+            <span className="hs-heartbeat">
+              <Icon name="heartbeat" color="#e74c3c" />
+            </span>
+          )}
+          {dead && (
+            <Icon
+              name="skull"
+              color={permadead ? '#888' : '#e74c3c'}
+              className={!permadead ? 'hs-danger' : ''}
+            />
+          )}
+          <span>
+            {patient}
+            {dead
+              ? permadead
+                ? ' — DECEASED'
+                : ' — CARDIAC ARREST'
+              : health !== undefined
+                ? ` — ${health >= 0 ? health : 0}%`
+                : ''}
+          </span>
+        </Box>
+      }
+      className="hs-fadein"
+    >
       {hugged && ghostscan ? (
         <NoticeBox danger>
           Patient has been implanted with an alien embryo!
@@ -215,15 +322,15 @@ const Patient = (props) => {
                   average: [0.2, 0.7],
                   bad: [-Infinity, 0.2],
                 }}
+                style={{ transition: 'width 0.6s ease' }}
               >
                 {health}% healthy
               </ProgressBar>
             ) : (
               <ProgressBar
                 value={1 + health / 100}
-                ranges={{
-                  bad: [-Infinity, Infinity],
-                }}
+                ranges={{ bad: [-Infinity, Infinity] }}
+                style={{ transition: 'width 0.6s ease' }}
               >
                 {health}% healthy
               </ProgressBar>
