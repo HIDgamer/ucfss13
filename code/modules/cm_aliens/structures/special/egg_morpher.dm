@@ -30,6 +30,11 @@
 	. = ..()
 	COOLDOWN_START(src, spawn_cooldown, get_egg_cooldown())
 	range_bounds = SQUARE(x, y, EGGMORPG_RANGE)
+	update_minimap_icon()
+
+/obj/effect/alien/resin/special/eggmorph/proc/update_minimap_icon()
+	SSminimaps.remove_marker(src)
+	SSminimaps.add_marker(src, get_minimap_flag_for_faction(linked_hive?.hivenumber), image('icons/UI_icons/map_blips.dmi', null, "morpher"))
 
 /obj/effect/alien/resin/special/eggmorph/Destroy()
 	if (stored_huggers && linked_hive)
