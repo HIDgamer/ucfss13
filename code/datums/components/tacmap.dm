@@ -38,31 +38,12 @@
 			/atom/movable/screen/minimap_tool/draw_tool/black,
 			/atom/movable/screen/minimap_tool/draw_tool/erase,
 			/atom/movable/screen/minimap_tool/label,
-			/atom/movable/screen/minimap_tool/clear,
-			/atom/movable/screen/minimap_tool/up,
-			/atom/movable/screen/minimap_tool/down
+			/atom/movable/screen/minimap_tool/clear
 		)
 
 	if(has_update)
 		drawing_tools += /atom/movable/screen/minimap_tool/update
 
-/datum/component/tacmap/proc/move_tacmap_up()
-	targetted_zlevel++
-	var/list/_interactees = interactees.Copy()
-	for(var/mob/interactee in _interactees)
-		on_unset_interaction(interactee)
-	map = null
-	for(var/mob/interactee in _interactees)
-		show_tacmap(interactee)
-
-/datum/component/tacmap/proc/move_tacmap_down()
-	targetted_zlevel--
-	var/list/_interactees = interactees.Copy()
-	for(var/mob/interactee in _interactees)
-		on_unset_interaction(interactee)
-	map = null
-	for(var/mob/interactee in _interactees)
-		show_tacmap(interactee)
 
 /datum/component/tacmap/proc/popout()
 	tgui_interact(usr)
