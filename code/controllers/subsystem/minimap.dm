@@ -1486,23 +1486,6 @@ SUBSYSTEM_DEF(minimaps)
 	src.name = user?.real_name
 	src.time = time_stamp()
 
-/atom/movable/screen/minimap_tool/up
-	icon_state = "up"
-	desc = "Move up a level"
-	screen_loc = "15,6"
-
-/atom/movable/screen/minimap_tool/up/clicked(location, list/modifiers)
-	owner.move_tacmap_up()
-
-/atom/movable/screen/minimap_tool/down
-	icon_state = "down"
-	desc = "Move down a level"
-	screen_loc = "15,5"
-
-/atom/movable/screen/minimap_tool/down/clicked(location, list/modifiers)
-	owner.move_tacmap_down()
-
-	return TRUE
 
 /atom/movable/screen/minimap_tool/popout
 	icon_state = "popout"
