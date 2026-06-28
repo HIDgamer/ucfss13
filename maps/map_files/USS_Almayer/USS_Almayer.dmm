@@ -4835,7 +4835,6 @@
 /turf/open/floor/almayer/orange,
 /area/almayer/engineering/upper_engineering)
 "aDt" = (
-/obj/structure/machinery/cm_vending/clothing/military_police_warden,
 /turf/open/floor/wood/ship,
 /area/almayer/shipboard/brig/warden_office)
 "aDv" = (
@@ -6204,10 +6203,6 @@
 /obj/effect/landmark/late_join/delta,
 /turf/open/floor/plating/plating_catwalk,
 /area/almayer/squads/delta)
-"aML" = (
-/obj/item/ammo_casing/bullet,
-/turf/open/floor/plating/plating_catwalk,
-/area/almayer/maint/hull/lower/l_f_p)
 "aMO" = (
 /obj/structure/extinguisher_cabinet{
 	pixel_x = 26
@@ -24009,7 +24004,6 @@
 /turf/open/floor/almayer,
 /area/almayer/hallways/lower/port_aft_hallway)
 "fRS" = (
-/obj/effect/landmark/start/warden,
 /obj/effect/decal/warning_stripes{
 	icon_state = "E";
 	pixel_x = 1
@@ -33227,6 +33221,7 @@
 	pixel_x = 11;
 	pixel_y = -26
 	},
+/obj/structure/closet/cabinet,
 /turf/open/floor/wood/ship,
 /area/almayer/living/commandbunks)
 "jMy" = (
@@ -36260,6 +36255,10 @@
 	phone_id = "Commanding Officer's Office";
 	pixel_x = 16;
 	pixel_y = 8
+	},
+/obj/item/reagent_container/food/drinks/coffeecup/uscm{
+	pixel_x = -8;
+	pixel_y = 10
 	},
 /turf/open/floor/carpet,
 /area/almayer/living/commandbunks)
@@ -52397,6 +52396,7 @@
 	pixel_x = -7;
 	pixel_y = 11
 	},
+/obj/structure/machinery/hybrisa/coffee_machine,
 /turf/open/floor/almayer/bluefull,
 /area/almayer/command/cichallway)
 "rBD" = (
@@ -93897,7 +93897,7 @@ uII
 ruz
 emC
 jev
-aML
+xFt
 xFt
 oFn
 emC
