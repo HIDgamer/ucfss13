@@ -686,6 +686,7 @@
 	desc = "Worn brownish synthcotton vest with lots of pockets to unload your hands."
 	icon_state = "vest_brown"
 
+
 /obj/item/clothing/accessory/storage/black_vest/waistcoat
 	name = "tactical waistcoat"
 	desc = "A stylish black waistcoat with plenty of discreet pouches, to be both utilitarian and fashionable without compromising looks."
@@ -918,6 +919,10 @@
 
 	hold = /obj/item/storage/internal/accessory/drop_pouch
 	accessory_icons = list(WEAR_BODY = 'icons/mob/humans/onmob/clothing/accessory/webbings.dmi', WEAR_JACKET = 'icons/mob/humans/onmob/clothing/accessory/webbings.dmi')
+
+/obj/item/clothing/accessory/storage/droppouch/black
+	name = "black drop pouch"
+	icon_state = "drop_pouch_black"
 
 /obj/item/storage/internal/accessory/drop_pouch
 	w_class = SIZE_LARGE //Allow storage containers that's medium or below

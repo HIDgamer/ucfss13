@@ -271,6 +271,22 @@ Defined in conflicts.dm of the #defines folder.
 	damage_falloff_mod = 0.1
 	attach_icon = pick("suppressor_a","suppressor2_a")
 
+/obj/item/attachable/suppressor/sleek
+	name = "compact suppressor"
+	desc = "A lightweight, low-profile suppressor designed specifically for SMGs and sidearms. It dampens sound and muzzle flash while marginally improving stability and accuracy, though it slightly reduces projectile velocity and terminal damage."
+	slot = "muzzle"
+	pixel_shift_y = 15
+	hud_offset_mod = -3
+	gun_traits = list(TRAIT_GUN_SILENCED)
+
+/obj/item/attachable/suppressor/sleek/New()
+	..()
+	damage_falloff_mod = 0.1
+
+/obj/item/attachable/suppressor/nsg
+	name = "\improper BL11 firearm muffler"
+	desc = "Threaded steel barrel attachment; slows the escape of propellant gasses, resulting in muffled weapon fire."
+
 /obj/item/attachable/suppressor/xm40_integral
 	name = "\improper XM40 integral suppressor"
 	icon_state = "m40sd_suppressor"
@@ -740,6 +756,20 @@ Defined in conflicts.dm of the #defines folder.
 	accuracy_mod = HIT_ACCURACY_MULT_TIER_4
 	accuracy_unwielded_mod = HIT_ACCURACY_MULT_TIER_1
 	movement_onehanded_acc_penalty_mod = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_5
+
+/obj/item/attachable/reddot/small
+	name = "S5-Micro dot sight"
+	desc = "A lightweight, low-profile dot optic designed for rapid target acquisition with minimal weight penalty. Optimized for submachine guns and sidearms, it's ideal for close-quarters combat where speed and agility matter most."
+	icon = 'icons/obj/items/weapons/guns/attachments/rail.dmi'
+	icon_state = "reddot_small"
+	attach_icon = "reddot_small_a"
+	slot = "rail"
+
+/obj/item/attachable/reddot/small/New()
+	..()
+	accuracy_mod = HIT_ACCURACY_MULT_TIER_3
+	accuracy_unwielded_mod = HIT_ACCURACY_MULT_TIER_1
+	movement_onehanded_acc_penalty_mod = MOVEMENT_ACCURACY_PENALTY_MULT_TIER_6
 
 /obj/item/attachable/reflex
 	name = "S6 reflex sight"
@@ -3657,6 +3687,24 @@ Defined in conflicts.dm of the #defines folder.
 	pixel_shift_y = 17
 
 /obj/item/attachable/lasersight/New()
+	..()
+	accuracy_mod = HIT_ACCURACY_MULT_TIER_1
+	movement_onehanded_acc_penalty_mod = -MOVEMENT_ACCURACY_PENALTY_MULT_TIER_5
+	scatter_mod = -SCATTER_AMOUNT_TIER_10
+	scatter_unwielded_mod = -SCATTER_AMOUNT_TIER_9
+	accuracy_unwielded_mod = HIT_ACCURACY_MULT_TIER_1
+
+/obj/item/attachable/lasersight/vp
+	name = "VP78M6 laser module"
+	desc = "A compact, high-precision laser sight engineered exclusively for the VP78M6. Offers exceptional accuracy gains by interfacing directly with the weapon's internal targeting systems."
+	icon = 'icons/obj/items/weapons/guns/attachments/under.dmi'
+	icon_state = "laservp"
+	attach_icon = "laservp_a"
+	slot = "under"
+	pixel_shift_x = 17
+	pixel_shift_y = 17
+
+/obj/item/attachable/lasersight/vp/New()
 	..()
 	accuracy_mod = HIT_ACCURACY_MULT_TIER_1
 	movement_onehanded_acc_penalty_mod = -MOVEMENT_ACCURACY_PENALTY_MULT_TIER_5

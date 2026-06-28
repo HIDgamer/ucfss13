@@ -37,6 +37,8 @@
 	/// When set you will be able to choose between the different job options when selecting your role.
 	/// Associated list. Main list elements - actual options, associated values - shorthands for job preferences menu (keep those short).
 	var/job_options
+	///Set to TRUE by jobs that allow for variants based on whitelists, permissions, or other checks that require /mob/user to be passed to them.
+	var/job_variants_check = FALSE
 	/// If TRUE, this job will spawn w/ a cryo emergency kit during evac/red alert
 	var/gets_emergency_kit = TRUE
 	/// Under what faction menu the job gets displayed in lobby
@@ -311,6 +313,10 @@
 
 /// Intended to be overwritten to handle when a job has variants that can be selected.
 /datum/job/proc/handle_job_options(option)
+	return
+
+/// Intended to be overwritten to handle when a job has variants that can be selected that depend on user data.
+/datum/job/proc/handle_job_variant_options(option, /mob/user)
 	return
 
 /// Intended to be overwritten to handle any requirements for specific job variations that can be selected

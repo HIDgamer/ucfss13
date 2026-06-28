@@ -13,6 +13,7 @@
 #define MARINE_CAN_BUY_SECONDARY "secondary"
 #define MARINE_CAN_BUY_ATTACHMENT "attachment"
 #define MARINE_CAN_BUY_MRE "mre"
+#define MARINE_CAN_BUY_MAP "map"
 #define MARINE_CAN_BUY_ACCESSORY "accessory"
 #define MARINE_CAN_BUY_COMBAT_SHOES "combat_shoes"
 #define MARINE_CAN_BUY_COMBAT_HELMET "combat_helmet"
