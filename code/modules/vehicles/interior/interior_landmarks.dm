@@ -125,6 +125,23 @@
 
 	qdel(src)
 
+/obj/effect/landmark/interior/spawn/vehicle_gunner_seat/humvee
+	icon = 'icons/obj/vehicles/interiors/general_humvee.dmi'
+	icon_state = "car_seat"
+	color = "blue"
+
+/obj/effect/landmark/interior/spawn/vehicle_gunner_seat/humvee/on_load(datum/interior/I)
+	var/obj/structure/bed/chair/comfy/vehicle/gunner/humvee/S = new(loc)
+	S.layer = layer
+	S.vehicle = I.exterior
+	S.setDir(dir)
+	S.alpha = alpha
+	S.update_icon()
+	S.handle_rotation()
+	S.pixel_x = pixel_x
+	S.pixel_y = pixel_y
+	qdel(src)
+
 /obj/effect/landmark/interior/spawn/vehicle_gunner_seat/armor
 	name = "armor gunner's seat spawner"
 	icon = 'icons/obj/vehicles/interiors/general.dmi'
@@ -144,6 +161,25 @@
 	S.pixel_x = pixel_x
 	S.pixel_y = pixel_y
 
+	qdel(src)
+
+/obj/effect/landmark/interior/spawn/vehicle_driver_seat/armor/humvee
+	icon = 'icons/obj/vehicles/interiors/general_humvee.dmi'
+	icon_state = "car_seat"
+	color = "red"
+	var/buckling_x = -3
+	var/buckling_y = 1
+
+/obj/effect/landmark/interior/spawn/vehicle_driver_seat/armor/humvee/on_load(datum/interior/I)
+	var/obj/structure/bed/chair/comfy/vehicle/driver/humvee/S = new(loc)
+	S.vehicle = I.exterior
+	S.required_skill = S.vehicle.required_skill
+	S.setDir(dir)
+	S.update_icon()
+	S.alpha = alpha
+	S.handle_rotation()
+	S.pixel_x = pixel_x
+	S.pixel_y = pixel_y
 	qdel(src)
 
 /obj/effect/landmark/interior/spawn/vehicle_support_gunner_seat
@@ -252,6 +288,22 @@
 
 	qdel(src)
 
+/obj/effect/landmark/interior/spawn/weapons_loader/humvee
+	icon = 'icons/obj/vehicles/interiors/general_humvee.dmi'
+	icon_state = "weapons_loader"
+	color = "#00920c"
+
+/obj/effect/landmark/interior/spawn/weapons_loader/humvee/on_load(datum/interior/I)
+	var/obj/structure/weapons_loader/humvee/R = new(loc)
+	R.layer = layer
+	R.pixel_x = pixel_x
+	R.pixel_y = pixel_y
+	R.vehicle = I.exterior
+	R.setDir(dir)
+	R.update_icon()
+
+	qdel(src)
+
 //This one spawns armored vehicles version of viewport
 /obj/effect/landmark/interior/spawn/interior_viewport
 	name = "armored vehicle viewport spawner"
@@ -330,6 +382,21 @@
 	V.alpha = alpha
 	V.icon = icon
 
+	qdel(src)
+
+/obj/effect/landmark/interior/spawn/interior_viewport/humvee
+	icon = 'icons/obj/vehicles/interiors/general_humvee.dmi'
+	icon_state = "viewport_door"
+
+/obj/effect/landmark/interior/spawn/interior_viewport/humvee/on_load(datum/interior/I)
+	var/obj/structure/interior_viewport/humvee/V = new(loc)
+	V.vehicle = I.exterior
+	V.pixel_x = pixel_x
+	V.pixel_y = pixel_y
+	V.alpha = alpha
+	V.icon = icon
+	V.icon_state = icon_state
+	V.layer = layer
 	qdel(src)
 
 //This one spawns armored vehicles version of medevac stretcher

@@ -916,6 +916,8 @@ GLOBAL_LIST_EMPTY(map_model_default)
 	if(members[index] != /area/template_noop)
 		if(members_attributes[index] != default_list)
 			world.preloader_setup(members_attributes[index], members[index])//preloader for assigning  set variables on atom creation
+		else
+			GLOB.use_preloader = FALSE // clear stale preloader from previous tile; area has no inline vars
 		var/area/area_instance = loaded_areas[members[index]]
 		if(!area_instance)
 			var/area_type = members[index]
