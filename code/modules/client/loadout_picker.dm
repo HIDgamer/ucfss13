@@ -10,7 +10,7 @@
 		for(var/gear_key as anything in gears)
 			var/datum/gear/gear = gears[gear_key]
 			items += list(
-				list("name" = gear.display_name, "cost" = gear.cost, "icon" = gear.path::icon, "icon_state" = gear.path::icon_state)
+				list("name" = gear.display_name, "cost" = gear.cost, "icon" = gear.gear_icon, "icon_state" = gear.gear_icon_state)
 			)
 
 		.["categories"] += list(
@@ -35,7 +35,7 @@
 		points += gear.cost
 
 		.["loadout"] += list(
-			list("name" = gear.display_name, "cost" = gear.cost, "icon" = gear.path::icon, "icon_state" = gear.path::icon_state)
+			list("name" = gear.display_name, "cost" = gear.cost, "icon" = gear.gear_icon, "icon_state" = gear.gear_icon_state)
 		)
 
 	.["points"] = points

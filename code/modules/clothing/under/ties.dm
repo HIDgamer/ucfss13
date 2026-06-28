@@ -1090,3 +1090,14 @@
 	icon = 'icons/obj/items/clothing/ties.dmi'
 	icon_state = "owlf_vest"
 	item_state = "owlf_vest"
+
+
+/obj/item/clothing/accessory/dogtags
+	name = "dogtags"
+	desc = "A set of military identification tags worn around the neck."
+	icon = 'icons/obj/items/clothing/accessory/misc.dmi'
+	icon_state = "dogtag"
+	overlay_state = "dogtag"
+	accessory_icons = list(WEAR_BODY = 'icons/mob/humans/onmob/clothing/accessory/misc.dmi', WEAR_JACKET = 'icons/mob/humans/onmob/clothing/accessory/misc.dmi')
+	inv_overlay_icon = 'icons/obj/items/clothing/accessory/inventory_overlays/misc.dmi'
+	slot = ACCESSORY_SLOT_DECOR
