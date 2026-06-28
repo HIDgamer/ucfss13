@@ -859,6 +859,7 @@
 /obj/item/weapon/gun/smartgun/rmc/Initialize(mapload, ...)
 	. = ..()
 	MD.iff_signal = FACTION_TWE
+	base_gun_icon = "m56"
 
 
 //  Solar devils SG, frontline mode only
