@@ -350,9 +350,9 @@ Defined in conflicts.dm of the #defines folder.
 
 	name = "\improper SA120 L7 bayonet"
 	desc = "The standard-issue bayonet of the W-Y Commandos and PMCs, has a better ergonomic carbon finish grip and corrosion proof blade."
-	icon_state = "wy_bayonet"
-	item_state = "wy_bayonet"
-	attach_icon = "wy_bayonet_a"
+	icon_state = "bayonet"
+	item_state = "combat_bayonet"
+	attach_icon = "bayonet_a"
 	unacidable = TRUE
 
 /obj/item/attachable/bayonet/upp
@@ -666,13 +666,10 @@ Defined in conflicts.dm of the #defines folder.
 	icon_state = "mateba_short_a"
 
 /obj/item/attachable/mateba/dark
-	icon_state = "mateba_medium_d"
 
 /obj/item/attachable/mateba/long/dark
-	icon_state = "mateba_long_d"
 
 /obj/item/attachable/mateba/short/dark
-	icon_state = "mateba_short_d"
 
 // ======== Rail attachments ======== //
 

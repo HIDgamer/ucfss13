@@ -102,8 +102,11 @@
 		. += "It seems to be lacking a ammo drum."
 
 /obj/item/device/m56d_gun/update_icon() //Lets generate the icon based on how much ammo it has.
+	overlays.Cut()
 	if(has_mount)
-		icon_state += "_tri"
+		icon_state = "m56d_tri"
+	else
+		icon_state = "m56d"
 	if(rounds)
 		overlays += mutable_appearance('icons/obj/items/weapons/guns/guns_by_faction/USCM/machineguns.dmi', "m56d_mag")
 	return
@@ -197,7 +200,7 @@
 	desc = "A flimsy frame of plasteel and metal. Still needs to be <b>welded</b> together."
 	unacidable = TRUE
 	w_class = SIZE_MEDIUM
-	icon = 'icons/obj/items/weapons/guns/guns_by_faction/USCM/machineguns.dmi'
+	icon = 'icons/obj/items/weapons/guns/guns_by_faction/USCM/hmg.dmi'
 	icon_state = "folded_mount_frame"
 
 /obj/item/device/m56d_post_frame/attackby(obj/item/W as obj, mob/user as mob)
@@ -220,7 +223,7 @@
 	desc = "The folded, foldable tripod mount for the M56D.  (Place on ground and drag to you to unfold)."
 	unacidable = TRUE
 	w_class = SIZE_MEDIUM
-	icon = 'icons/obj/items/weapons/guns/guns_by_faction/USCM/machineguns.dmi'
+	icon = 'icons/obj/items/weapons/guns/guns_by_faction/USCM/hmg.dmi'
 	icon_state = "folded_mount"
 
 /// Causes the tripod to unfold
@@ -907,8 +910,7 @@
 		return
 
 	set_light(muzzle_flash_lum)
-	spawn(10)
-		set_light(-muzzle_flash_lum)
+	addtimer(CALLBACK(src, PROC_REF(clear_muzzle_light)), 10)
 
 	var/image_layer = layer + 0.1
 
@@ -934,6 +936,9 @@
 	rotate.Turn(angle)
 	I.transform = rotate
 	I.flick_overlay(src, 3)
+
+/obj/structure/machinery/m56d_hmg/proc/clear_muzzle_light()
+	set_light(-muzzle_flash_lum)
 
 /obj/structure/machinery/m56d_hmg/MouseDrop(over_object, src_location, over_location) //Drag the MG to us to man it.
 	// If the gun sprite wasn't dragged onto the user, or the user isn't adjacent.

@@ -1383,7 +1383,9 @@ GLOBAL_DATUM_INIT(supply_controller, /datum/controller/supply, new())
 	. = ..()
 
 	vehicles = list(
-		new /datum/vehicle_order/tank/plain
+		new /datum/vehicle_order/apc,
+		new /datum/vehicle_order/apc/med,
+		new /datum/vehicle_order/apc/cmd,
 	)
 
 	if(!GLOB.VehicleElevatorConsole)

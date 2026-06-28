@@ -91,6 +91,7 @@ K9 SCANNER
 	var/last_scan
 	var/datum/health_scan/last_health_display
 	var/alien = FALSE
+	var/color_enabled = TRUE
 
 /obj/item/device/healthanalyzer/Destroy()
 	QDEL_NULL(last_health_display)
@@ -138,7 +139,19 @@ K9 SCANNER
 		ui.set_autoupdate(FALSE)
 
 /obj/item/device/healthanalyzer/ui_data(mob/user)
+	if(!last_scan)
+		return list("color_enabled" = color_enabled)
+	last_scan["color_enabled"] = color_enabled
 	return last_scan
+
+/obj/item/device/healthanalyzer/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	. = ..()
+	if(.)
+		return
+	switch(action)
+		if("toggle_color")
+			color_enabled = !color_enabled
+			return TRUE
 
 /obj/item/device/healthanalyzer/verb/toggle_hud_mode()
 	set name = "Switch Hud Mode"

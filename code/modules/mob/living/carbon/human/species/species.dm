@@ -119,7 +119,7 @@
 	var/has_species_tab_items = FALSE
 
 	/// Fire overlay sprite prefix
-	var/fire_sprite_prefix = "human"
+	var/fire_sprite_prefix = "Standing"
 	/// Fire overlay sprite sheet
 	var/fire_sprite_sheet = 'icons/mob/humans/onmob/OnFire.dmi'
 	/// List of burst scream sound files

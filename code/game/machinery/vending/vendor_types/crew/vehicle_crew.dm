@@ -66,10 +66,9 @@
 	UnregisterSignal(SSdcs, COMSIG_GLOB_VEHICLE_ORDERED)
 
 	if(!selected_vehicle)
-		selected_vehicle = "TANK" // The whole thing seems to be based upon the assumption you unlock tank as an override, defaulting to APC
-	if(selected_vehicle == "TANK")
-		available_categories &= ~(VEHICLE_INTEGRAL_AVAILABLE) //APC lacks these, so we need to remove these flags to be able to access spare parts section
-		marine_announcement("A tank is being sent up to reinforce this operation.")
+		selected_vehicle = "APC"
+	if(selected_vehicle == "APC")
+		marine_announcement("An APC is being sent up to reinforce this operation.")
 
 /obj/structure/machinery/cm_vending/gear/vehicle_crew/get_listed_products(mob/user)
 	var/list/display_list = list()
@@ -86,7 +85,7 @@
 	else if(selected_vehicle == "ARC")
 		display_list = GLOB.cm_vending_vehicle_crew_arc
 
-	else if(selected_vehicle == "TANK")
+	else if(selected_vehicle == "APC")
 		if(available_categories)
 			display_list = GLOB.cm_vending_vehicle_crew_apc
 		else //APC stuff costs more to prevent 4000 points spent on shitton of ammunition

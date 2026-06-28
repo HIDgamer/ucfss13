@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 import { useBackend } from '../backend';
 import {
   Box,
@@ -31,9 +29,8 @@ export const HealthScan = (props) => {
     dead,
     permadead,
     health,
+    color_enabled: colorEnabled,
   } = data;
-
-  const [colorEnabled, setColorEnabled] = useState(true);
 
   const bodyscanner = detail_level >= 1;
   const Synthetic = species === 'Synthetic';
@@ -64,7 +61,7 @@ export const HealthScan = (props) => {
           tooltip={colorEnabled ? 'Disable damage tinting' : 'Enable damage tinting'}
           selected={colorEnabled}
           compact
-          onClick={() => setColorEnabled(!colorEnabled)}
+          onClick={() => act('toggle_color')}
         />
       }
     >
