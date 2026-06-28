@@ -81,9 +81,11 @@
 /// If it needs to manually eject shell casings (like bolt actions)
 #define GUN_MANUAL_EJECT_CASINGS (1<<19)
 /// Whether the gun has the smaller smoke particles
-#define GUN_SMOKE_PARTICLES (1<<18)
+#define GUN_SMOKE_PARTICLES (1<<20)
 /// Whether the gun has the larger smoke particles
-#define GUN_SMOKE_PARTICLES_LARGE (1<<19)
+#define GUN_SMOKE_PARTICLES_LARGE (1<<21)
+/// bypass akimbo malus when dual-wielding this gun
+#define GUN_AKIMBO_ALLOWED (1<<22)
 // NOTE: Don't add flags past 1<<23, it'll break things due to BYOND limitations. You can usually use a Component instead.
 
 #define USES_STREAKS (1<<0)

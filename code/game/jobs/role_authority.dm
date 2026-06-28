@@ -446,7 +446,10 @@ I hope it's easier to tell what the heck this proc is even doing, unlike previou
 	var/mob/living/carbon/human/new_human = new_mob
 
 	if(new_job.job_options && new_human?.client?.prefs?.pref_special_job_options[new_job.title])
-		new_job.handle_job_options(new_human.client.prefs.pref_special_job_options[new_job.title])
+		if(new_job.job_variants_check)
+			new_job.handle_job_variant_options(new_human.client.prefs.pref_special_job_options[new_job.title], new_mob)
+		else
+			new_job.handle_job_options(new_human.client.prefs.pref_special_job_options[new_job.title])
 
 	var/job_whitelist = new_job.title
 	var/whitelist_status = new_job.get_whitelist_status(new_human.client)
