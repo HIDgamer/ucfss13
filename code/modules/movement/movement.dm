@@ -105,7 +105,7 @@
 	if(destination)
 		. = doMove(destination)
 	else
-		CRASH("No valid destination passed into forceMove")
+		return
 
 
 /atom/movable/proc/moveToNullspace()

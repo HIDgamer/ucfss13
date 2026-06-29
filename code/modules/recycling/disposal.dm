@@ -531,8 +531,7 @@
 			active = 0
 			//Find the fat guys
 			for(var/mob/living/carbon/human/H in src)
-
-			break
+				break
 		sleep(1) //Was 1
 		var/obj/structure/disposalpipe/curr = loc
 		if(!curr && loc)

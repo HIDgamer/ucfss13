@@ -25,7 +25,7 @@ import {
 
 import { ChatPageSettings } from '../chat';
 import { clearChat, rebuildChat, saveChatToDisk } from '../chat/actions';
-import { CRT_THEMES, THEMES } from '../themes';
+import { CRT_THEMES } from '../themes';
 import {
   addHighlightSetting,
   changeSettingsTab,
@@ -86,7 +86,11 @@ const ThemeSwatch = ({ name, config, selected, onSelect }) => (
         cursor: 'pointer',
         width: '1.6em',
         height: '1.6em',
-        backgroundColor: config ? config.bg : name === 'dark' ? '#202020' : '#e8e8e8',
+        backgroundColor: config
+          ? config.bg
+          : name === 'dark'
+            ? '#202020'
+            : '#e8e8e8',
         border: selected
           ? `2px solid ${config ? config.fg : name === 'dark' ? '#a4bad6' : '#333'}`
           : '2px solid transparent',

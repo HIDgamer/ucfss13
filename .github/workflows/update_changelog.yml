@@ -2,12 +2,12 @@ name: "Update Changelog"
 on:
   push:
     branches:
-      - master
+      - UCFSS13
 
 jobs:
   update-changelog:
     concurrency: changelog
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     steps:
 
     - name: Generate App Token

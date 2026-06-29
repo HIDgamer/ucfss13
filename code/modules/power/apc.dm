@@ -120,6 +120,7 @@ GLOBAL_LIST_INIT(apc_wire_descriptions, list(
 	power_machine = TRUE
 	light_range = 1
 	light_power = 0.5
+	light_system = STATIC_LIGHT
 
 	appearance_flags = TILE_BOUND
 

@@ -6,17 +6,27 @@ import { Window } from '../layouts';
 
 const SPAWN_MODES = [
   { value: 'npc', label: 'NPC', icon: 'robot', desc: 'Uncontrolled NPC xeno' },
-  { value: 'freed', label: 'Available', icon: 'ghost', desc: 'Ghost players can take over' },
-  { value: 'ert', label: 'ERT', icon: 'satellite-dish', desc: 'Launch as Emergency Response Team' },
+  {
+    value: 'freed',
+    label: 'Available',
+    icon: 'ghost',
+    desc: 'Ghost players can take over',
+  },
+  {
+    value: 'ert',
+    label: 'ERT',
+    icon: 'satellite-dish',
+    desc: 'Launch as Emergency Response Team',
+  },
 ];
 
 const HIVE_COLORS = {
-  'Xenomorph': '#8B3C00',
-  'Corrupted': '#5c0066',
-  'Runner': '#4a7a1e',
-  'Survivor': '#1a3a6e',
-  'Mutated': '#8a6600',
-  'Dead': '#555',
+  Xenomorph: '#8B3C00',
+  Corrupted: '#5c0066',
+  Runner: '#4a7a1e',
+  Survivor: '#1a3a6e',
+  Mutated: '#8a6600',
+  Dead: '#555',
 };
 
 export const AdminSpawnXenos = () => {
@@ -50,13 +60,18 @@ export const AdminSpawnXenos = () => {
                     onClick={() => setSelectedHive(h)}
                     style={{
                       padding: '4px 10px',
-                      border: selectedHive === h
-                        ? `1px solid ${HIVE_COLORS[h] || '#4a4'}`
-                        : '1px solid rgba(255,255,255,0.12)',
-                      backgroundColor: selectedHive === h
-                        ? `${HIVE_COLORS[h] || '#2a6'}22`
-                        : 'rgba(255,255,255,0.04)',
-                      color: selectedHive === h ? HIVE_COLORS[h] || '#4cff88' : 'rgba(255,255,255,0.6)',
+                      border:
+                        selectedHive === h
+                          ? `1px solid ${HIVE_COLORS[h] || '#4a4'}`
+                          : '1px solid rgba(255,255,255,0.12)',
+                      backgroundColor:
+                        selectedHive === h
+                          ? `${HIVE_COLORS[h] || '#2a6'}22`
+                          : 'rgba(255,255,255,0.04)',
+                      color:
+                        selectedHive === h
+                          ? HIVE_COLORS[h] || '#4cff88'
+                          : 'rgba(255,255,255,0.6)',
                       borderRadius: '3px',
                       cursor: 'pointer',
                       fontSize: '0.78rem',
@@ -112,7 +127,10 @@ export const AdminSpawnXenos = () => {
                       cursor: 'pointer',
                       backgroundColor:
                         selectedCaste === c ? `${hiveColor}33` : 'transparent',
-                      color: selectedCaste === c ? hiveColor : 'rgba(255,255,255,0.7)',
+                      color:
+                        selectedCaste === c
+                          ? hiveColor
+                          : 'rgba(255,255,255,0.7)',
                       border: 'none',
                       borderBottom: '1px solid rgba(255,255,255,0.04)',
                       transition: 'background-color 0.1s ease',
@@ -142,7 +160,15 @@ export const AdminSpawnXenos = () => {
             <Section title="Spawn Options">
               <Stack>
                 <Stack.Item>
-                  <Box style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '3px' }}>Count</Box>
+                  <Box
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'rgba(255,255,255,0.5)',
+                      marginBottom: '3px',
+                    }}
+                  >
+                    Count
+                  </Box>
                   <NumberInput
                     value={count}
                     minValue={1}
@@ -153,7 +179,15 @@ export const AdminSpawnXenos = () => {
                   />
                 </Stack.Item>
                 <Stack.Item>
-                  <Box style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '3px' }}>Range</Box>
+                  <Box
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'rgba(255,255,255,0.5)',
+                      marginBottom: '3px',
+                    }}
+                  >
+                    Range
+                  </Box>
                   <NumberInput
                     value={range}
                     minValue={0}
@@ -180,9 +214,18 @@ export const AdminSpawnXenos = () => {
                     style={{
                       flex: 1,
                       padding: '6px 4px',
-                      border: spawnAs === m.value ? `1px solid ${hiveColor}` : '1px solid rgba(255,255,255,0.15)',
-                      backgroundColor: spawnAs === m.value ? `${hiveColor}22` : 'rgba(255,255,255,0.04)',
-                      color: spawnAs === m.value ? hiveColor : 'rgba(255,255,255,0.6)',
+                      border:
+                        spawnAs === m.value
+                          ? `1px solid ${hiveColor}`
+                          : '1px solid rgba(255,255,255,0.15)',
+                      backgroundColor:
+                        spawnAs === m.value
+                          ? `${hiveColor}22`
+                          : 'rgba(255,255,255,0.04)',
+                      color:
+                        spawnAs === m.value
+                          ? hiveColor
+                          : 'rgba(255,255,255,0.6)',
                       borderRadius: '3px',
                       cursor: 'pointer',
                       fontSize: '0.78rem',
@@ -190,7 +233,14 @@ export const AdminSpawnXenos = () => {
                       textAlign: 'center',
                     }}
                   >
-                    <Icon name={m.icon} style={{ display: 'block', margin: '0 auto 3px', fontSize: '1rem' }} />
+                    <Icon
+                      name={m.icon}
+                      style={{
+                        display: 'block',
+                        margin: '0 auto 3px',
+                        fontSize: '1rem',
+                      }}
+                    />
                     {m.label}
                   </Box>
                 ))}

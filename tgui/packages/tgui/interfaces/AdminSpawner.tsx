@@ -4,7 +4,6 @@ import { useBackend } from '../backend';
 import {
   Box,
   Button,
-  Divider,
   Dropdown,
   Input,
   LabeledList,
@@ -118,7 +117,16 @@ export const AdminSpawner = () => {
                 </VirtualList>
               </Box>
               {selected && (
-                <Box mt={0.5} color="label" fontSize="0.85em" truncate>
+                <Box
+                  mt={0.5}
+                  color="label"
+                  fontSize="0.85em"
+                  style={{
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
                   Selected: {selected}
                 </Box>
               )}

@@ -39,18 +39,17 @@ export const HealthScan = (props) => {
   const Synthetic = species === 'Synthetic';
   const theme = Synthetic ? 'hackerman' : bodyscanner ? 'ntos' : 'default';
 
-  const statusGlow =
-    colorEnabled
-      ? permadead
-        ? 'rgba(40,0,0,0.6)'
-        : dead
-          ? 'rgba(180,0,0,0.25)'
-          : health < 30
-            ? 'rgba(180,80,0,0.2)'
-            : health < 70
-              ? 'rgba(160,140,0,0.15)'
-              : 'transparent'
-      : 'transparent';
+  const statusGlow = colorEnabled
+    ? permadead
+      ? 'rgba(40,0,0,0.6)'
+      : dead
+        ? 'rgba(180,0,0,0.25)'
+        : health < 30
+          ? 'rgba(180,80,0,0.2)'
+          : health < 70
+            ? 'rgba(160,140,0,0.15)'
+            : 'transparent'
+    : 'transparent';
 
   return (
     <Window
@@ -61,14 +60,17 @@ export const HealthScan = (props) => {
       buttons={
         <Button
           icon={colorEnabled ? 'eye' : 'eye-slash'}
-          tooltip={colorEnabled ? 'Disable damage tinting' : 'Enable damage tinting'}
+          tooltip={
+            colorEnabled ? 'Disable damage tinting' : 'Enable damage tinting'
+          }
           selected={colorEnabled}
           compact
           onClick={() => setColorEnabled(!colorEnabled)}
         />
       }
     >
-      <style>{`
+      <style>
+        {`
         @keyframes hs-heartbeat {
           0%   { transform: scale(1);   opacity: 1; }
           14%  { transform: scale(1.25); opacity: 0.9; }
@@ -111,7 +113,8 @@ export const HealthScan = (props) => {
           pointer-events: none;
           z-index: 1;
         }
-      `}</style>
+      `}
+      </style>
       <Window.Content
         scrollable
         style={{

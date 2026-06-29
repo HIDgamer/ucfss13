@@ -1084,7 +1084,7 @@ SUBSYSTEM_DEF(minimaps)
 	if(!active_draw_tool)
 		return
 
-	active_draw_tool.freedraw_queue += vector(mouse_x, mouse_y)
+	active_draw_tool.freedraw_queue += list(list(mouse_x, mouse_y))
 
 	if(last_drawn == world.time)
 		return
@@ -1108,18 +1108,18 @@ SUBSYSTEM_DEF(minimaps)
 
 
 	if(!last_coords)
-		var/vector/first_in_queue = freedraw_queue[1]
-		last_coords = list(first_in_queue.x + plane_master.cur_x_shift, first_in_queue.y + plane_master.cur_x_shift)
+		var/list/first_in_queue = freedraw_queue[1]
+		last_coords = list(first_in_queue[1] + plane_master.cur_x_shift, first_in_queue[2] + plane_master.cur_x_shift)
 	else
 		first = FALSE
 
-	for(var/vector/vector in freedraw_queue)
+	for(var/list/coord in freedraw_queue)
 		if(first)
 			first = FALSE
 			continue
 
-		var/px = vector.x + plane_master.cur_x_shift
-		var/py = vector.y + plane_master.cur_y_shift
+		var/px = coord[1] + plane_master.cur_x_shift
+		var/py = coord[2] + plane_master.cur_y_shift
 
 		if(width)
 			draw_line_width(last_coords, list(px, py), slate, width)
