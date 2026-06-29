@@ -339,7 +339,10 @@
 /obj/item/weapon/gun/Destroy()
 	in_chamber = null
 	ammo = null
-	QDEL_NULL(current_mag)
+	if(istype(current_mag))
+		QDEL_NULL(current_mag)
+	else
+		current_mag = null
 	target = null
 	last_moved_mob = null
 	if(flags_gun_features & GUN_FLASHLIGHT_ON)//Handle flashlight.

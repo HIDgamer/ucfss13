@@ -5,15 +5,45 @@ import { Box, Button, Icon, NumberInput, Section, Stack } from '../components';
 import { Window } from '../layouts';
 
 const SPAWN_MODES = [
-  { value: 'npc', label: 'NPC', icon: 'robot', desc: 'Spawns as an uncontrolled NPC' },
-  { value: 'freed', label: 'Available', icon: 'ghost', desc: 'Ghost players can take over' },
-  { value: 'ert', label: 'ERT', icon: 'satellite-dish', desc: 'Launch as Emergency Response Team' },
+  {
+    value: 'npc',
+    label: 'NPC',
+    icon: 'robot',
+    desc: 'Spawns as an uncontrolled NPC',
+  },
+  {
+    value: 'freed',
+    label: 'Available',
+    icon: 'ghost',
+    desc: 'Ghost players can take over',
+  },
+  {
+    value: 'ert',
+    label: 'ERT',
+    icon: 'satellite-dish',
+    desc: 'Launch as Emergency Response Team',
+  },
 ];
 
 const EQUIP_MODES = [
-  { value: 'full', label: 'Full Gear', icon: 'vest', desc: 'All standard equipment for the job' },
-  { value: 'no_weapons', label: 'No Weapons', icon: 'shield-alt', desc: 'Gear but no weapons/ammo' },
-  { value: 'no_equipment', label: 'Stripped', icon: 'user', desc: 'No gear except ID card' },
+  {
+    value: 'full',
+    label: 'Full Gear',
+    icon: 'vest',
+    desc: 'All standard equipment for the job',
+  },
+  {
+    value: 'no_weapons',
+    label: 'No Weapons',
+    icon: 'shield-alt',
+    desc: 'Gear but no weapons/ammo',
+  },
+  {
+    value: 'no_equipment',
+    label: 'Stripped',
+    icon: 'user',
+    desc: 'No gear except ID card',
+  },
 ];
 
 export const AdminSpawnHumans = () => {
@@ -74,7 +104,9 @@ export const AdminSpawnHumans = () => {
                       fontSize: '0.82rem',
                       cursor: 'pointer',
                       backgroundColor:
-                        selected === p ? 'rgba(74,140,255,0.25)' : 'transparent',
+                        selected === p
+                          ? 'rgba(74,140,255,0.25)'
+                          : 'transparent',
                       color: selected === p ? '#8cf' : 'rgba(255,255,255,0.7)',
                       border: 'none',
                       borderBottom: '1px solid rgba(255,255,255,0.05)',
@@ -105,7 +137,15 @@ export const AdminSpawnHumans = () => {
             <Section title="Spawn Options">
               <Stack>
                 <Stack.Item>
-                  <Box style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '3px' }}>Count</Box>
+                  <Box
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'rgba(255,255,255,0.5)',
+                      marginBottom: '3px',
+                    }}
+                  >
+                    Count
+                  </Box>
                   <NumberInput
                     value={count}
                     minValue={1}
@@ -116,7 +156,15 @@ export const AdminSpawnHumans = () => {
                   />
                 </Stack.Item>
                 <Stack.Item>
-                  <Box style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', marginBottom: '3px' }}>Range</Box>
+                  <Box
+                    style={{
+                      fontSize: '0.75rem',
+                      color: 'rgba(255,255,255,0.5)',
+                      marginBottom: '3px',
+                    }}
+                  >
+                    Range
+                  </Box>
                   <NumberInput
                     value={range}
                     minValue={0}
@@ -143,9 +191,16 @@ export const AdminSpawnHumans = () => {
                     style={{
                       flex: 1,
                       padding: '6px 4px',
-                      border: spawnAs === m.value ? '1px solid #4a8cff' : '1px solid rgba(255,255,255,0.15)',
-                      backgroundColor: spawnAs === m.value ? 'rgba(74,140,255,0.2)' : 'rgba(255,255,255,0.04)',
-                      color: spawnAs === m.value ? '#8cf' : 'rgba(255,255,255,0.6)',
+                      border:
+                        spawnAs === m.value
+                          ? '1px solid #4a8cff'
+                          : '1px solid rgba(255,255,255,0.15)',
+                      backgroundColor:
+                        spawnAs === m.value
+                          ? 'rgba(74,140,255,0.2)'
+                          : 'rgba(255,255,255,0.04)',
+                      color:
+                        spawnAs === m.value ? '#8cf' : 'rgba(255,255,255,0.6)',
                       borderRadius: '3px',
                       cursor: 'pointer',
                       fontSize: '0.78rem',
@@ -153,7 +208,14 @@ export const AdminSpawnHumans = () => {
                       textAlign: 'center',
                     }}
                   >
-                    <Icon name={m.icon} style={{ display: 'block', margin: '0 auto 3px', fontSize: '1rem' }} />
+                    <Icon
+                      name={m.icon}
+                      style={{
+                        display: 'block',
+                        margin: '0 auto 3px',
+                        fontSize: '1rem',
+                      }}
+                    />
                     {m.label}
                   </Box>
                 ))}
@@ -174,9 +236,18 @@ export const AdminSpawnHumans = () => {
                     style={{
                       flex: 1,
                       padding: '6px 4px',
-                      border: equipWith === m.value ? '1px solid #4aff8c' : '1px solid rgba(255,255,255,0.15)',
-                      backgroundColor: equipWith === m.value ? 'rgba(74,255,140,0.1)' : 'rgba(255,255,255,0.04)',
-                      color: equipWith === m.value ? '#4cff88' : 'rgba(255,255,255,0.6)',
+                      border:
+                        equipWith === m.value
+                          ? '1px solid #4aff8c'
+                          : '1px solid rgba(255,255,255,0.15)',
+                      backgroundColor:
+                        equipWith === m.value
+                          ? 'rgba(74,255,140,0.1)'
+                          : 'rgba(255,255,255,0.04)',
+                      color:
+                        equipWith === m.value
+                          ? '#4cff88'
+                          : 'rgba(255,255,255,0.6)',
                       borderRadius: '3px',
                       cursor: 'pointer',
                       fontSize: '0.75rem',
@@ -184,7 +255,14 @@ export const AdminSpawnHumans = () => {
                       textAlign: 'center',
                     }}
                   >
-                    <Icon name={m.icon} style={{ display: 'block', margin: '0 auto 3px', fontSize: '1rem' }} />
+                    <Icon
+                      name={m.icon}
+                      style={{
+                        display: 'block',
+                        margin: '0 auto 3px',
+                        fontSize: '1rem',
+                      }}
+                    />
                     {m.label}
                   </Box>
                 ))}

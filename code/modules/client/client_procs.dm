@@ -485,7 +485,6 @@ GLOBAL_LIST_INIT(whitelisted_client_procs, list(
 	..()
 	return QDEL_HINT_HARDDEL_NOW
 
-
 #undef TOPIC_SPAM_DELAY
 #undef UPLOAD_LIMIT
 #undef MIN_CLIENT_VERSION
@@ -518,7 +517,6 @@ GLOBAL_LIST_INIT(whitelisted_client_procs, list(
 						message_admins("<font color='red'><B>Notice: </B>[SPAN_BLUE("<A href='byond://?src=\ref[usr];priv_msg=[src.ckey]'>[key_name_admin(src)]</A> has the same [matches] as [key_name_admin(M)] (no longer logged in).")]", 1)
 						log_access("Notice: [key_name(src)] has the same [matches] as [key_name(M)] (no longer logged in).")
 
-
 //checks if a client is afk
 //3000 frames = 5 minutes
 /client/proc/is_afk(duration=3000)
@@ -548,9 +546,6 @@ GLOBAL_LIST_INIT(whitelisted_client_procs, list(
 	return P
 
 /proc/save_player_entities()
-	for(var/key_ref in GLOB.player_entities)
-		// var/datum/entity/player_entity/P = player_entities["[key_ref]"]
-		// P.save_statistics()
 	log_debug("STATISTICS: Statistics saving complete.")
 	message_admins("STATISTICS: Statistics saving complete.")
 
@@ -612,7 +607,6 @@ GLOBAL_LIST_INIT(whitelisted_client_procs, list(
 
 	SEND_SIGNAL(src, COMSIG_CLIENT_KEY_UP, key)
 
-
 /**
 * Compiles a full list of verbs to be sent to the browser
 * Sends the 2D verbs vector of (verb category, verb name)
@@ -660,7 +654,6 @@ GLOBAL_LIST_INIT(whitelisted_client_procs, list(
 		if("Set-Tab")
 			stat_tab = payload["tab"]
 			SSstatpanels.immediate_send_stat_data(src)
-
 
 /**
  * Updates the keybinds for special keys
@@ -883,7 +876,6 @@ GLOBAL_LIST_INIT(whitelisted_client_procs, list(
 
 	if(!selected_action.player_hidden && selected_action.hidden) //Inform the player that even if they are unhiding it, itll still not be visible
 		to_chat(user, SPAN_NOTICE("[selected_action] is forcefully hidden, bypassing player unhiding."))
-
 
 /client/proc/check_whitelist_status(flag_to_check)
 	if(check_localhost_status())

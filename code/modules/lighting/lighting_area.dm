@@ -43,7 +43,7 @@
 /area/proc/remove_base_lighting()
 	for(var/turf/T in src)
 		T.overlays -= lighting_effect
-	QDEL_NULL(lighting_effect)
+	lighting_effect = null
 	area_has_base_lighting = FALSE
 
 /area/proc/add_base_lighting()

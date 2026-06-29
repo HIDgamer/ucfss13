@@ -59,7 +59,10 @@ let setClientThemeTimer: NodeJS.Timeout;
  *
  * If you change ANYTHING in interface/skin.dmf you need to change it here.
  */
-export const setClientTheme = (baseTheme: string, colorPreset: string | null = null) => {
+export const setClientTheme = (
+  baseTheme: string,
+  colorPreset: string | null = null,
+) => {
   const effectiveName = colorPreset || baseTheme;
   clearInterval(setClientThemeTimer);
   Byond.command(`.output statbrowser:set_theme ${effectiveName}`);

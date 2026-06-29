@@ -149,7 +149,7 @@ Nah
 */
 
 //Allow you to drag-drop disposal pipes into it
-/obj/structure/machinery/pipedispenser/disposal/MouseDrop_T(obj/structure/disposalconstruct/pipe as obj, mob/usr as mob)
+/obj/structure/machinery/pipedispenser/disposal/MouseDrop_T(obj/structure/disposalconstruct/pipe as obj, mob/user as mob)
 	if(usr.is_mob_incapacitated())
 		return
 

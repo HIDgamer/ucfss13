@@ -382,28 +382,28 @@
 	. = ..()
 
 //We use this to activate random verbs for non-Yautja
-/obj/item/clothing/gloves/yautja/hunter/proc/activate_random_verb(mob/caller)
+/obj/item/clothing/gloves/yautja/hunter/proc/activate_random_verb(mob/invoker)
 	var/option = rand(1, 10)
 	//we have options from 1 to 7, but we're giving the user a higher probability of being punished if they already rolled this bad
 	switch(option)
 		if(1)
-			. = attachment_internal(caller, TRUE)
+			. = attachment_internal(invoker, TRUE)
 		if(2)
-			. = track_gear_internal(caller, TRUE)
+			. = track_gear_internal(invoker, TRUE)
 		if(3)
-			. = cloaker_internal(caller, TRUE)
+			. = cloaker_internal(invoker, TRUE)
 		if(4)
-			. = caster_internal(caller, TRUE)
+			. = caster_internal(invoker, TRUE)
 		if(5)
-			. = injectors_internal(caller, TRUE)
+			. = injectors_internal(invoker, TRUE)
 		if(6)
-			. = call_disc_internal(caller, TRUE)
+			. = call_disc_internal(invoker, TRUE)
 		if(7)
-			. = translate_internal(caller, TRUE)
+			. = translate_internal(invoker, TRUE)
 		if(8)
-			. =	remove_attachment_internal(caller, TRUE)
+			. =	remove_attachment_internal(invoker, TRUE)
 		else
-			. = delimb_user(caller)
+			. = delimb_user(invoker)
 
 //This is used to punish people that fiddle with technology they don't understand
 /obj/item/clothing/gloves/yautja/hunter/proc/delimb_user(mob/living/carbon/human/user)
@@ -561,61 +561,61 @@
 	set src in usr
 	return attachment_internal(usr, FALSE)
 
-/obj/item/clothing/gloves/yautja/hunter/proc/attachment_internal(mob/living/carbon/human/caller, forced = FALSE)
-	if(!caller.loc || caller.is_mob_incapacitated() || !ishuman(caller))
+/obj/item/clothing/gloves/yautja/hunter/proc/attachment_internal(mob/living/carbon/human/invoker, forced = FALSE)
+	if(!invoker.loc || invoker.is_mob_incapacitated() || !ishuman(invoker))
 		return
 
-	. = check_random_function(caller, forced)
+	. = check_random_function(invoker, forced)
 	if(.)
 		return
 
 	if(bracer_attachment_deployed)
-		retract_bracer_attachments(caller)
+		retract_bracer_attachments(invoker)
 	else
-		deploy_bracer_attachments(caller)
+		deploy_bracer_attachments(invoker)
 
 	var/datum/action/predator_action/bracer/wristblade/wb_action
-	for(wb_action as anything in caller.actions)
+	for(wb_action as anything in invoker.actions)
 		if(istypestrict(wb_action, /datum/action/predator_action/bracer/wristblade))
 			wb_action.update_button_icon(bracer_attachment_deployed)
 			break
 
 	return TRUE
 
-/obj/item/clothing/gloves/yautja/hunter/proc/deploy_bracer_attachments(mob/living/carbon/human/caller) //take the weapons from the attachments in the bracer, and puts them in the callers hand
-	if(!drain_power(caller, 50))
+/obj/item/clothing/gloves/yautja/hunter/proc/deploy_bracer_attachments(mob/living/carbon/human/invoker) //take the weapons from the attachments in the bracer, and puts them in the invokers hand
+	if(!drain_power(invoker, 50))
 		return
 	if(!left_bracer_attachment && !right_bracer_attachment)
-		to_chat(caller, SPAN_WARNING("[src] has no bracer attachments!"))
+		to_chat(invoker, SPAN_WARNING("[src] has no bracer attachments!"))
 		return
 
 	if(left_bracer_attachment)
-		var/obj/limb/left_hand = caller.get_limb("l_hand")
-		if(!caller.l_hand && left_hand.is_usable())
-			if(caller.put_in_l_hand(left_bracer_attachment.attached_weapon))
-				to_chat(caller, SPAN_NOTICE("You extend [left_bracer_attachment.attached_weapon]."))
+		var/obj/limb/left_hand = invoker.get_limb("l_hand")
+		if(!invoker.l_hand && left_hand.is_usable())
+			if(invoker.put_in_l_hand(left_bracer_attachment.attached_weapon))
+				to_chat(invoker, SPAN_NOTICE("You extend [left_bracer_attachment.attached_weapon]."))
 				bracer_attachment_deployed = TRUE
 				playsound(loc,left_bracer_attachment.deployment_sound, 25, TRUE)
 
 
 	if(right_bracer_attachment)
-		var/obj/limb/right_hand = caller.get_limb("r_hand")
-		if(!caller.r_hand && right_hand.is_usable())
-			if(caller.put_in_r_hand(right_bracer_attachment.attached_weapon))
-				to_chat(caller, SPAN_NOTICE("You extend [right_bracer_attachment.attached_weapon]."))
+		var/obj/limb/right_hand = invoker.get_limb("r_hand")
+		if(!invoker.r_hand && right_hand.is_usable())
+			if(invoker.put_in_r_hand(right_bracer_attachment.attached_weapon))
+				to_chat(invoker, SPAN_NOTICE("You extend [right_bracer_attachment.attached_weapon]."))
 				bracer_attachment_deployed = TRUE
 				playsound(loc,right_bracer_attachment.deployment_sound, 25, TRUE)
 
 
-/obj/item/clothing/gloves/yautja/hunter/proc/retract_bracer_attachments(mob/living/carbon/human/caller) //if the attachments weapon is in the callers hands, retract them back into the attachments
-	if(left_bracer_attachment && left_bracer_attachment.attached_weapon.loc == caller)
-		caller.drop_inv_item_to_loc(left_bracer_attachment.attached_weapon, left_bracer_attachment, FALSE, TRUE)
-		to_chat(caller, SPAN_NOTICE("You retract [left_bracer_attachment.attached_weapon]."))
+/obj/item/clothing/gloves/yautja/hunter/proc/retract_bracer_attachments(mob/living/carbon/human/invoker) //if the attachments weapon is in the invokers hands, retract them back into the attachments
+	if(left_bracer_attachment && left_bracer_attachment.attached_weapon.loc == invoker)
+		invoker.drop_inv_item_to_loc(left_bracer_attachment.attached_weapon, left_bracer_attachment, FALSE, TRUE)
+		to_chat(invoker, SPAN_NOTICE("You retract [left_bracer_attachment.attached_weapon]."))
 		playsound(loc, left_bracer_attachment.retract_sound, 25, TRUE)
 
-	if(right_bracer_attachment && right_bracer_attachment.attached_weapon.loc == caller)
-		caller.drop_inv_item_to_loc(right_bracer_attachment.attached_weapon, right_bracer_attachment, FALSE, TRUE)
-		to_chat(caller, SPAN_NOTICE("You retract [right_bracer_attachment.attached_weapon]."))
+	if(right_bracer_attachment && right_bracer_attachment.attached_weapon.loc == invoker)
+		invoker.drop_inv_item_to_loc(right_bracer_attachment.attached_weapon, right_bracer_attachment, FALSE, TRUE)
+		to_chat(invoker, SPAN_NOTICE("You retract [right_bracer_attachment.attached_weapon]."))
 		playsound(loc, right_bracer_attachment.retract_sound, 25, TRUE)
 
 	bracer_attachment_deployed = FALSE
@@ -627,12 +627,12 @@
 	set src in usr
 	. = track_gear_internal(usr, FALSE)
 
-/obj/item/clothing/gloves/yautja/hunter/proc/track_gear_internal(mob/caller, forced = FALSE)
-	. = check_random_function(caller, forced)
+/obj/item/clothing/gloves/yautja/hunter/proc/track_gear_internal(mob/invoker, forced = FALSE)
+	. = check_random_function(invoker, forced)
 	if(.)
 		return
 
-	var/mob/living/carbon/human/hunter = caller
+	var/mob/living/carbon/human/hunter = invoker
 	var/atom/hunter_eye = hunter.client.eye
 
 	var/dead_on_planet = 0
@@ -713,22 +713,22 @@
 	set src in usr
 	. = cloaker_internal(usr, FALSE)
 
-/obj/item/clothing/gloves/yautja/hunter/proc/cloaker_internal(mob/caller, forced = FALSE, silent = FALSE, instant = FALSE)
-	. = check_random_function(caller, forced)
+/obj/item/clothing/gloves/yautja/hunter/proc/cloaker_internal(mob/invoker, forced = FALSE, silent = FALSE, instant = FALSE)
+	. = check_random_function(invoker, forced)
 	if(.)
 		return
 
-	var/mob/living/carbon/human/M = caller
+	var/mob/living/carbon/human/M = invoker
 	var/new_alpha = cloak_alpha
 
 	if(!istype(M) || M.is_mob_incapacitated())
 		return FALSE
 
-	if(HAS_TRAIT(caller, TRAIT_CLOAKED)) //Turn it off.
+	if(HAS_TRAIT(invoker, TRAIT_CLOAKED)) //Turn it off.
 		if(cloak_timer > world.time)
 			to_chat(M, SPAN_WARNING("Your cloaking device is busy! Time left: <B>[max(floor((cloak_timer - world.time) / 10), 1)]</b> seconds."))
 			return FALSE
-		decloak(caller)
+		decloak(invoker)
 	else //Turn it on!
 		if(exploding)
 			to_chat(M, SPAN_WARNING("Your bracer is much too busy violently exploding to activate the cloaking device."))
@@ -776,7 +776,7 @@
 	var/datum/action/predator_action/bracer/cloak/cloak_action
 	for(cloak_action as anything in M.actions)
 		if(istypestrict(cloak_action, /datum/action/predator_action/bracer/cloak))
-			cloak_action.update_button_icon(HAS_TRAIT(caller, TRAIT_CLOAKED))
+			cloak_action.update_button_icon(HAS_TRAIT(invoker, TRAIT_CLOAKED))
 			break
 
 	return TRUE
@@ -832,40 +832,40 @@
 	set src in usr
 	. = caster_internal(usr, FALSE)
 
-/obj/item/clothing/gloves/yautja/hunter/proc/caster_internal(mob/living/carbon/human/caller, forced = FALSE)
-	if(!caller.loc || caller.is_mob_incapacitated() || !ishuman(caller))
+/obj/item/clothing/gloves/yautja/hunter/proc/caster_internal(mob/living/carbon/human/invoker, forced = FALSE)
+	if(!invoker.loc || invoker.is_mob_incapacitated() || !ishuman(invoker))
 		return
 
-	. = check_random_function(caller, forced)
+	. = check_random_function(invoker, forced)
 	if(.)
 		return
 
 	if(caster_deployed)
-		if(caster.loc == caller)
-			caller.drop_inv_item_to_loc(caster, src, FALSE, TRUE)
+		if(caster.loc == invoker)
+			invoker.drop_inv_item_to_loc(caster, src, FALSE, TRUE)
 		caster_deployed = FALSE
 	else
-		if(!drain_power(caller, 50))
+		if(!drain_power(invoker, 50))
 			return
-		if(caller.get_active_hand())
-			to_chat(caller, SPAN_WARNING("Your hand must be free to activate your plasma caster!"))
+		if(invoker.get_active_hand())
+			to_chat(invoker, SPAN_WARNING("Your hand must be free to activate your plasma caster!"))
 			return
-		var/obj/limb/hand = caller.get_limb(caller.hand ? "l_hand" : "r_hand")
+		var/obj/limb/hand = invoker.get_limb(invoker.hand ? "l_hand" : "r_hand")
 		if(!istype(hand) || !hand.is_usable())
-			to_chat(caller, SPAN_WARNING("You can't hold that!"))
+			to_chat(invoker, SPAN_WARNING("You can't hold that!"))
 			return
-		if(caller.faction == FACTION_YAUTJA_YOUNG)
-			to_chat(caller, SPAN_WARNING("You have not earned that right yet!"))
+		if(invoker.faction == FACTION_YAUTJA_YOUNG)
+			to_chat(invoker, SPAN_WARNING("You have not earned that right yet!"))
 			return
-		caller.put_in_active_hand(caster)
+		invoker.put_in_active_hand(caster)
 		caster_deployed = TRUE
-		if(caller.client?.prefs.custom_cursors)
-			caller.client?.mouse_pointer_icon = 'icons/effects/mouse_pointer/plasma_caster_mouse.dmi'
-		to_chat(caller, SPAN_NOTICE("You activate your plasma caster. It is in [caster.mode] mode."))
+		if(invoker.client?.prefs.custom_cursors)
+			invoker.client?.mouse_pointer_icon = 'icons/effects/mouse_pointer/plasma_caster_mouse.dmi'
+		to_chat(invoker, SPAN_NOTICE("You activate your plasma caster. It is in [caster.mode] mode."))
 		playsound(src, 'sound/weapons/pred_plasmacaster_on.ogg', 15, TRUE)
 
 		var/datum/action/predator_action/bracer/caster/caster_action
-		for(caster_action as anything in caller.actions)
+		for(caster_action as anything in invoker.actions)
 			if(istypestrict(caster_action, /datum/action/predator_action/bracer/caster))
 				caster_action.update_button_icon(caster_deployed)
 				break
@@ -927,12 +927,12 @@
 	set src in usr
 	. = activate_suicide_internal(usr, FALSE)
 
-/obj/item/clothing/gloves/yautja/hunter/proc/activate_suicide_internal(mob/caller, forced = FALSE)
-	. = check_random_function(caller, forced, TRUE)
+/obj/item/clothing/gloves/yautja/hunter/proc/activate_suicide_internal(mob/invoker, forced = FALSE)
+	. = check_random_function(invoker, forced, TRUE)
 	if(.)
 		return
 
-	var/mob/living/carbon/human/boomer = caller
+	var/mob/living/carbon/human/boomer = invoker
 	var/area/grounds = get_area(boomer)
 
 	if(HAS_TRAIT(boomer, TRAIT_CLOAKED))
@@ -950,7 +950,7 @@
 	if(grounds?.flags_area & AREA_YAUTJA_HUNTING_GROUNDS) // Hunted need mask to escape
 		to_chat(boomer, SPAN_WARNING("Your bracer will not allow you to activate a self-destruction sequence in order to protect the hunting preserve."))
 		return
-	if(caller.faction == FACTION_YAUTJA_YOUNG)
+	if(invoker.faction == FACTION_YAUTJA_YOUNG)
 		to_chat(boomer, SPAN_WARNING("You don't yet understand how to use this.")) // No SDing for youngbloods
 		return
 
@@ -1045,16 +1045,16 @@
 	set src in usr
 	. = remote_kill_internal(usr, FALSE)
 
-/obj/item/clothing/gloves/yautja/hunter/proc/remote_kill_internal(mob/living/carbon/human/caller, forced = FALSE)
-	if(!caller.loc || caller.is_mob_incapacitated() || !ishuman(caller))
+/obj/item/clothing/gloves/yautja/hunter/proc/remote_kill_internal(mob/living/carbon/human/invoker, forced = FALSE)
+	if(!invoker.loc || invoker.is_mob_incapacitated() || !ishuman(invoker))
 		return
 
-	if(caller.faction == FACTION_YAUTJA_YOUNG)
-		to_chat(caller, SPAN_WARNING("This button is not for you."))
+	if(invoker.faction == FACTION_YAUTJA_YOUNG)
+		to_chat(invoker, SPAN_WARNING("This button is not for you."))
 		return
 
-	if(!HAS_TRAIT(caller, TRAIT_YAUTJA_TECH))
-		to_chat(caller, SPAN_WARNING("A large list appears but you cannot understand what it means."))
+	if(!HAS_TRAIT(invoker, TRAIT_YAUTJA_TECH))
+		to_chat(invoker, SPAN_WARNING("A large list appears but you cannot understand what it means."))
 		return
 
 	var/list/target_list = list()
@@ -1063,26 +1063,26 @@
 			target_list[target_youngbloods.real_name] = target_youngbloods
 
 	if(!length(target_list))
-		to_chat(caller, SPAN_NOTICE("No youngbloods are currently alive."))
+		to_chat(invoker, SPAN_NOTICE("No youngbloods are currently alive."))
 		return
 
-	var/choice = tgui_input_list(caller, "Choose a young hunter to terminate:", "Kill Youngblood", target_list)
+	var/choice = tgui_input_list(invoker, "Choose a young hunter to terminate:", "Kill Youngblood", target_list)
 
 	if(!choice)
 		return
 
 	var/mob/living/target_youngblood = target_list[choice]
 
-	var/reason = tgui_input_text(caller, "Provide a reason for terminating [target_youngblood.real_name].")
+	var/reason = tgui_input_text(invoker, "Provide a reason for terminating [target_youngblood.real_name].")
 	if(!reason)
-		to_chat(caller, SPAN_WARNING("You must provide a reason for terminating [target_youngblood.real_name]."))
+		to_chat(invoker, SPAN_WARNING("You must provide a reason for terminating [target_youngblood.real_name]."))
 		return
 
 	var/area/location = get_area(target_youngblood)
 	var/turf/floor = get_turf(target_youngblood)
 	target_youngblood.death(create_cause_data("Youngblood Termination"), TRUE)
-	message_all_yautja("[caller.real_name] has terminated [target_youngblood.real_name] for: '[reason]'.")
-	message_admins(FONT_SIZE_LARGE("ALERT: [caller.real_name] ([caller.key]) Terminated [target_youngblood.real_name] ([target_youngblood.key]) in [location.name] for: '[reason]' [ADMIN_JMP(floor)]</font>"))
+	message_all_yautja("[invoker.real_name] has terminated [target_youngblood.real_name] for: '[reason]'.")
+	message_admins(FONT_SIZE_LARGE("ALERT: [invoker.real_name] ([invoker.key]) Terminated [target_youngblood.real_name] ([target_youngblood.key]) in [location.name] for: '[reason]' [ADMIN_JMP(floor)]</font>"))
 
 #define YAUTJA_CREATE_CRYSTAL_COOLDOWN "yautja_create_crystal_cooldown"
 /obj/item/clothing/gloves/yautja/hunter/verb/injectors()
@@ -1092,31 +1092,31 @@
 	set src in usr
 	. = injectors_internal(usr, FALSE)
 
-/obj/item/clothing/gloves/yautja/hunter/proc/injectors_internal(mob/caller, forced = FALSE)
-	if(caller.is_mob_incapacitated())
+/obj/item/clothing/gloves/yautja/hunter/proc/injectors_internal(mob/invoker, forced = FALSE)
+	if(invoker.is_mob_incapacitated())
 		return FALSE
 
-	. = check_random_function(caller, forced)
+	. = check_random_function(invoker, forced)
 	if(.)
 		return
 
-	if(caller.get_active_hand())
-		to_chat(caller, SPAN_WARNING("Your active hand must be empty!"))
+	if(invoker.get_active_hand())
+		to_chat(invoker, SPAN_WARNING("Your active hand must be empty!"))
 		return FALSE
 
 	if(TIMER_COOLDOWN_CHECK(src, YAUTJA_CREATE_CRYSTAL_COOLDOWN))
 		var/remaining_time = DisplayTimeText(S_TIMER_COOLDOWN_TIMELEFT(src, YAUTJA_CREATE_CRYSTAL_COOLDOWN))
-		to_chat(caller, SPAN_WARNING("You recently synthesized a stabilising crystal. A new crystal will be available in [remaining_time]."))
+		to_chat(invoker, SPAN_WARNING("You recently synthesized a stabilising crystal. A new crystal will be available in [remaining_time]."))
 		return FALSE
 
-	if(!drain_power(caller, 400))
+	if(!drain_power(invoker, 400))
 		return FALSE
 
 	S_TIMER_COOLDOWN_START(src, YAUTJA_CREATE_CRYSTAL_COOLDOWN, 2 MINUTES)
 
-	to_chat(caller, SPAN_NOTICE("You feel a faint hiss and a crystalline injector drops into your hand."))
-	var/obj/item/reagent_container/hypospray/autoinjector/yautja/O = new(caller)
-	caller.put_in_active_hand(O)
+	to_chat(invoker, SPAN_NOTICE("You feel a faint hiss and a crystalline injector drops into your hand."))
+	var/obj/item/reagent_container/hypospray/autoinjector/yautja/O = new(invoker)
+	invoker.put_in_active_hand(O)
 	playsound(src, 'sound/machines/click.ogg', 15, 1)
 	return TRUE
 #undef YAUTJA_CREATE_CRYSTAL_COOLDOWN
@@ -1129,31 +1129,31 @@
 	. = healing_capsule_internal(usr, FALSE)
 
 #define YAUTJA_CREATE_CAPSULE_COOLDOWN "yautja_create_capsule_cooldown"
-/obj/item/clothing/gloves/yautja/hunter/proc/healing_capsule_internal(mob/caller, forced = FALSE)
-	if(caller.is_mob_incapacitated())
+/obj/item/clothing/gloves/yautja/hunter/proc/healing_capsule_internal(mob/invoker, forced = FALSE)
+	if(invoker.is_mob_incapacitated())
 		return FALSE
 
-	. = check_random_function(caller, forced)
+	. = check_random_function(invoker, forced)
 	if(.)
 		return
 
-	if(caller.get_active_hand())
-		to_chat(caller, SPAN_WARNING("Your active hand must be empty!"))
+	if(invoker.get_active_hand())
+		to_chat(invoker, SPAN_WARNING("Your active hand must be empty!"))
 		return FALSE
 
 	if(TIMER_COOLDOWN_CHECK(src, YAUTJA_CREATE_CAPSULE_COOLDOWN))
 		var/remaining_time = DisplayTimeText(S_TIMER_COOLDOWN_TIMELEFT(src, YAUTJA_CREATE_CAPSULE_COOLDOWN))
-		to_chat(caller, SPAN_WARNING("You recently synthesized a healing capsule. A new capsule will be available in [remaining_time]."))
+		to_chat(invoker, SPAN_WARNING("You recently synthesized a healing capsule. A new capsule will be available in [remaining_time]."))
 		return FALSE
 
-	if(!drain_power(caller, 600))
+	if(!drain_power(invoker, 600))
 		return FALSE
 
 	S_TIMER_COOLDOWN_START(src, YAUTJA_CREATE_CAPSULE_COOLDOWN, 4 MINUTES)
 
-	to_chat(caller, SPAN_NOTICE("You feel your bracer churn as it pops out a healing capsule."))
-	var/obj/item/tool/surgery/healing_gel/O = new(caller)
-	caller.put_in_active_hand(O)
+	to_chat(invoker, SPAN_NOTICE("You feel your bracer churn as it pops out a healing capsule."))
+	var/obj/item/tool/surgery/healing_gel/O = new(invoker)
+	invoker.put_in_active_hand(O)
 	playsound(src, 'sound/machines/click.ogg', 15, 1)
 	return TRUE
 #undef YAUTJA_CREATE_CAPSULE_COOLDOWN
@@ -1166,32 +1166,32 @@
 	. = call_disc_internal(usr, FALSE)
 
 
-/obj/item/clothing/gloves/yautja/hunter/proc/call_disc_internal(mob/caller, forced = FALSE)
-	if(caller.is_mob_incapacitated())
+/obj/item/clothing/gloves/yautja/hunter/proc/call_disc_internal(mob/invoker, forced = FALSE)
+	if(invoker.is_mob_incapacitated())
 		return FALSE
 
-	. = check_random_function(caller, forced)
+	. = check_random_function(invoker, forced)
 	if(.)
 		return
 
 	if(disc_timer)
-		to_chat(caller, SPAN_WARNING("Your bracers need some time to recuperate first."))
+		to_chat(invoker, SPAN_WARNING("Your bracers need some time to recuperate first."))
 		return FALSE
 
-	if(!drain_power(caller, 70))
+	if(!drain_power(invoker, 70))
 		return FALSE
 
 	disc_timer = TRUE
 	addtimer(VARSET_CALLBACK(src, disc_timer, FALSE), 10 SECONDS)
 
 	for(var/mob/living/simple_animal/hostile/smartdisc/S in range(7))
-		to_chat(caller, SPAN_WARNING("[S] skips back towards you!"))
+		to_chat(invoker, SPAN_WARNING("[S] skips back towards you!"))
 		new /obj/item/explosive/grenade/spawnergrenade/smartdisc(S.loc)
 		qdel(S)
 
 	for(var/obj/item/explosive/grenade/spawnergrenade/smartdisc/D in range(10))
 		if(isturf(D.loc))
-			D.boomerang(caller)
+			D.boomerang(invoker)
 
 	return TRUE
 
@@ -1202,23 +1202,23 @@
 	set src in usr
 	. = remove_tracked_item_internal(usr, FALSE)
 
-/obj/item/clothing/gloves/yautja/hunter/proc/remove_tracked_item_internal(mob/caller, forced = FALSE)
-	if(caller.is_mob_incapacitated())
+/obj/item/clothing/gloves/yautja/hunter/proc/remove_tracked_item_internal(mob/invoker, forced = FALSE)
+	if(invoker.is_mob_incapacitated())
 		return FALSE
 
-	. = check_random_function(caller, forced)
+	. = check_random_function(invoker, forced)
 	if(.)
 		return
 
-	var/obj/item/tracked_item = caller.get_active_hand()
+	var/obj/item/tracked_item = invoker.get_active_hand()
 	if(!tracked_item)
-		to_chat(caller, SPAN_WARNING("You need the item in your active hand to remove it from the tracker!"))
+		to_chat(invoker, SPAN_WARNING("You need the item in your active hand to remove it from the tracker!"))
 		return FALSE
 	if(!(tracked_item in GLOB.tracked_yautja_gear))
-		to_chat(caller, SPAN_WARNING("\The [tracked_item] isn't on the tracking system."))
+		to_chat(invoker, SPAN_WARNING("\The [tracked_item] isn't on the tracking system."))
 		return FALSE
 	tracked_item.RemoveElement(/datum/element/yautja_tracked_item)
-	to_chat(caller, SPAN_NOTICE("You remove \the <b>[tracked_item]</b> from the tracking system."))
+	to_chat(invoker, SPAN_NOTICE("You remove \the <b>[tracked_item]</b> from the tracking system."))
 	return TRUE
 
 
@@ -1229,23 +1229,23 @@
 	set src in usr
 	. = add_tracked_item_internal(usr, FALSE)
 
-/obj/item/clothing/gloves/yautja/hunter/proc/add_tracked_item_internal(mob/caller, forced = FALSE)
-	if(caller.is_mob_incapacitated())
+/obj/item/clothing/gloves/yautja/hunter/proc/add_tracked_item_internal(mob/invoker, forced = FALSE)
+	if(invoker.is_mob_incapacitated())
 		return FALSE
 
-	. = check_random_function(caller, forced)
+	. = check_random_function(invoker, forced)
 	if(.)
 		return
 
-	var/obj/item/untracked_item = caller.get_active_hand()
+	var/obj/item/untracked_item = invoker.get_active_hand()
 	if(!untracked_item)
-		to_chat(caller, SPAN_WARNING("You need the item in your active hand to remove it from the tracker!"))
+		to_chat(invoker, SPAN_WARNING("You need the item in your active hand to remove it from the tracker!"))
 		return FALSE
 	if(untracked_item in GLOB.tracked_yautja_gear)
-		to_chat(caller, SPAN_WARNING("\The [untracked_item] is already being tracked."))
+		to_chat(invoker, SPAN_WARNING("\The [untracked_item] is already being tracked."))
 		return FALSE
 	untracked_item.AddElement(/datum/element/yautja_tracked_item)
-	to_chat(caller, SPAN_NOTICE("You add \the <b>[untracked_item]</b> to the tracking system."))
+	to_chat(invoker, SPAN_NOTICE("You add \the <b>[untracked_item]</b> to the tracking system."))
 	return TRUE
 
 /obj/item/clothing/gloves/yautja/hunter/verb/translate()
@@ -1255,30 +1255,30 @@
 	set src in usr
 	. = translate_internal(usr, FALSE)
 
-/obj/item/clothing/gloves/yautja/hunter/proc/translate_internal(mob/caller, forced = FALSE)
-	if(!caller || caller.stat)
+/obj/item/clothing/gloves/yautja/hunter/proc/translate_internal(mob/invoker, forced = FALSE)
+	if(!invoker || invoker.stat)
 		return
 
-	. = check_random_function(caller, forced)
+	. = check_random_function(invoker, forced)
 	if(.)
 		return
 
-	if(caller.client.prefs.muted & MUTE_IC)
-		to_chat(caller, SPAN_DANGER("You cannot translate (muted)."))
+	if(invoker.client.prefs.muted & MUTE_IC)
+		to_chat(invoker, SPAN_DANGER("You cannot translate (muted)."))
 		return
 
-	caller.create_typing_indicator()
-	var/msg = sanitize(input(caller, "Your bracer beeps and waits patiently for you to input your message.", "Translator", "") as text)
-	caller.remove_typing_indicator()
-	if(!msg || !caller.client)
+	invoker.create_typing_indicator()
+	var/msg = sanitize(input(invoker, "Your bracer beeps and waits patiently for you to input your message.", "Translator", "") as text)
+	invoker.remove_typing_indicator()
+	if(!msg || !invoker.client)
 		return
 
-	if(!drain_power(caller, 50))
+	if(!drain_power(invoker, 50))
 		return
 
-	log_say("[caller.name != "Unknown" ? caller.name : "([caller.real_name])"] \[Yautja Translator\]: [msg] (CKEY: [caller.key]) (JOB: [caller.job]) (AREA: [get_area_name(caller)])")
+	log_say("[invoker.name != "Unknown" ? invoker.name : "([invoker.real_name])"] \[Yautja Translator\]: [msg] (CKEY: [invoker.key]) (JOB: [invoker.job]) (AREA: [get_area_name(invoker)])")
 
-	var/list/heard = get_mobs_in_view(7, caller)
+	var/list/heard = get_mobs_in_view(7, invoker)
 	for(var/mob/M in heard)
 		if(M.ear_deaf)
 			heard -= M
@@ -1296,11 +1296,11 @@
 		msg = replacetext(msg, "s", "5")
 		msg = replacetext(msg, "l", "1")
 
-	caller.langchat_speech(msg, heard, GLOB.all_languages, overhead_color, TRUE)
+	invoker.langchat_speech(msg, heard, GLOB.all_languages, overhead_color, TRUE)
 
 	var/voice_name = "A strange voice"
-	if(caller.name == caller.real_name && caller.alpha == initial(caller.alpha))
-		voice_name = "<b>[caller.name]</b>"
+	if(invoker.name == invoker.real_name && invoker.alpha == initial(invoker.alpha))
+		voice_name = "<b>[invoker.name]</b>"
 	for(var/mob/Q as anything in heard)
 		if(Q.stat && !isobserver(Q))
 			continue //Unconscious

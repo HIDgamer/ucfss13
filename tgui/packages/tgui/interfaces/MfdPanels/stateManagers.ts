@@ -12,7 +12,7 @@ export const useEquipmentState = (panelId: string) => {
 };
 
 export const fmState = (panelId: string) => {
-  const [data, set] = useSharedState<string | undefined>( // This was originally localState
+  const [data, set] = useSharedState<string | undefined>(
     `${panelId}_selected_fm`,
     undefined,
   );
@@ -31,7 +31,7 @@ export const fmEditState = (panelId: string) => {
 };
 
 export const fmWeaponEditState = (panelId: string) => {
-  const [data, set] = useSharedState<number | undefined>( // This was originally localState
+  const [data, set] = useSharedState<number | undefined>(
     `${panelId}_edit_fm_weapon`,
     undefined,
   );

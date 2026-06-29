@@ -80,7 +80,7 @@ export const AdminPlayerList = () => {
                   key={player.ref}
                   style={{
                     cursor: 'pointer',
-                    opacity: player.stat === 2 ? 0.55 : 1,
+                    opacity: player.stat === 2 ? '0.55' : '1',
                     background:
                       expandedRef === player.ref
                         ? 'rgba(var(--color-fg-rgb, 138,200,255), 0.12)'
@@ -126,7 +126,7 @@ export const AdminPlayerList = () => {
   );
 };
 
-const PlayerActions = ({ player }: { player: PlayerEntry }) => {
+const PlayerActions = ({ player }: { readonly player: PlayerEntry }) => {
   const { act } = useBackend();
   return (
     <Box p={1} mb={0.5}>

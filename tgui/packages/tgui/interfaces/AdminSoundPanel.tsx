@@ -41,13 +41,8 @@ const SOUND_TYPES = ['Meme', 'Atmospheric'];
 
 export const AdminSoundPanel = () => {
   const { act, data } = useBackend<AdminSoundPanelData>();
-  const {
-    cliented_mobs,
-    last_status,
-    last_error,
-    resolved_title,
-    is_playing,
-  } = data;
+  const { cliented_mobs, last_status, last_error, resolved_title, is_playing } =
+    data;
 
   const [sourceMode, setSourceMode] = useState<'web' | 'upload'>('web');
   const [webUrl, setWebUrl] = useState('');
@@ -57,12 +52,11 @@ export const AdminSoundPanel = () => {
   const [showTitle, setShowTitle] = useState(true);
 
   const mobOptions = cliented_mobs.map((m) => `${m.name} (${m.key})`);
-  const selectedMobLabel =
-    selectedMobKey
-      ? cliented_mobs.find((m) => m.key === selectedMobKey)
-          ? `${cliented_mobs.find((m) => m.key === selectedMobKey)!.name} (${selectedMobKey})`
-          : ''
-      : '';
+  const selectedMobLabel = selectedMobKey
+    ? cliented_mobs.find((m) => m.key === selectedMobKey)
+      ? `${cliented_mobs.find((m) => m.key === selectedMobKey)!.name} (${selectedMobKey})`
+      : ''
+    : '';
 
   const handleFetchTitle = () => {
     if (!webUrl.trim()) return;
@@ -151,7 +145,8 @@ export const AdminSoundPanel = () => {
                   onClick={() => {
                     const target_ref =
                       audience === 'Single Mob'
-                        ? cliented_mobs.find((m) => m.key === selectedMobKey)?.ref ?? ''
+                        ? cliented_mobs.find((m) => m.key === selectedMobKey)
+                            ?.ref ?? ''
                         : '';
                     act('open_file_picker', {
                       audience,
@@ -237,12 +232,7 @@ export const AdminSoundPanel = () => {
                 >
                   Play Sound
                 </Button>
-                <Button
-                  ml={1}
-                  icon="stop"
-                  color="bad"
-                  onClick={handleStop}
-                >
+                <Button ml={1} icon="stop" color="bad" onClick={handleStop}>
                   Stop All
                 </Button>
               </Stack.Item>
