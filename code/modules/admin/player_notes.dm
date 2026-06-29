@@ -1,4 +1,4 @@
-/proc/notes_add(key, note, mob/usr)
+/proc/notes_add(key, note, mob/user)
 	if (!key || !note)
 		return
 

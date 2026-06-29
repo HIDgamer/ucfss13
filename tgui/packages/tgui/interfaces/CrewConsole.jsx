@@ -1,6 +1,5 @@
-import { useMemo, useState } from 'react';
-
 import { sortBy } from 'common/collections';
+import { useMemo, useState } from 'react';
 
 import { useBackend } from '../backend';
 import { Box, Button, Icon, Input, Section, Stack } from '../components';
@@ -45,7 +44,13 @@ const DEPT_GROUPS = [
     min: 60,
     max: 69,
   },
-  { key: 'alpha', label: 'ALPHA', color: COLORS.shipDeps.alpha, min: 70, max: 79 },
+  {
+    key: 'alpha',
+    label: 'ALPHA',
+    color: COLORS.shipDeps.alpha,
+    min: 70,
+    max: 79,
+  },
   {
     key: 'bravo',
     label: 'BRAVO',
@@ -92,9 +97,8 @@ const DEPT_GROUPS = [
 ];
 
 const getDeptForJob = (ijob) =>
-  DEPT_GROUPS.find(
-    (d) => d.key !== 'all' && ijob >= d.min && ijob <= d.max,
-  ) || DEPT_GROUPS[DEPT_GROUPS.length - 1];
+  DEPT_GROUPS.find((d) => d.key !== 'all' && ijob >= d.min && ijob <= d.max) ||
+  DEPT_GROUPS[DEPT_GROUPS.length - 1];
 
 const getDamageSum = (s) =>
   (s.oxydam || 0) + (s.toxdam || 0) + (s.burndam || 0) + (s.brutedam || 0);
@@ -102,42 +106,57 @@ const getDamageSum = (s) =>
 const getStatusInfo = (sensor) => {
   const dmg = getDamageSum(sensor);
   const dead =
-    sensor.stat === 2 || (sensor.stat === undefined && sensor.life_status === false);
+    sensor.stat === 2 ||
+    (sensor.stat === undefined && sensor.life_status === false);
   const unconsious = sensor.stat === 1;
   const permadead = dead && dmg >= 200;
 
-  if (permadead)
-    return { overlay: 'rgba(0,0,0,0.6)', label: 'PERM', icon: 'skull', pulse: false };
-  if (dead)
-    return { overlay: 'rgba(160,0,0,0.35)', label: 'DEAD', icon: 'skull', pulse: false };
-  if (unconsious)
+  if (permadead) {
+    return {
+      overlay: 'rgba(0,0,0,0.6)',
+      label: 'PERM',
+      icon: 'skull',
+      pulse: false,
+    };
+  }
+  if (dead) {
+    return {
+      overlay: 'rgba(160,0,0,0.35)',
+      label: 'DEAD',
+      icon: 'skull',
+      pulse: false,
+    };
+  }
+  if (unconsious) {
     return {
       overlay: 'rgba(180,60,0,0.3)',
       label: 'DOWN',
       icon: 'bed',
       pulse: true,
     };
-  if (dmg >= 100)
+  }
+  if (dmg >= 100) {
     return {
       overlay: 'rgba(180,80,0,0.2)',
       label: 'CRIT',
       icon: 'heart',
       pulse: true,
     };
-  if (dmg >= 50)
+  }
+  if (dmg >= 50) {
     return {
       overlay: 'rgba(160,150,0,0.18)',
       label: 'WND',
       icon: 'heart',
       pulse: false,
     };
+  }
   return { overlay: null, label: 'OK', icon: 'heart', pulse: false };
 };
 
 const Portrait = ({ ijob, statusInfo }) => {
   const dept = getDeptForJob(ijob);
-  const isDead =
-    statusInfo.label === 'DEAD' || statusInfo.label === 'PERM';
+  const isDead = statusInfo.label === 'DEAD' || statusInfo.label === 'PERM';
   return (
     <Box
       style={{
@@ -229,7 +248,10 @@ const VitalNums = ({ oxydam, toxdam, burndam, brutedam }) => {
   return (
     <Box style={{ fontSize: '0.65rem', lineHeight: 1.3 }}>
       <Box style={{ display: 'flex', gap: '4px' }}>
-        <Box as="span" style={{ color: COLORS.damageType.oxy, minWidth: '2rem' }}>
+        <Box
+          as="span"
+          style={{ color: COLORS.damageType.oxy, minWidth: '2rem' }}
+        >
           O:{oxydam}
         </Box>
         <Box as="span" style={{ color: COLORS.damageType.toxin }}>
@@ -237,7 +259,10 @@ const VitalNums = ({ oxydam, toxdam, burndam, brutedam }) => {
         </Box>
       </Box>
       <Box style={{ display: 'flex', gap: '4px' }}>
-        <Box as="span" style={{ color: COLORS.damageType.burn, minWidth: '2rem' }}>
+        <Box
+          as="span"
+          style={{ color: COLORS.damageType.burn, minWidth: '2rem' }}
+        >
           B:{burndam}
         </Box>
         <Box as="span" style={{ color: COLORS.damageType.brute }}>
@@ -266,7 +291,9 @@ const CrewRow = ({ sensor, link_allowed, act }) => {
         backgroundColor: statusInfo.overlay || 'rgba(255,255,255,0.03)',
         transition: 'background-color 0.5s ease',
         borderLeft: `3px solid ${dept.color}`,
-        animation: statusInfo.pulse ? 'crew-row-pulse 2s ease-in-out infinite' : 'none',
+        animation: statusInfo.pulse
+          ? 'crew-row-pulse 2s ease-in-out infinite'
+          : 'none',
       }}
     >
       <Portrait ijob={sensor.ijob} statusInfo={statusInfo} />
@@ -387,17 +414,14 @@ export const CrewConsole = () => {
   // Build tab list: only show tabs with entries
   const availableTabs = useMemo(() => {
     const present = new Set(sorted.map((s) => getDeptForJob(s.ijob).key));
-    return DEPT_GROUPS.filter(
-      (g) => g.key === 'all' || present.has(g.key),
-    );
+    return DEPT_GROUPS.filter((g) => g.key === 'all' || present.has(g.key));
   }, [sorted]);
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase();
     return sorted.filter((s) => {
       const inTab =
-        activeTab === 'all' ||
-        getDeptForJob(s.ijob).key === activeTab;
+        activeTab === 'all' || getDeptForJob(s.ijob).key === activeTab;
       const inSearch =
         !q ||
         (s.name || '').toLowerCase().includes(q) ||
@@ -408,13 +432,15 @@ export const CrewConsole = () => {
 
   return (
     <Window title="Crew Monitor" width={680} height={580}>
-      <style>{`
+      <style>
+        {`
         @keyframes crew-row-pulse {
           0% { filter: brightness(1); }
           50% { filter: brightness(1.18); }
           100% { filter: brightness(1); }
         }
-      `}</style>
+      `}
+      </style>
       <Window.Content>
         <Stack vertical fill>
           {/* Search bar */}
@@ -453,7 +479,8 @@ export const CrewConsole = () => {
                       activeTab === tab.key
                         ? tab.color
                         : 'rgba(255,255,255,0.04)',
-                    color: activeTab === tab.key ? '#fff' : 'rgba(255,255,255,0.6)',
+                    color:
+                      activeTab === tab.key ? '#fff' : 'rgba(255,255,255,0.6)',
                     fontSize: '0.7rem',
                     fontWeight: 'bold',
                     cursor: 'pointer',
@@ -484,7 +511,9 @@ export const CrewConsole = () => {
             >
               <Box style={{ width: '2.2rem', flexShrink: 0 }}>ID</Box>
               <Box style={{ flex: 1 }}>Name / Assignment</Box>
-              <Box style={{ width: '3rem', textAlign: 'center', flexShrink: 0 }}>
+              <Box
+                style={{ width: '3rem', textAlign: 'center', flexShrink: 0 }}
+              >
                 Status
               </Box>
               <Box style={{ width: '5rem', flexShrink: 0 }}>Vitals</Box>

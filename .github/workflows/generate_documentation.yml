@@ -2,16 +2,26 @@ name: Generate documentation
 on:
   push:
     branches:
-    - master
+    - UCFSS13
+permissions:
+  contents: write
 jobs:
   generate_documentation:
     if: ( !contains(github.event.head_commit.message, '[ci skip]') )
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     concurrency: gen-docs
     steps:
-      - uses: actions/checkout@v3
+      - name: Generate App Token
+        id: app-token-generation
+        uses: actions/create-github-app-token@v1
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+      - uses: actions/checkout@v4
+        with:
+          token: ${{ steps.app-token-generation.outputs.token }}
       - name: Setup cache
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: ~/SpacemanDMM
           key: ${{ runner.os }}-spacemandmm-${{ secrets.CACHE_PURGE_KEY }}
@@ -23,10 +33,10 @@ jobs:
           touch dmdoc/.nojekyll
           echo docs.cm-ss13.com > dmdoc/CNAME
       - name: Deploy
-        uses: JamesIves/github-pages-deploy-action@3.7.1
+        uses: JamesIves/github-pages-deploy-action@v4
         with:
-          BRANCH: gh-pages
-          CLEAN: true
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          SINGLE_COMMIT: true
-          FOLDER: dmdoc
+          branch: gh-pages
+          clean: true
+          token: ${{ steps.app-token-generation.outputs.token }}
+          single-commit: true
+          folder: dmdoc

@@ -1,7 +1,15 @@
 import { useMemo, useState } from 'react';
 
 import { useBackend } from '../backend';
-import { Box, Button, Icon, Input, NumberInput, Section, Stack } from '../components';
+import {
+  Box,
+  Button,
+  Icon,
+  Input,
+  NumberInput,
+  Section,
+  Stack,
+} from '../components';
 import { Window } from '../layouts';
 
 const TIME_PER_TICK = 0.1; // BYOND ticks to seconds
@@ -16,7 +24,10 @@ const RecipeCard = ({ recipe, stackSingular, act }) => {
   const [qty, setQty] = useState(1);
   const maxQty =
     recipe.max_res_amount > 1
-      ? Math.min(recipe.max_multiplier, Math.floor(recipe.max_res_amount / recipe.res_amount))
+      ? Math.min(
+          recipe.max_multiplier,
+          Math.floor(recipe.max_res_amount / recipe.res_amount),
+        )
       : 1;
 
   const outputCount = recipe.res_amount * qty;
@@ -127,7 +138,9 @@ const RecipeCard = ({ recipe, stackSingular, act }) => {
         disabled={!recipe.can_build}
         color={recipe.can_build ? 'green' : 'transparent'}
         tooltip={
-          !recipe.can_build ? `Need ${recipe.req_amount} ${stackSingular}s` : null
+          !recipe.can_build
+            ? `Need ${recipe.req_amount} ${stackSingular}s`
+            : null
         }
         style={{ flexShrink: 0, minWidth: '3.5rem' }}
         onClick={() =>
@@ -226,8 +239,9 @@ export const ConstructionMenu = () => {
     const flatten = (list) => {
       for (const item of list) {
         if (item.type === 'recipe') out.push(item);
-        else if (item.type === 'category' && item.recipes)
+        else if (item.type === 'category' && item.recipes) {
           flatten(item.recipes);
+        }
       }
     };
     flatten(recipes);
@@ -242,18 +256,16 @@ export const ConstructionMenu = () => {
   const totalCount = flatRecipes.length;
 
   return (
-    <Window
-      title={`Construction — ${name}`}
-      width={480}
-      height={520}
-    >
-      <style>{`
+    <Window title={`Construction — ${name}`} width={480} height={520}>
+      <style>
+        {`
         @keyframes cm-fadein {
           from { opacity: 0; transform: translateY(-3px); }
           to   { opacity: 1; transform: translateY(0); }
         }
         .cm-list { animation: cm-fadein 0.2s ease-out; }
-      `}</style>
+      `}
+      </style>
       <Window.Content>
         <Stack vertical fill>
           {/* Header */}
@@ -268,7 +280,10 @@ export const ConstructionMenu = () => {
                 marginBottom: '4px',
               }}
             >
-              <Icon name="cubes" style={{ color: '#fc4', fontSize: '1.2rem' }} />
+              <Icon
+                name="cubes"
+                style={{ color: '#fc4', fontSize: '1.2rem' }}
+              />
               <Box>
                 <Box
                   style={{
@@ -330,7 +345,7 @@ export const ConstructionMenu = () => {
               ) : (
                 // Structured view
                 recipes.map((item, i) => {
-                  if (item.type === 'separator')
+                  if (item.type === 'separator') {
                     return (
                       <Box
                         key={i}
@@ -341,7 +356,8 @@ export const ConstructionMenu = () => {
                         }}
                       />
                     );
-                  if (item.type === 'category')
+                  }
+                  if (item.type === 'category') {
                     return (
                       <CategorySection
                         key={i}
@@ -350,7 +366,8 @@ export const ConstructionMenu = () => {
                         act={act}
                       />
                     );
-                  if (item.type === 'recipe')
+                  }
+                  if (item.type === 'recipe') {
                     return (
                       <RecipeCard
                         key={i}
@@ -359,6 +376,7 @@ export const ConstructionMenu = () => {
                         act={act}
                       />
                     );
+                  }
                   return null;
                 })
               )}

@@ -24,8 +24,8 @@ const initialState = {
   fontSize: 13,
   fontFamily: FONTS[0],
   lineHeight: 1.2,
-  theme: 'dark',       // base UI mode: 'dark' | 'light'
-  colorPreset: null,   // CRT color overlay: null | 'crt-green' | 'crt-amber' | ...
+  theme: 'dark', // base UI mode: 'dark' | 'light'
+  colorPreset: null, // CRT color overlay: null | 'crt-green' | 'crt-amber' | ...
   adminMusicVolume: 0.2,
   // Keep these two state vars for compatibility with other servers
   highlightText: '',

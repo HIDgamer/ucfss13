@@ -15,7 +15,7 @@ on:
         type: string
 jobs:
   run_unit_tests:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v3
       - name: Restore BYOND cache
@@ -27,7 +27,7 @@ jobs:
         run: |
           sudo dpkg --add-architecture i386
           sudo apt update || true
-          sudo apt install -o APT::Immediate-Configure=false zlib1g-dev:i386 libssl-dev:i386
+          sudo apt install -y -o APT::Immediate-Configure=false zlib1g-dev:i386 libssl-dev:i386
           bash tools/ci/install_rust_g.sh
       - name: Configure version
         run: |

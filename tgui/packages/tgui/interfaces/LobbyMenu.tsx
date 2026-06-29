@@ -321,7 +321,7 @@ const LobbyButtons = (props: {
                     className="styledText"
                     style={{
                       fontSize: '0.6em',
-                      opacity: 0.65,
+                      opacity: '0.65',
                       whiteSpace: 'nowrap',
                       letterSpacing: '0.05em',
                     }}

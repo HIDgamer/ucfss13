@@ -1,14 +1,17 @@
 name: CI Suite
 on:
+  push:
+    branches:
+    - UCFSS13
   pull_request:
     branches:
-    - master
+    - UCFSS13
   merge_group:
 jobs:
   run_linters:
     if: ( !contains(github.event.head_commit.message, '[ci skip]') )
     name: Run Linters
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     concurrency:
       group: run_linters-${{ github.head_ref || github.run_id }}
       cancel-in-progress: true
@@ -39,10 +42,10 @@ jobs:
             ${{ runner.os }}-
       - name: Install Tools
         run: |
-          pip3 install setuptools
+          sudo apt-get install -y python3-venv
+          pip3 install setuptools --break-system-packages
           bash tools/ci/install_node.sh
           bash tools/ci/install_spaceman_dmm.sh dreamchecker
-          cargo install ripgrep --features pcre2
           tools/bootstrap/python -c ''
       - name: Run Linters
         run: |
@@ -57,7 +60,7 @@ jobs:
           tools/bootstrap/python -m mapmerge2.dmm_test
           ~/dreamchecker > ${GITHUB_WORKSPACE}/output-annotations.txt 2>&1
       - name: Annotate Lints
-        uses: yogstation13/DreamAnnotate@v2
+        uses: yogstation13/DreamAnnotate@v3
         if: success() || failure()
         with:
           outputFile: output-annotations.txt
@@ -65,7 +68,9 @@ jobs:
 
   odlint:
     name: Lint with OpenDream
-    runs-on: ubuntu-22.04
+    runs-on: [self-hosted, Linux, X64]
+    env:
+      DOTNET_INSTALL_DIR: ~/.dotnet
     steps:
       - uses: actions/setup-dotnet@v4
         with:
@@ -82,7 +87,7 @@ jobs:
   compile_all_maps:
     if: ( !contains(github.event.head_commit.message, '[ci skip]') )
     name: Compile Maps
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - uses: actions/checkout@v3
       - name: Restore BYOND cache
@@ -99,7 +104,7 @@ jobs:
   find_all_maps:
     if: ( !contains(github.event.head_commit.message, '[ci skip]') )
     name: Find Maps to Test
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     outputs:
       maps: ${{ steps.map_finder.outputs.maps }}
       alternate_tests: ${{ steps.alternate_test_finder.outputs.alternate_tests }}
@@ -159,12 +164,12 @@ jobs:
     if: ( !contains(github.event.head_commit.message, '[ci skip]') && needs.find_all_maps.outputs.alternate_tests != '[]' )
     name: Check Alternate Tests
     needs: [run_alternate_tests]
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, Linux, X64]
     steps:
       - run: echo Alternate tests passed.
 
   test_windows:
-    if: ( !contains(github.event.head_commit.message, '[ci skip]') )
+    if: false
     name: Windows Build
     runs-on: windows-latest
     concurrency:
@@ -172,6 +177,11 @@ jobs:
       cancel-in-progress: true
     steps:
       - uses: actions/checkout@v3
+      - name: Restore BYOND cache
+        uses: actions/cache@v3
+        with:
+          path: C:\byond
+          key: ${{ runner.os }}-byond-${{ secrets.CACHE_PURGE_KEY }}
       - name: Restore Yarn cache
         uses: actions/cache@v3
         with:

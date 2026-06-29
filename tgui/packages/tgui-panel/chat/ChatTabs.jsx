@@ -14,9 +14,7 @@ import { addChatPage, changeChatPage } from './actions';
 import { selectChatPages, selectCurrentChatPage } from './selectors';
 
 const UnreadCountWidget = ({ value }) => (
-  <Box className="CrtChatTabs__unread">
-    {Math.min(value, 99)}
-  </Box>
+  <Box className="CrtChatTabs__unread">{Math.min(value, 99)}</Box>
 );
 
 export const ChatTabs = (props) => {
@@ -26,10 +24,7 @@ export const ChatTabs = (props) => {
   const dispatch = useDispatch();
   const isCrt = theme.startsWith('crt-');
   return (
-    <Flex
-      align="center"
-      className={classes([isCrt && 'CrtChatTabs'])}
-    >
+    <Flex align="center" className={classes([isCrt && 'CrtChatTabs'])}>
       <Flex.Item>
         <Tabs textAlign="center">
           {pages.map((page) => (
