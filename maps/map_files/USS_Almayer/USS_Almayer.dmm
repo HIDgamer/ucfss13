@@ -518,9 +518,7 @@
 /turf/open/floor/plating,
 /area/almayer/hallways/hangar)
 "abq" = (
-/turf/open/floor/almayer/test_floor4{
-	icon_state = "cargo_arrow"
-	},
+/turf/open/floor/almayer/test_floor4/cargo_arrow,
 /area/almayer/hallways/lower/port_aft_hallway)
 "abr" = (
 /obj/effect/decal/warning_stripes{
@@ -528,10 +526,6 @@
 	},
 /obj/effect/decal/warning_stripes{
 	icon_state = "N"
-	},
-/obj/structure/machinery/door/poddoor/shutters/almayer{
-	id = "Garage_Entrance/Exit";
-	name = "\improper Storage Shutters"
 	},
 /obj/structure/machinery/door/poddoor/shutters/almayer{
 	id = "Garage_Entrance/Exit";
@@ -938,12 +932,6 @@
 /obj/structure/window/framed/almayer/hull,
 /turf/open/floor/plating,
 /area/almayer/living/starboard_garden)
-"acw" = (
-/obj/structure/sign/banners/colonial_marines_flag{
-	pixel_x = -16
-	},
-/turf/closed/wall/almayer,
-/area/almayer/squads/req)
 "acx" = (
 /turf/closed/wall/almayer,
 /area/almayer/lifeboat_pumps/north2)
@@ -962,12 +950,6 @@
 /obj/structure/reagent_dispensers/watertank,
 /turf/open/floor/almayer/mono,
 /area/almayer/lifeboat_pumps/north2)
-"acB" = (
-/obj/structure/sign/banners/united_americas_flag{
-	pixel_x = -16
-	},
-/turf/closed/wall/almayer,
-/area/almayer/squads/req)
 "acC" = (
 /obj/structure/sign/banners/united_americas_flag,
 /turf/closed/wall/almayer,
@@ -111606,7 +111588,7 @@ fZE
 eFa
 fEF
 tLZ
-acw
+bdl
 brp
 bKA
 ace
@@ -112012,7 +111994,7 @@ atH
 dAm
 aCX
 atH
-acB
+bdl
 brp
 bKA
 ace

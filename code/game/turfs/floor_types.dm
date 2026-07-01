@@ -973,11 +973,55 @@
 /turf/open/floor/almayer/green/east
 	dir = EAST
 
+/turf/open/floor/almayer/green/east/northeast
+	dir = NORTHEAST
+
+/turf/open/floor/almayer/green/east/northwest
+	dir = NORTHWEST
+
+/turf/open/floor/almayer/green/east/southeast
+	dir = SOUTHEAST
+
+/turf/open/floor/almayer/green/east/southwest
+	dir = SOUTHWEST
+
 /turf/open/floor/almayer/green/west
 	dir = WEST
 
+/turf/open/floor/almayer/green/west/north
+	dir = NORTH
+
+/turf/open/floor/almayer/green/west/south
+	dir = SOUTH
+
+/turf/open/floor/almayer/green/west/northwest
+	dir = NORTHWEST
+
+/turf/open/floor/almayer/green/west/southwest
+	dir = SOUTHWEST
+
 /turf/open/floor/almayer/green/northeast
 	dir = NORTHEAST
+/turf/open/floor/almayer/green/northeast
+	dir = NORTHEAST
+
+/turf/open/floor/almayer/green/northeast/east
+	dir = EAST
+
+/turf/open/floor/almayer/green/northeast/south
+	dir = SOUTH
+
+/turf/open/floor/almayer/green/northeast/southeast
+	dir = SOUTHEAST
+
+/turf/open/floor/almayer/green/northeast/southwest
+	dir = SOUTHWEST
+
+/turf/open/floor/almayer/green/northeast/west
+	dir = WEST
+
+/turf/open/floor/almayer/green/northeast/northwest
+	dir = NORTHWEST
 
 /turf/open/floor/almayer/green/northwest
 	dir = NORTHWEST
@@ -1077,6 +1121,9 @@
 
 /turf/open/floor/almayer/greencorner/north
 	dir = NORTH
+
+/turf/open/floor/almayer/greencorner/west
+	dir = WEST
 
 /turf/open/floor/almayer/greencorner/south
 	dir = SOUTH
@@ -1611,6 +1658,18 @@
 /turf/open/floor/almayer/plating_striped/north
 	dir = NORTH
 
+/turf/open/floor/almayer/plating_striped/northeast
+	dir = NORTHEAST
+
+/turf/open/floor/almayer/plating_striped/northwest
+	dir = NORTHWEST
+
+/turf/open/floor/almayer/plating_striped/southeast
+	dir = SOUTHEAST
+
+/turf/open/floor/almayer/plating_striped/southwest
+	dir = SOUTHWEST
+
 /turf/open/floor/almayer/plating_striped/south
 	dir = SOUTH
 
@@ -1822,6 +1881,36 @@
 /turf/open/floor/almayer/test_floor4
 	icon_state = "test_floor4"
 
+/turf/open/floor/almayer/test_floor4/cargo_arrow
+	icon_state = "cargo_arrow"
+
+/turf/open/floor/almayer/test_floor4/green2
+	icon_state = "green2"
+
+/turf/open/floor/almayer/test_floor4/green2/north
+	dir = NORTH
+
+/turf/open/floor/almayer/test_floor4/green2/south
+	dir = SOUTH
+
+/turf/open/floor/almayer/test_floor4/green2/east
+	dir = EAST
+
+/turf/open/floor/almayer/test_floor4/green2/west
+	dir = WEST
+
+/turf/open/floor/almayer/test_floor4/green2/northeast
+	dir = NORTHEAST
+
+/turf/open/floor/almayer/test_floor4/green2/northwest
+	dir = NORTHWEST
+
+/turf/open/floor/almayer/test_floor4/green2/southeast
+	dir = SOUTHEAST
+
+/turf/open/floor/almayer/test_floor4/green2/southwest
+	dir = SOUTHWEST
+
 /turf/open/floor/almayer/test_floor5
 	icon_state = "test_floor5"
 
@@ -1964,6 +2053,12 @@
 /turf/open/floor/almayer/uscm/directional/southwest
 	dir = SOUTHWEST
 
+/turf/open/floor/almayer/uscm/directional/southwest/north
+	dir = NORTH
+
+/turf/open/floor/almayer/uscm/directional/southwest/south
+	dir = SOUTH
+
 /turf/open/floor/almayer/uscm/directional/north
 	dir = NORTH
 
@@ -1984,6 +2079,9 @@
 
 /turf/open/floor/almayer/uscm/directional/west
 	dir = WEST
+
+/turf/open/floor/almayer/uscm/directional/west/east
+	dir = EAST
 
 /turf/open/floor/almayer/uscm/directional/northwest
 	dir = NORTHWEST
