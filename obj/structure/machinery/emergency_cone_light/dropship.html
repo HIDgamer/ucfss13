@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;obj&#x2F;structure&#x2F;machinery&#x2F;emergency_cone_light&#x2F;dropship - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="obj/structure/machinery/emergency_cone_light/dropship.html#var">Var Details</a> - <a href="obj/structure/machinery/emergency_cone_light/dropship.html#proc">Proc Details</a></header>
+<main>
+<h1>launch warning beacon <aside>/<a href="obj.html">obj</a>/<a href="obj/structure/machinery.html">structure/machinery</a>/<a href="obj/structure/machinery/emergency_cone_light.html">emergency_cone_light</a>/<a href="obj/structure/machinery/emergency_cone_light/dropship.html">dropship</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/f1cb743f5335d8dc4ca574eb95f43fd5f4aac048/code/modules/lighting/emergency_cone_light.dm#L73">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;lighting&#x2F;emergency_cone_light.dm 73"/></a></h1>
+
+<table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr>
+            <tr><th><a href="obj/structure/machinery/emergency_cone_light/dropship.html#var/beacon_destroyed">beacon_destroyed</a></th><td>TRUE after a heavy explosion physically wrecks the beacon</td></tr>
+            <tr><th><a href="obj/structure/machinery/emergency_cone_light/dropship.html#var/hijack_lock">hijack_lock</a></th><td>TRUE while a hijack crash is ongoing â deactivate() is a no-op until security clears</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="obj/structure/machinery/emergency_cone_light/dropship.html#proc/deactivate">deactivate</a></th><td>deactivate() is blocked while hijack_lock is set or the beacon is destroyed.</td></tr>
+            <tr><th><a href="obj/structure/machinery/emergency_cone_light/dropship.html#proc/on_hijack_crash">on_hijack_crash</a></th><td>When the dropship crashes, lock beacons on and switch to the burnt-but-on visual.
+turn_off_warning_beacons() calls from the docking port are ignored while locked.</td></tr>
+            <tr><th><a href="obj/structure/machinery/emergency_cone_light/dropship.html#proc/on_security_level_changed_beacon">on_security_level_changed_beacon</a></th><td>Release the hijack lock and turn off only when security drops back to GREEN or BLUE.</td></tr></table>
+    <h2 id="var">Var Details</h2><h3 id="var/beacon_destroyed"><aside class="declaration">var </aside>beacon_destroyed
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/f1cb743f5335d8dc4ca574eb95f43fd5f4aac048/code/modules/lighting/emergency_cone_light.dm#L90">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;lighting&#x2F;emergency_cone_light.dm 90"/></a></h3>
+        <p>TRUE after a heavy explosion physically wrecks the beacon</p><h3 id="var/hijack_lock"><aside class="declaration">var </aside>hijack_lock
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/f1cb743f5335d8dc4ca574eb95f43fd5f4aac048/code/modules/lighting/emergency_cone_light.dm#L88">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;lighting&#x2F;emergency_cone_light.dm 88"/></a></h3>
+        <p>TRUE while a hijack crash is ongoing â deactivate() is a no-op until security clears</p><h2 id="proc">Proc Details</h2><h3 id="proc/deactivate">deactivate<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/f1cb743f5335d8dc4ca574eb95f43fd5f4aac048/code/modules/lighting/emergency_cone_light.dm#L151">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;lighting&#x2F;emergency_cone_light.dm 151"/></a></aside>
+        </h3>
+        <p>deactivate() is blocked while hijack_lock is set or the beacon is destroyed.</p><h3 id="proc/on_hijack_crash"><aside class="declaration">proc </aside>on_hijack_crash<aside>(/<a href="datum.html">datum</a>/source) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/f1cb743f5335d8dc4ca574eb95f43fd5f4aac048/code/modules/lighting/emergency_cone_light.dm#L123">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;lighting&#x2F;emergency_cone_light.dm 123"/></a></aside>
+        </h3>
+        <p>When the dropship crashes, lock beacons on and switch to the burnt-but-on visual.
+turn_off_warning_beacons() calls from the docking port are ignored while locked.</p><h3 id="proc/on_security_level_changed_beacon"><aside class="declaration">proc </aside>on_security_level_changed_beacon<aside>(/<a href="datum.html">datum</a>/source, new_level) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/f1cb743f5335d8dc4ca574eb95f43fd5f4aac048/code/modules/lighting/emergency_cone_light.dm#L134">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;lighting&#x2F;emergency_cone_light.dm 134"/></a></aside>
+        </h3>
+        <p>Release the hijack lock and turn off only when security drops back to GREEN or BLUE.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/f1cb743f5335d8dc4ca574eb95f43fd5f4aac048">f1cb743</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>
