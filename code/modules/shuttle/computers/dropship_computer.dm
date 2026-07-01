@@ -604,6 +604,9 @@
 				return TRUE
 			shuttle.alarm_sound_loop.start()
 			shuttle.playing_launch_announcement_alarm = TRUE
+			var/obj/docking_port/stationary/marine_dropship/alarm_dock = shuttle.get_docked()
+			if(istype(alarm_dock))
+				alarm_dock.turn_on_warning_beacons()
 			return TRUE
 		if ("stop_playing_launch_announcement_alarm")
 			if(!shuttle)
@@ -635,6 +638,9 @@
 
 	shuttle.alarm_sound_loop.stop()
 	shuttle.playing_launch_announcement_alarm = FALSE
+	var/obj/docking_port/stationary/marine_dropship/alarm_dock = shuttle.get_docked()
+	if(istype(alarm_dock))
+		alarm_dock.turn_off_warning_beacons()
 	return
 
 /obj/structure/machinery/computer/shuttle/dropship/flight/lz1

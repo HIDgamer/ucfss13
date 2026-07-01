@@ -40,13 +40,25 @@ FIRE ALARM
 
 /obj/structure/machinery/firealarm/proc/sec_changed(datum/source, new_sec)
 	SIGNAL_HANDLER
+	if(!is_mainship_level(z))
+		return
+	if(stat & BROKEN || (stat & NOPOWER && new_sec != SEC_LEVEL_RED))
+		return
+	color = null
+	set_light(0)
 	switch(new_sec)
-		if(SEC_LEVEL_GREEN)
-			icon_state = "fire0"
 		if(SEC_LEVEL_BLUE)
 			icon_state = "fireblue"
-		if(SEC_LEVEL_RED, SEC_LEVEL_DELTA)
+			set_light(5, 1.0, "#2255ff")
+		if(SEC_LEVEL_RED)
 			icon_state = "firered"
+			set_light(5, 1.0, "#ff2200")
+		if(SEC_LEVEL_DELTA)
+			icon_state = "fire0"
+			color = "#cc0000"
+			set_light(5, 1.2, "#cc0000")
+		else
+			icon_state = "fire0"
 
 /obj/structure/machinery/firealarm/update_icon()
 
@@ -60,12 +72,20 @@ FIRE ALARM
 				icon_state = "fire_b0"
 		return
 
+	color = null
+	set_light(0)
 	icon_state = "fire0"
 
 	if(stat & BROKEN)
 		icon_state = "firex"
-	else if(stat & NOPOWER & (GLOB.security_level != SEC_LEVEL_RED))
+		return
+	if(stat & NOPOWER & (GLOB.security_level != SEC_LEVEL_RED))
 		icon_state = "firep"
+		return
+
+	// Re-apply current alert state so any external update_icon() call stays in sync
+	if(is_mainship_level(z) && GLOB.security_level)
+		sec_changed(null, GLOB.security_level)
 
 /obj/structure/machinery/firealarm/fire_act(temperature, volume)
 	if(src.detecting)

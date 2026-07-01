@@ -135,8 +135,6 @@
 					continue
 
 /area/Destroy()
-	if(outdoor && SSmapping.level_trait(z, ZTRAIT_DAY_NIGHT_CYCLE))
-		SSsun.unregister_area(src, z)
 	return ..()
 
 /area/proc/initialize_power(override_power)

@@ -46,6 +46,21 @@
 	lighting_effect = null
 	area_has_base_lighting = FALSE
 
+/// Efficient sun-cycle update — modifies the mutable_appearance in-place so we
+/// don't need to iterate every turf on the area each tick.
+/area/proc/update_sun_lighting(new_color, new_alpha)
+	if(!area_has_base_lighting)
+		set_base_lighting(new_color, new_alpha)
+		return
+	if(new_alpha == 0 && base_lighting_alpha != 0)
+		set_base_lighting(new_color, new_alpha)
+		return
+	// Fast path: update the shared mutable_appearance directly
+	base_lighting_alpha = new_alpha
+	base_lighting_color = new_color
+	lighting_effect.alpha = new_alpha
+	lighting_effect.color = new_color
+
 /area/proc/add_base_lighting()
 	lighting_effect = mutable_appearance('icons/effects/alphacolors.dmi', "white")
 	lighting_effect.plane = LIGHTING_PLANE

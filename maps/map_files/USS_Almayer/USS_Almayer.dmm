@@ -495,12 +495,20 @@
 /obj/effect/landmark/late_join/field_doctor,
 /turf/open/floor/plating/plating_catwalk,
 /area/almayer/living/offices)
+"abm" = (
+/obj/structure/machinery/emergency_cone_light/dropship/normandy,
+/turf/open/floor/plating,
+/area/almayer/hallways/hangar)
 "abn" = (
 /obj/structure/machinery/light{
 	dir = 4
 	},
 /turf/open/floor/almayer,
 /area/almayer/maint/hull/upper/u_f_p)
+"abo" = (
+/obj/structure/machinery/emergency_cone_light/dropship/alamo,
+/turf/open/floor/plating,
+/area/almayer/hallways/hangar)
 "abs" = (
 /turf/closed/wall/almayer/outer,
 /area/almayer/lifeboat_pumps/north1)
@@ -86765,6 +86773,7 @@ xcV
 xyw
 bHB
 aZO
+abm
 baI
 baI
 baI
@@ -86784,8 +86793,7 @@ baI
 baI
 baI
 baI
-baI
-baI
+abm
 bGF
 bHB
 aYt
@@ -88795,6 +88803,7 @@ jHt
 gRP
 bHB
 aZQ
+abm
 baI
 baI
 baI
@@ -88814,8 +88823,7 @@ baI
 baI
 baI
 baI
-baI
-baI
+abm
 bGH
 bHB
 btO
@@ -91231,6 +91239,7 @@ eXq
 hmy
 bHB
 aZV
+abo
 baI
 baI
 baI
@@ -91250,8 +91259,7 @@ baI
 baI
 baI
 baI
-baI
-baI
+abo
 bGM
 bHB
 aqs
@@ -93261,6 +93269,7 @@ bcm
 xyw
 bHB
 aZX
+abo
 baI
 baI
 baI
@@ -93280,8 +93289,7 @@ baI
 baI
 baI
 baI
-baI
-baI
+abo
 bGO
 bHB
 uAb
