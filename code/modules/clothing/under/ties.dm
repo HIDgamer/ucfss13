@@ -402,105 +402,16 @@
 	desc = "A fire-resistant shoulder patch, worn by the men and women of the UPP Naval Infantry."
 	icon_state = "navalpatch"
 
-/obj/item/clothing/accessory/patch/falconalt
-	name = "Falling Falcons UA Shoulder Patch"
-	desc = "A fire-resistant shoulder patch, worn by the men and women of the Falling Falcons, the 2nd battalion of the 4th brigade of the USCM."
-	icon_state = "fallingfalcons_ua_patch"
+/obj/item/clothing/accessory/patch/upp/naval/old
+	name = "UPP Old Naval Infantry patch"
+	desc = "An older version of the UPP Naval Infantry patch."
+	icon_state = "navalpatch_old"
 
-/obj/item/clothing/accessory/patch/uscmlarge
-	name = "USCM Large Patch"
-	desc = "A larger fire-resistant shoulder patch for the USCM"
-	icon_state = "uscm_large_patch"
+/obj/item/clothing/accessory/patch/upp/airborne/old
+	name = "UPP Old Airborne Reconnaissance patch"
+	desc = "An older version of the UPP Airborne Reconnaissance patch."
+	icon_state = "vdvpatch_old"
 
-/obj/item/clothing/accessory/patch/ua
-	name = "UA Patch"
-	desc = "United Americas patch"
-	icon_state = "ua_patch"
-
-/obj/item/clothing/accessory/patch/uasquare
-	name = "UA Square Patch"
-	desc = "Square variant of the United Americas patch"
-	icon_state = "ua_square_patch"
-
-/obj/item/clothing/accessory/patch/freelancer_patch
-	name = "Freelancer Patch"
-	desc = "A patch worn by independent freelancers"
-	icon_state = "freelancer_patch"
-
-/obj/item/clothing/accessory/patch/cec_patch
-	name = "CEC Patch"
-	desc = "Civilian Engineering Consortium patch"
-	icon_state = "cec_patch"
-
-/obj/item/clothing/accessory/patch/merc_patch
-	name = "Mercenary Patch"
-	desc = "A generic mercenary company patch"
-	icon_state = "merc_patch"
-
-/obj/item/clothing/accessory/patch/devils
-	name = "Devils Patch"
-	desc = "The Devils squad insignia patch"
-	icon_state = "devils_patch"
-
-/obj/item/clothing/accessory/patch/wy
-	name = "Weyland-Yutani Patch"
-	desc = "Weyland-Yutani corporation patch"
-	icon_state = "wy_patch"
-
-/obj/item/clothing/accessory/patch/wysquare
-	name = "Weyland-Yutani Square Patch"
-	desc = "Square variant of the Weyland-Yutani patch"
-	icon_state = "wy_square_patch"
-
-/obj/item/clothing/accessory/patch/wy_white
-	name = "Weyland-Yutani White Patch"
-	desc = "White variant of the Weyland-Yutani corporation patch"
-	icon_state = "wy_white_patch"
-
-/obj/item/clothing/accessory/patch/wyfury
-	name = "Weyland-Yutani Fury Patch"
-	desc = "Weyland-Yutani Fury division patch"
-	icon_state = "wyfury_patch"
-
-/obj/item/clothing/accessory/patch/twe
-	name = "Three World Empire Patch"
-	desc = "Three World Empire coalition patch"
-	icon_state = "twe_patch"
-
-/obj/item/clothing/accessory/patch/medic_patch
-	name = "Medical Patch"
-	desc = "Medical division identification patch"
-	icon_state = "medic_patch"
-
-/obj/item/clothing/accessory/patch/clf_patch
-	name = "CLF Patch"
-	desc = "Colonial Liberation Front insignia"
-	icon_state = "clf_patch"
-
-/obj/item/clothing/accessory/patch/wy_faction
-	name = "Weyland-Yutani PMC faction patch"
-	desc = "A fire-resistant shoulder patch, worn by the men and women of Weyland-Yutani PMC forces."
-	icon_state = "wy_patch"
-
-/obj/item/clothing/accessory/patch/upp/alt
-	name = "UPP Alternative Patch"
-	desc = "Alternative variant of the UPP patch"
-	icon_state = "upp_alt_patch"
-
-/obj/item/clothing/accessory/patch/uscmlarge/large_chest
-	name = "USCM Large Chest Patch"
-	desc = "Large rectangular patch for the United States Colonial Marines"
-	icon_state = "uscmlarge_patch"
-
-/obj/item/clothing/accessory/patch/ua/united_american
-	name = "United American Patch"
-	desc = "United Americas coalition patch"
-	icon_state = "ua_patch"
-
-/obj/item/clothing/accessory/patch/uasquare/united_american_square
-	name = "United American Square Patch"
-	desc = "Square variant of the United Americas patch"
-	icon_state = "ua_square_patch"
 
 /obj/item/clothing/accessory/poncho
 	name = "USCM Poncho"
