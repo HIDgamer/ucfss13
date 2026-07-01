@@ -95,7 +95,7 @@
 		to_chat(user, SPAN_NOTICE("\The [name] is reloading. Wait [SPAN_HELPFUL("[((reload_time_started + reload_time - world.time) / 10)]")] seconds."))
 		return NONE
 
-	if(ammo && ammo.current_rounds <= 0)
+	if(!ammo || ammo.current_rounds <= 0) // Same fix as hardpoint.dm's try_fire() - no magazine at all shouldn't fall through to firing.
 		if(reloading)
 			to_chat(user, SPAN_WARNING("<b>\The [name] is out of ammo! You have to wait [(reload_time_started + reload_time - world.time) / 10] seconds before it reloads!"))
 		else

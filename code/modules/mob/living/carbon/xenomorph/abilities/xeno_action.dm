@@ -4,6 +4,7 @@
 	var/macro_path
 	var/action_type = XENO_ACTION_CLICK // Determines how macros interact with this action. Defines are in xeno.dm in the defines folder.
 	var/ability_primacy = XENO_NOT_PRIMARY_ACTION // Determines how the default ability macros handle this.
+	var/ability_name
 
 	// Cooldown
 	/// Cooldown of the ability (do not use the cooldown var)
