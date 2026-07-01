@@ -57,3 +57,7 @@
 /datum/map_template/interior/humvee/humvee_transport
 	name = "JTMV-Utility"
 	interior_id = "humvee_transport"
+
+/datum/map_template/interior/humvee/humvee_requisition
+	name = "JTMV-Requisition"
+	interior_id = "humvee_requisition"
