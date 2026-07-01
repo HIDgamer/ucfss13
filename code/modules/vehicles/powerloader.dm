@@ -7,6 +7,11 @@
 	anchored = TRUE
 	density = TRUE
 	light_range = 5
+	light_power = 2.5
+	light_color = "#ff8800"
+	light_system = MOVABLE_LIGHT
+	light_mask_type = /atom/movable/lighting_mask/rotating
+	light_on = FALSE
 	move_delay = 8
 	buckling_y = 9
 	health = 200
@@ -121,6 +126,7 @@
 	overlays.Cut()
 	playsound(loc, 'sound/mecha/powerloader_buckle.ogg', 25)
 	if(.)
+		set_light(5, 2.5, "#ff8800")
 		icon_state = base_state
 		overlays += image(icon_state = overlay_state, layer = MOB_LAYER + 0.1)
 		if(M.mind && M.skills)
@@ -135,6 +141,7 @@
 			return
 			//can't use the powerloader without both clamps equipped
 	else
+		set_light(0)
 		move_delay = initial(move_delay)
 		icon_state = open_state
 		M.drop_held_items() //drop the clamp when unbuckling

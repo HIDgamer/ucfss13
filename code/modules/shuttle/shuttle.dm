@@ -635,6 +635,12 @@
 			else
 				destination = S
 				setTimer(callTime * engine_coeff)
+		if(SHUTTLE_PREARRIVAL)
+			// Redirect during final approach (e.g. hijack crash site override).
+			if(S != destination)
+				destination = S
+				set_mode(SHUTTLE_CALL)
+				setTimer(callTime * engine_coeff)
 		if(SHUTTLE_RECALL)
 			if(S == destination)
 				setTimer(callTime * engine_coeff - timeLeft(1))

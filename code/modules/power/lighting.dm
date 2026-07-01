@@ -144,7 +144,7 @@
 	active_power_usage = 20
 	power_channel = POWER_CHANNEL_LIGHT //Lights are calc'd via area so they dont need to be in the machine list
 	light_system = STATIC_LIGHT
-	light_color = LIGHT_COLOR_TUNGSTEN
+	light_color = LIGHT_COLOR_WARM_WHITE
 	var/on = 0 // 1 if on, 0 if off
 	var/on_gs = 0
 	var/brightness = 6 // luminosity when on, also used in power calculation
@@ -156,6 +156,11 @@
 								// this is used to calc the probability the light burns out
 
 	var/rigged = 0 // true if rigged to explode
+	/// If TRUE, overload_lighting() on the area APC skips this fixture.
+	var/indestructible_by_overload = FALSE
+
+	/// Emissive overlay added to the fixture sprite when the light is on, making it self-illuminate
+	var/mutable_appearance/light_emissive_overlay
 
 	appearance_flags = TILE_BOUND
 
@@ -317,7 +322,10 @@
 	return status == LIGHT_BROKEN
 
 /obj/structure/machinery/light/update_icon()
-
+	// Strip previous visual effects before re-evaluating state
+	if(light_emissive_overlay)
+		overlays -= light_emissive_overlay
+		light_emissive_overlay = null
 	switch(status) // set icon_states
 		if(LIGHT_OK)
 			icon_state = "[base_state][on]"
@@ -330,6 +338,11 @@
 		if(LIGHT_BROKEN)
 			icon_state = "[base_state]-broken"
 			on = 0
+
+	if(status == LIGHT_OK && on)
+		// Emissive overlay: the tube sprite itself is self-lit (visible in pure darkness)
+		light_emissive_overlay = emissive_appearance(icon, "[base_state]1")
+		overlays += light_emissive_overlay
 	return
 
 // update the icon_state and luminosity of the light depending on its state
