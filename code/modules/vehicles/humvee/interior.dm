@@ -70,3 +70,6 @@
 
 /obj/structure/prop/vehicle/humvee/transport
 	icon_state = "humvee_chassis_transport"
+
+/obj/structure/prop/vehicle/humvee/requisition
+	icon_state = "humvee_chassis_requisition"
