@@ -743,9 +743,14 @@ SUBSYSTEM_DEF(minimaps)
 	if(!minimap_displayed)
 		locator_override = to_track
 		if(to_track)
-			RegisterSignal(to_track, COMSIG_PARENT_QDELETING, TYPE_PROC_REF(/datum/action/minimap, clear_locator_override))
+			// override = TRUE - same reasoning as the other RegisterSignal calls
+			// in this file (line 271/295/582): repeated overrides onto the same
+			// to_track (e.g. rapid admin ghost-swaps) can re-enter here before
+			// clear_locator_override() above ever ran for THIS target, tripping
+			// the engine's duplicate-registration warning otherwise.
+			RegisterSignal(to_track, COMSIG_PARENT_QDELETING, TYPE_PROC_REF(/datum/action/minimap, clear_locator_override), override = TRUE)
 			if(owner && owner.loc == to_track)
-				RegisterSignal(to_track, COMSIG_ATOM_EXITED, TYPE_PROC_REF(/datum/action/minimap, on_exit_check))
+				RegisterSignal(to_track, COMSIG_ATOM_EXITED, TYPE_PROC_REF(/datum/action/minimap, on_exit_check), override = TRUE)
 		if(owner)
 			RegisterSignal(new_track, COMSIG_MOVABLE_Z_CHANGED, PROC_REF(on_owner_z_change))
 			var/turf/old_turf = get_turf(tracking)
@@ -755,9 +760,9 @@ SUBSYSTEM_DEF(minimaps)
 	locator.UnregisterSignal(tracking, COMSIG_MOVABLE_MOVED)
 	locator_override = to_track
 	if(to_track)
-		RegisterSignal(to_track, COMSIG_PARENT_QDELETING, TYPE_PROC_REF(/datum/action/minimap, clear_locator_override))
+		RegisterSignal(to_track, COMSIG_PARENT_QDELETING, TYPE_PROC_REF(/datum/action/minimap, clear_locator_override), override = TRUE)
 		if(owner.loc == to_track)
-			RegisterSignal(to_track, COMSIG_ATOM_EXITED, TYPE_PROC_REF(/datum/action/minimap, on_exit_check))
+			RegisterSignal(to_track, COMSIG_ATOM_EXITED, TYPE_PROC_REF(/datum/action/minimap, on_exit_check), override = TRUE)
 	RegisterSignal(new_track, COMSIG_MOVABLE_Z_CHANGED, PROC_REF(on_owner_z_change))
 	var/turf/old_turf = get_turf(tracking)
 	if(old_turf.z != new_track.z)
