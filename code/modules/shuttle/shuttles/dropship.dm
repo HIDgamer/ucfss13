@@ -166,6 +166,7 @@
 	if(mode == SHUTTLE_PREARRIVAL && !dropzone.landing_lights_on)
 		if(istype(destination, /obj/docking_port/stationary/marine_dropship))
 			dropzone.turn_on_landing_lights()
+			dropzone.turn_on_warning_beacons()
 		playsound(dropzone.return_center_turf(), landing_sound, 60, 0)
 		playsound(return_center_turf(), landing_sound, 60, 0)
 
@@ -212,6 +213,9 @@
 	dheight = 10
 
 	var/list/landing_lights = list()
+	var/list/warning_beacons = list()
+	/// Subtype of emergency_cone_light/dropship this port will adopt. Narrowed per hangar.
+	var/warning_beacon_type = /obj/structure/machinery/emergency_cone_light/dropship
 	var/auto_open = FALSE
 	var/landing_lights_on = FALSE
 	var/xeno_announce = FALSE
@@ -220,6 +224,7 @@
 /obj/docking_port/stationary/marine_dropship/Initialize(mapload)
 	. = ..()
 	link_landing_lights()
+	link_warning_beacons()
 
 /obj/docking_port/stationary/marine_dropship/Destroy()
 	. = ..()
@@ -228,6 +233,9 @@
 	if(landing_lights)
 		landing_lights.Cut()
 	landing_lights = null // We didn't make them, so lets leave them
+	if(warning_beacons)
+		warning_beacons.Cut()
+	warning_beacons = null
 
 /obj/docking_port/stationary/marine_dropship/proc/link_landing_lights()
 	var/list/coords = return_coords()
@@ -244,6 +252,30 @@
 				landing_lights += light
 				light.linked_port = src
 
+/obj/docking_port/stationary/marine_dropship/proc/link_warning_beacons()
+	var/list/coords = return_coords()
+	var/scan_range = 5
+	var/x0 = coords[1] - scan_range
+	var/y0 = coords[2] - scan_range
+	var/x1 = coords[3] + scan_range
+	var/y1 = coords[4] + scan_range
+	for(var/xscan = x0; xscan < x1; xscan++)
+		for(var/yscan = y0; yscan < y1; yscan++)
+			var/turf/searchspot = locate(xscan, yscan, src.z)
+			for(var/obj/structure/machinery/emergency_cone_light/dropship/beacon in searchspot)
+				if(istype(beacon, warning_beacon_type))
+					warning_beacons += beacon
+
+/obj/docking_port/stationary/marine_dropship/proc/turn_on_warning_beacons()
+	for(var/obj/structure/machinery/emergency_cone_light/dropship/beacon in warning_beacons)
+		if(!QDELETED(beacon))
+			beacon.activate()
+
+/obj/docking_port/stationary/marine_dropship/proc/turn_off_warning_beacons()
+	for(var/obj/structure/machinery/emergency_cone_light/dropship/beacon in warning_beacons)
+		if(!QDELETED(beacon))
+			beacon.deactivate()
+
 /obj/docking_port/stationary/marine_dropship/proc/turn_on_landing_lights()
 	for(var/obj/structure/machinery/landinglight/light in landing_lights)
 		light.turn_on()
@@ -257,10 +289,12 @@
 /obj/docking_port/stationary/marine_dropship/on_prearrival(obj/docking_port/mobile/arriving_shuttle)
 	. = ..()
 	turn_on_landing_lights()
+	turn_on_warning_beacons()
 
 /obj/docking_port/stationary/marine_dropship/on_arrival(obj/docking_port/mobile/arriving_shuttle)
 	. = ..()
 	turn_off_landing_lights()
+	turn_off_warning_beacons()
 	var/obj/docking_port/mobile/marine_dropship/dropship = arriving_shuttle
 
 	if(auto_open && istype(arriving_shuttle, /obj/docking_port/mobile/marine_dropship))
@@ -282,10 +316,12 @@
 /obj/docking_port/stationary/marine_dropship/on_dock_ignition(obj/docking_port/mobile/departing_shuttle)
 	. = ..()
 	turn_on_landing_lights()
+	turn_on_warning_beacons()
 
 /obj/docking_port/stationary/marine_dropship/on_departure(obj/docking_port/mobile/departing_shuttle)
 	. = ..()
 	turn_off_landing_lights()
+	turn_off_warning_beacons()
 	var/obj/docking_port/mobile/marine_dropship/dropship = departing_shuttle
 	for(var/obj/structure/dropship_equipment/eq as anything in dropship.equipments)
 		eq.on_launch()
@@ -305,12 +341,14 @@
 	id = ALMAYER_DROPSHIP_LZ1
 	auto_open = TRUE
 	roundstart_template = /datum/map_template/shuttle/alamo
+	warning_beacon_type = /obj/structure/machinery/emergency_cone_light/dropship/alamo
 
 /obj/docking_port/stationary/marine_dropship/almayer_hangar_2
 	name = "Almayer Hangar bay 2"
 	id = ALMAYER_DROPSHIP_LZ2
 	auto_open = TRUE
 	roundstart_template = /datum/map_template/shuttle/normandy
+	warning_beacon_type = /obj/structure/machinery/emergency_cone_light/dropship/normandy
 
 /obj/docking_port/stationary/marine_dropship/upp_hangar_1
 	name = "UPP Hangar bay 1"

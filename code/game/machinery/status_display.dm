@@ -48,16 +48,27 @@
 
 	if(is_mainship_level(z))
 		RegisterSignal(SSdcs, COMSIG_GLOB_SECURITY_LEVEL_CHANGED, PROC_REF(sec_changed))
+		set_sec_level_picture()
+
+/obj/structure/machinery/status_display/Destroy(force)
+	UnregisterSignal(SSdcs, COMSIG_GLOB_SECURITY_LEVEL_CHANGED)
+	return ..()
 
 /obj/structure/machinery/status_display/proc/sec_changed(datum/source, new_sec)
 	SIGNAL_HANDLER
+	set_light(0)
 	switch(new_sec)
 		if(SEC_LEVEL_GREEN)
 			set_picture("default")
 		if(SEC_LEVEL_BLUE)
 			set_picture("bluealert")
-		if(SEC_LEVEL_RED, SEC_LEVEL_DELTA)
+			set_light(6, 1.5, "#2255ff")
+		if(SEC_LEVEL_RED)
 			set_picture("redalert")
+			set_light(6, 1.8, "#ff2200")
+		if(SEC_LEVEL_DELTA)
+			set_picture("redalert")
+			set_light(7, 2.2, "#ff0000")
 
 /obj/structure/machinery/status_display/emp_act(severity)
 	if(inoperable())
@@ -165,13 +176,19 @@
 		maptext = ""
 
 /obj/structure/machinery/status_display/proc/set_sec_level_picture()
+	set_light(0)
 	switch(GLOB.security_level)
 		if(SEC_LEVEL_GREEN)
 			set_picture("default")
 		if(SEC_LEVEL_BLUE)
 			set_picture("bluealert")
-		if(SEC_LEVEL_RED, SEC_LEVEL_DELTA)
+			set_light(6, 1.5, "#2255ff")
+		if(SEC_LEVEL_RED)
 			set_picture("redalert")
+			set_light(6, 1.8, "#ff2200")
+		if(SEC_LEVEL_DELTA)
+			set_picture("redalert")
+			set_light(7, 2.2, "#ff0000")
 
 /obj/structure/machinery/ai_status_display
 	icon = 'icons/obj/structures/machinery/status_display.dmi'

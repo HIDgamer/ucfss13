@@ -460,6 +460,7 @@ GLOBAL_LIST_INIT(apc_wire_descriptions, list(
 	if(!(update_state & UPSTATE_ALLGOOD))
 		if(length(overlays))
 			overlays = 0
+			update_glow_visuals()
 			return
 
 	if(update & 2)
@@ -494,6 +495,7 @@ GLOBAL_LIST_INIT(apc_wire_descriptions, list(
 				if(APC_FULLY_CHARGED)
 					set_light_color(LIGHT_COLOR_GREEN)
 			set_light(initial(light_range))
+			update_glow_visuals()
 
 /obj/structure/machinery/power/apc/proc/check_updates()
 
@@ -1380,6 +1382,8 @@ GLOBAL_LIST_INIT(apc_wire_descriptions, list(
 		cell.use(20)
 		spawn(0)
 			for(var/obj/structure/machinery/light/L in area)
+				if(L.indestructible_by_overload)
+					continue
 				L.on = 1
 				L.broken()
 				sleep(1)

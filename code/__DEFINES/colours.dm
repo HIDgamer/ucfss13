@@ -130,6 +130,8 @@
 #define LIGHT_COLOR_SLIME_LAMP "#AFC84B"
 /// Incandascent warm white, for usage in lights. rgb(255, 239, 210)
 #define LIGHT_COLOR_TUNGSTEN "#FFEFD2"
+/// Warm incandescent white (~3000 K), richer amber than tungsten. rgb(255, 228, 181)
+#define LIGHT_COLOR_WARM_WHITE "#FFE4B5"
 /// Barely visible cyan-ish hue, as the doctor prescribed. rgb(240, 250, 250)
 #define LIGHT_COLOR_HALOGEN "#F0FAFA"
 /// Bluish cyan color for blue lights. rgb(210, 227, 236)
