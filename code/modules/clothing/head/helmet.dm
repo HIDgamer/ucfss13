@@ -322,7 +322,6 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	item_icons = list(
 		WEAR_HEAD = 'icons/mob/humans/onmob/clothing/head/hats_by_map/classic.dmi'
 	)
-	flags_atom = MAP_COLOR_INDEX
 
 	var/obj/item/storage/internal/headgear/pockets
 	var/storage_slots = 2 // Small items like injectors, bandages, etc
@@ -392,6 +391,27 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 			var/datum/action/item_action/cycle_helmet_huds/cycle_action = locate() in actions
 			if(cycle_action)
 				cycle_action.set_action_overlay(active_visor)
+
+/obj/item/clothing/head/helmet/marine/select_gamemode_skin(expected_type, list/override_icon_state, list/override_protection)
+	. = ..()
+	if(flags_atom & MAP_COLOR_INDEX)
+		return
+	switch(SSmapping.configs[GROUND_MAP].camouflage_type)
+		if("jungle")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/jungle.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/jungle.dmi'
+		if("classic")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/classic.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/classic.dmi'
+		if("desert")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/desert.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/desert.dmi'
+		if("snow")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/snow.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/snow.dmi'
+		if("urban")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/urban.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/urban.dmi'
 
 /obj/item/clothing/head/helmet/marine/Destroy(force)
 	helmet_overlays = null
@@ -707,23 +727,59 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	flags_atom = NO_SNOW_TYPE
 	built_in_visors = list(new /obj/item/device/helmet_visor, new /obj/item/device/helmet_visor/welding_visor)
 
-/obj/item/clothing/head/helmet/marine/grey
+/obj/item/clothing/head/helmet/marine/tech/jungle
+	desc = "A modified M10 marine helmet for ComTechs. Features a toggleable welding screen for eye protection."
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//jungle.dmi'
+	icon_state = "tech_helmet"
+	specialty = "M10 technician"
+	flags_atom = NO_SNOW_TYPE
+	built_in_visors = list(new /obj/item/device/helmet_visor, new /obj/item/device/helmet_visor/welding_visor)
+
+/obj/item/clothing/head/helmet/marine/tech/snow
+	desc = "A modified M10 marine helmet for ComTechs. Features a toggleable welding screen for eye protection."
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//snow.dmi'
+	icon_state = "tech_helmet"
+	specialty = "M10 technician"
+	flags_atom = NO_SNOW_TYPE
+	built_in_visors = list(new /obj/item/device/helmet_visor, new /obj/item/device/helmet_visor/welding_visor)
+
+/obj/item/clothing/head/helmet/marine/tech/desert
+	desc = "A modified M10 marine helmet for ComTechs. Features a toggleable welding screen for eye protection."
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//desert.dmi'
+	icon_state = "tech_helmet"
+	specialty = "M10 technician"
+	flags_atom = NO_SNOW_TYPE
+	built_in_visors = list(new /obj/item/device/helmet_visor, new /obj/item/device/helmet_visor/welding_visor)
+
+/obj/item/clothing/head/helmet/marine/tech/urban
+	desc = "A modified M10 marine helmet for ComTechs. Features a toggleable welding screen for eye protection."
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//urban.dmi'
+	icon_state = "tech_helmet"
+	specialty = "M10 technician"
+	flags_atom = NO_SNOW_TYPE
+	built_in_visors = list(new /obj/item/device/helmet_visor, new /obj/item/device/helmet_visor/welding_visor)
+
+/obj/item/clothing/head/helmet/marine/urban
 	desc = "A standard M10 Pattern Helmet. This one has not had a camouflage pattern applied to it yet. There is a built-in camera on the right side."
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//urban.dmi'
 	icon_state = "helmet"
 	item_state = "helmet"
 	flags_atom = NO_SNOW_TYPE
 
 /obj/item/clothing/head/helmet/marine/jungle
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//jungle.dmi'
 	icon_state = "helmet"
 	item_state = "helmet"
 	flags_atom = NO_SNOW_TYPE
 
 /obj/item/clothing/head/helmet/marine/snow
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//snow.dmi'
 	icon_state = "helmet"
 	item_state = "helmet"
 	flags_atom = NO_SNOW_TYPE
 
 /obj/item/clothing/head/helmet/marine/desert
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//desert.dmi'
 	icon_state = "helmet"
 	item_state = "helmet"
 	flags_atom = NO_SNOW_TYPE
@@ -744,6 +800,42 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 /obj/item/clothing/head/helmet/marine/medic
 	name = "\improper M10 corpsman helmet"
 	desc = "An M10 marine helmet version worn by marine hospital corpsmen. Has red cross painted on its front."
+	icon_state = "med_helmet"
+	specialty = "M10 pattern medic"
+	flags_atom = NO_SNOW_TYPE
+	built_in_visors = list(new /obj/item/device/helmet_visor, new /obj/item/device/helmet_visor/medical/advanced)
+	start_down_visor_type = /obj/item/device/helmet_visor/medical/advanced
+
+/obj/item/clothing/head/helmet/marine/medic/urban
+	desc = "An M10 marine helmet version worn by marine hospital corpsmen. Has red cross painted on its front."
+	icon_state = "med_helmet"
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//urban.dmi'
+	specialty = "M10 pattern medic"
+	flags_atom = NO_SNOW_TYPE
+	built_in_visors = list(new /obj/item/device/helmet_visor, new /obj/item/device/helmet_visor/medical/advanced)
+	start_down_visor_type = /obj/item/device/helmet_visor/medical/advanced
+
+/obj/item/clothing/head/helmet/marine/medic/jungle
+	desc = "An M10 marine helmet version worn by marine hospital corpsmen. Has red cross painted on its front."
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//jungle.dmi'
+	icon_state = "med_helmet"
+	specialty = "M10 pattern medic"
+	flags_atom = NO_SNOW_TYPE
+	built_in_visors = list(new /obj/item/device/helmet_visor, new /obj/item/device/helmet_visor/medical/advanced)
+	start_down_visor_type = /obj/item/device/helmet_visor/medical/advanced
+
+/obj/item/clothing/head/helmet/marine/medic/desert
+	desc = "An M10 marine helmet version worn by marine hospital corpsmen. Has red cross painted on its front."
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//desert.dmi'
+	icon_state = "med_helmet"
+	specialty = "M10 pattern medic"
+	flags_atom = NO_SNOW_TYPE
+	built_in_visors = list(new /obj/item/device/helmet_visor, new /obj/item/device/helmet_visor/medical/advanced)
+	start_down_visor_type = /obj/item/device/helmet_visor/medical/advanced
+
+/obj/item/clothing/head/helmet/marine/medic/snow
+	desc = "An M10 marine helmet version worn by marine hospital corpsmen. Has red cross painted on its front."
+	icon = 'icons/obj/items/clothing/hats/hats_by_map//snow.dmi'
 	icon_state = "med_helmet"
 	specialty = "M10 pattern medic"
 	flags_atom = NO_SNOW_TYPE
@@ -827,7 +919,6 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	)
 	specialty = "M11 pattern ceremonial"
 	flags_atom = NO_SNOW_TYPE|NO_NAME_OVERRIDE
-
 
 /obj/item/clothing/head/helmet/marine/rto
 	name = "\improper M12 pattern dust helmet"
@@ -1060,7 +1151,7 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	flags_inventory = COVEREYES|COVERMOUTH|BLOCKSHARPOBJ
 	flags_marine_helmet = HELMET_DAMAGE_OVERLAY
 	item_icons = list(
-		WEAR_HEAD = 'icons/mob/humans/onmob/clothing/head/hats_by_map/classic.dmi'
+		WEAR_HEAD = 'icons/obj/items/clothing/hats/hats_by_map//classic.dmi'
 	)
 
 /obj/item/clothing/head/helmet/marine/veteran/pmc/gunner
@@ -1075,7 +1166,7 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	flags_inv_hide = HIDEEARS|HIDEEYES|HIDEFACE|HIDEMASK|HIDEALLHAIR
 	flags_marine_helmet = HELMET_DAMAGE_OVERLAY
 	item_icons = list(
-		WEAR_HEAD = 'icons/mob/humans/onmob/clothing/head/hats_by_map/classic.dmi'
+		WEAR_HEAD = 'icons/obj/items/clothing/hats/hats_by_map//classic.dmi'
 	)
 
 /obj/item/clothing/head/helmet/marine/veteran/pmc/commando
@@ -1097,7 +1188,7 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	flags_inv_hide = HIDEEARS|HIDEEYES|HIDEFACE|HIDEMASK|HIDEALLHAIR
 	flags_marine_helmet = HELMET_DAMAGE_OVERLAY
 	item_icons = list(
-		WEAR_HEAD = 'icons/mob/humans/onmob/clothing/head/hats_by_map/classic.dmi'
+		WEAR_HEAD = 'icons/obj/items/clothing/hats/hats_by_map//classic.dmi'
 	)
 	unacidable = TRUE
 
@@ -1381,6 +1472,27 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	flags_inventory = NO_FLAGS
 	flags_inv_hide = HIDEEARS|HIDETOPHAIR
 
+/obj/item/clothing/head/helmet/specrag/select_gamemode_skin(expected_type, list/override_icon_state, list/override_protection)
+	. = ..()
+	if(flags_atom & MAP_COLOR_INDEX)
+		return
+	switch(SSmapping.configs[GROUND_MAP].camouflage_type)
+		if("jungle")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/jungle.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/jungle.dmi'
+		if("classic")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/classic.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/classic.dmi'
+		if("desert")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/desert.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/desert.dmi'
+		if("snow")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/snow.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/snow.dmi'
+		if("urban")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/urban.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/urban.dmi'
+
 /obj/item/clothing/head/helmet/specrag/New()
 	select_gamemode_skin(type)
 	..()
@@ -1405,6 +1517,27 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	name = "\improper M8 marksman cowl"
 	desc = "A cowl worn to conceal the face of a marksman in the jungle."
 	icon_state = "skullcapm"
+
+/obj/item/clothing/head/helmet/skullcap/select_gamemode_skin(expected_type, list/override_icon_state, list/override_protection)
+	. = ..()
+	if(flags_atom & MAP_COLOR_INDEX)
+		return
+	switch(SSmapping.configs[GROUND_MAP].camouflage_type)
+		if("jungle")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/jungle.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/jungle.dmi'
+		if("classic")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/classic.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/classic.dmi'
+		if("desert")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/desert.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/desert.dmi'
+		if("snow")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/snow.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/snow.dmi'
+		if("urban")
+			icon = 'icons/obj/items/clothing/hats/hats_by_map/urban.dmi'
+			item_icons[WEAR_HEAD] = 'icons/mob/humans/onmob/clothing/head/hats_by_map/urban.dmi'
 
 /obj/item/clothing/head/helmet/skullcap/jungle/New(loc, type,
 	new_protection[] = list(MAP_ICE_COLONY = ICE_PLANET_MIN_COLD_PROT))
@@ -1560,7 +1693,6 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 
 	built_in_visors = list()
 
-
 /obj/item/clothing/head/helmet/marine/cbrn_hood
 	name = "\improper M3 MOPP mask"
 	desc = "The M3 MOPP mask includes a full covering cowl that securely attaches to the MOPP suit. The mask filters out harmful particles in the air to allow the wearer to breathe safely in the field. Depending on the hostility of the contaminated area the mask's filter will last an average of 12 hours or less."
@@ -1582,7 +1714,6 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	flags_atom = NO_SNOW_TYPE|NO_NAME_OVERRIDE
 	flags_inv_hide = HIDEEARS|HIDEALLHAIR
 	built_in_visors = list()
-
 
 /obj/item/clothing/head/helmet/marine/cbrn_hood/advanced
 	armor_melee = CLOTHING_ARMOR_HIGH

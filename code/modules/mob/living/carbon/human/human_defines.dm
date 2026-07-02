@@ -177,6 +177,10 @@
 	// Are we currently using inherent zoom vision?
 	var/is_zoomed = FALSE
 
+	// Xeno haul variables
+	var/mob/living/carbon/xenomorph/hauling_xeno
+	var/next_haul_resist = 0
+
 /client/var/cached_human_playtime
 
 /client/proc/get_total_human_playtime(skip_cache = FALSE)
