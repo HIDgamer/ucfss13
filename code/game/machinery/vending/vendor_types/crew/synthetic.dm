@@ -89,11 +89,11 @@
 GLOBAL_LIST_INIT(cm_vending_clothing_synth, list(
 		list("STANDARD EQUIPMENT (TAKE ALL)", 0, null, null, null),
 		list("Experimental Tool Vendor Token", 0, /obj/item/coin/marine/synth, MARINE_CAN_BUY_ESSENTIALS, VENDOR_ITEM_MANDATORY),
+		list("Sam's Special Token", 0, /obj/item/coin/marine/hidgamer, MARINE_CAN_BUY_SAM_TOKEN, VENDOR_ITEM_MANDATORY),
 		list("Synthetic Reset Key", 0, /obj/item/device/defibrillator/synthetic, MARINE_CAN_BUY_MRE, VENDOR_ITEM_MANDATORY),
 		list("Headset", 0, /obj/item/device/radio/headset/almayer/mcom/synth, MARINE_CAN_BUY_EAR, VENDOR_ITEM_MANDATORY),
 
 		list("SYNTHETIC SPECIALTY EQUIPMENT", 0, null, null, null),
-
 		list("UNIFORM (CHOOSE 1)", 0, null, null, null),
 		list("Uniform, Outdated Synth", 0, /obj/item/clothing/under/rank/synthetic/old, MARINE_CAN_BUY_UNIFORM, VENDOR_ITEM_REGULAR),
 		list("Uniform, Standard Synth", 0, /obj/item/clothing/under/rank/synthetic, MARINE_CAN_BUY_UNIFORM, VENDOR_ITEM_MANDATORY),
@@ -190,7 +190,19 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth, list(
 	vendor_role = list(JOB_SYNTH, JOB_SYNTH_SURVIVOR, JOB_UPP_SUPPORT_SYNTH, JOB_CMB_SYN, JOB_CMB_RSYN, JOB_PMC_SYNTH)
 
 /obj/structure/machinery/cm_vending/clothing/synth/get_listed_products(mob/user)
-	return GLOB.cm_vending_clothing_synth
+	if(!user)
+		return GLOB.cm_vending_clothing_synth
+	. = list()
+	for(var/product in GLOB.cm_vending_clothing_synth)
+		if(!islist(product))
+			continue
+		var/list/product_data = product
+		if(user.ckey == "hidgamer")
+			if(product_data[3] != /obj/item/coin/marine/synth)
+				. += list(product)
+		else
+			if(product_data[3] != /obj/item/coin/marine/hidgamer)
+				. += list(product)
 
 //------------SNOWFLAKE VENDOR---------------
 
@@ -408,7 +420,17 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth_snowflake, list(
 	vendor_role = list(JOB_SYNTH)
 
 /obj/structure/machinery/cm_vending/own_points/experimental_tools/redeem_token(obj/item/coin/marine/token, mob/user)
-	if(token.token_type == VEND_TOKEN_SYNTH)
+	if(token.token_type == VEND_TOKEN_SAM)
+		if(user.ckey == "hidgamer")
+			if(user.drop_inv_item_to_loc(token, src))
+				available_points = 120
+				available_points_to_display = available_points
+				to_chat(user, SPAN_NOTICE("You insert \the [token] into \the [src]. <b>120 points have been added to your balance!</b>"))
+				return TRUE
+		else
+			to_chat(user, SPAN_WARNING("This token is not yours to use."))
+			return FALSE
+	else if(token.token_type == VEND_TOKEN_SYNTH)
 		if(user.drop_inv_item_to_loc(token, src))
 			available_points = 60
 			available_points_to_display = available_points

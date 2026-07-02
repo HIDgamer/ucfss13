@@ -486,8 +486,6 @@ GLOBAL_LIST_EMPTY(vending_products)
 	// item priority (mandatory/recommended/regular)
 	// )
 
-	var/list/stock_values = list()
-
 	var/mob/living/carbon/human/marine = user
 	var/points = 0
 
@@ -499,14 +497,30 @@ GLOBAL_LIST_EMPTY(vending_products)
 		else if(use_points)
 			points = marine.marine_points
 
-	for (var/i in 1 to length(ui_listed_products))
-		var/list/myprod = ui_listed_products[i] //we take one list from listed_products
+	if(!ui_listed_products)
+		.["stock_listing"] = list()
+		.["current_m_points"] = points
+		return
+
+	var/list/stock_values = list()
+	var/i = 1
+	while(i <= length(ui_listed_products))
+		var/list/myprod = ui_listed_products[i]
 		var/prod_available = FALSE
+		if(!myprod || !islist(myprod) || length(myprod) < 5)
+			stock_values += list(FALSE)
+			i++
+			continue
 		var/p_cost = myprod[2]
 		var/category = myprod[4]
+		if(!isnum(p_cost))
+			stock_values += list(FALSE)
+			i++
+			continue
 		if(points >= p_cost && (!category || ((category in marine.marine_buyable_categories) && (marine.marine_buyable_categories[category]))))
 			prod_available = TRUE
 		stock_values += list(prod_available)
+		i++
 
 	.["stock_listing"] = stock_values
 	.["current_m_points"] = points
