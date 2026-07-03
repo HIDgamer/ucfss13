@@ -890,6 +890,10 @@
 /obj/structure/window/framed/almayer/hull,
 /turf/open/floor/plating,
 /area/almayer/living/starboard_garden)
+"acw" = (
+/obj/structure/sign/banners/united_americas_flag,
+/turf/closed/wall/almayer,
+/area/almayer/squads/req)
 "acx" = (
 /turf/closed/wall/almayer,
 /area/almayer/lifeboat_pumps/north2)
@@ -908,10 +912,6 @@
 /obj/structure/reagent_dispensers/watertank,
 /turf/open/floor/almayer/mono,
 /area/almayer/lifeboat_pumps/north2)
-"acC" = (
-/obj/structure/sign/banners/united_americas_flag,
-/turf/closed/wall/almayer,
-/area/almayer/squads/req)
 "acI" = (
 /obj/structure/desertdam/decals/road_edge{
 	pixel_x = -12
@@ -113541,7 +113541,7 @@ bqc
 ubQ
 fpM
 bEk
-acC
+acw
 bpT
 bdj
 bNs
