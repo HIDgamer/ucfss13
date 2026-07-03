@@ -108,4 +108,8 @@
 			return /datum/xeno_ai_controller/drone_worker
 		if(XENO_CASTE_SPITTER)
 			return /datum/xeno_ai_controller/ranged/spitter
+		if(XENO_CASTE_CRUSHER)
+			return /datum/xeno_ai_controller/crusher
+		if(XENO_CASTE_RAVAGER)
+			return /datum/xeno_ai_controller/ravager
 	return /datum/xeno_ai_controller

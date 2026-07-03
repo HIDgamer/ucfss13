@@ -47,3 +47,13 @@
 #define AI_QUEEN_LZ_SIEGE_RADIUS 12
 /// Number of same-hive AI xenos actively fighting near the LZ before the Queen considers it a heavy siege and moves to join.
 #define AI_QUEEN_LZ_SIEGE_THRESHOLD 3
+/// Health fraction below which a Crusher disengages - much lower than the population-wide default since it's meant to be the hive's tank, not a caste that breaks off early.
+#define AI_CRUSHER_FLEE_HEALTH_PERCENT 0.12
+/// Minimum valid targets already in Stomp's blast radius before a Crusher uses it instead of a plain melee swing.
+#define AI_CRUSHER_STOMP_MIN_TARGETS 2
+/// Percent chance after a Ravager's attack that it sidesteps to a flanking tile instead of standing still - the behavioral stand-in for its "nimble/evasive" identity (there's no actual dodge/evasion stat on the caste).
+#define AI_RAVAGER_REPOSITION_CHANCE 25
+/// Minimum nearby hostiles before a Ravager uses Scissor Cut instead of a plain melee swing.
+#define AI_RAVAGER_SCISSOR_MIN_TARGETS 2
+/// Minimum nearby hostiles before a Ravager arms Empower - matches the ability's own super-empower payoff threshold, so it's only used in a real group fight where the buff is worth it.
+#define AI_RAVAGER_EMPOWER_MIN_TARGETS 3
