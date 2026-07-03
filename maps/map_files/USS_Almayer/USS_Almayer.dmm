@@ -540,19 +540,13 @@
 /turf/closed/wall/almayer/outer,
 /area/almayer/lifeboat_pumps/north1)
 "abt" = (
-/turf/open/floor/almayer/test_floor4{
-	icon_state = "green2";
-	dir = 6
-	},
+/turf/open/floor/almayer/test_floor4/green2/southeast,
 /area/almayer/squads/req)
 "abu" = (
 /obj/structure/machinery/light{
 	dir = 4
 	},
-/turf/open/floor/almayer/test_floor4{
-	icon_state = "green2";
-	dir = 4
-	},
+/turf/open/floor/almayer/test_floor4/green2/east,
 /area/almayer/squads/req)
 "abv" = (
 /obj/structure/machinery/conveyor_switch{
@@ -565,29 +559,18 @@
 /turf/open/floor/plating,
 /area/almayer/lifeboat_pumps/north1)
 "abx" = (
-/turf/open/floor/almayer/test_floor4{
-	icon_state = "green2";
-	dir = 4
-	},
+/turf/open/floor/almayer/test_floor4/green2/east,
 /area/almayer/squads/req)
 "aby" = (
 /obj/structure/disposalpipe/segment,
 /obj/structure/pipes/standard/simple/hidden/supply,
-/turf/open/floor/almayer/plating_striped{
-	dir = 10
-	},
+/turf/open/floor/almayer/plating_striped/southwest,
 /area/almayer/squads/req)
 "abz" = (
-/turf/open/floor/almayer/test_floor4{
-	icon_state = "green2";
-	dir = 9
-	},
+/turf/open/floor/almayer/test_floor4/green2/northwest,
 /area/almayer/squads/req)
 "abA" = (
-/turf/open/floor/almayer/test_floor4{
-	icon_state = "green2";
-	dir = 1
-	},
+/turf/open/floor/almayer/test_floor4/green2/north,
 /area/almayer/squads/req)
 "abB" = (
 /obj/structure/pipes/standard/simple/hidden/supply{
@@ -608,15 +591,10 @@
 	id = "Garage_Entrance/Exit";
 	name = "Req_Garage_Access"
 	},
-/turf/open/floor/almayer/test_floor4{
-	icon_state = "green2";
-	dir = 5
-	},
+/turf/open/floor/almayer/test_floor4/green2/northeast,
 /area/almayer/squads/req)
 "abD" = (
-/turf/open/floor/almayer/green/west{
-	dir = 2
-	},
+/turf/open/floor/almayer/green/west/south,
 /area/almayer/squads/req)
 "abE" = (
 /turf/closed/wall/almayer,
@@ -644,9 +622,7 @@
 /turf/open/floor/almayer,
 /area/almayer/living/offices/flight)
 "abI" = (
-/turf/open/floor/almayer/greencorner{
-	dir = 8
-	},
+/turf/open/floor/almayer/greencorner/west,
 /area/almayer/squads/req)
 "abJ" = (
 /turf/open/floor/almayer/uscm/directional/southwest,
@@ -663,9 +639,7 @@
 /area/almayer/living/basketball)
 "abL" = (
 /obj/structure/surface/rack,
-/turf/open/floor/almayer/uscm/directional/southwest{
-	dir = 2
-	},
+/turf/open/floor/almayer/uscm/directional/southwest/south,
 /area/almayer/squads/req)
 "abM" = (
 /turf/open/floor/almayer/uscm/directional/southeast,
@@ -674,18 +648,14 @@
 /turf/open/floor/almayer/uscm/directional/west,
 /area/almayer/squads/req)
 "abO" = (
-/turf/open/floor/almayer/uscm/directional/west{
-	dir = 4
-	},
+/turf/open/floor/almayer/uscm/directional/west/east,
 /area/almayer/squads/req)
 "abP" = (
 /turf/open/floor/almayer/uscm/directional/northwest,
 /area/almayer/squads/req)
 "abQ" = (
 /obj/structure/surface/rack,
-/turf/open/floor/almayer/uscm/directional/southwest{
-	dir = 1
-	},
+/turf/open/floor/almayer/uscm/directional/southwest/north,
 /area/almayer/squads/req)
 "abR" = (
 /obj/item/tank/phoron,
@@ -709,9 +679,7 @@
 /area/almayer/squads/req)
 "abW" = (
 /obj/structure/machinery/computer/supply/asrs,
-/turf/open/floor/almayer/green/west{
-	dir = 1
-	},
+/turf/open/floor/almayer/green/west/north,
 /area/almayer/squads/req)
 "abX" = (
 /obj/structure/disposalpipe/segment{
@@ -724,24 +692,16 @@
 /turf/open/floor/almayer/plating_striped,
 /area/almayer/squads/req)
 "abY" = (
-/turf/open/floor/almayer/green/northeast{
-	dir = 10
-	},
+/turf/open/floor/almayer/green/northeast/southwest,
 /area/almayer/squads/req)
 "abZ" = (
-/turf/open/floor/almayer/green/northeast{
-	dir = 2
-	},
+/turf/open/floor/almayer/green/northeast/south,
 /area/almayer/squads/req)
 "aca" = (
-/turf/open/floor/almayer/green/northeast{
-	dir = 6
-	},
+/turf/open/floor/almayer/green/northeast/southeast,
 /area/almayer/squads/req)
 "acb" = (
-/turf/open/floor/almayer/green/northeast{
-	dir = 8
-	},
+/turf/open/floor/almayer/green/northeast/west,
 /area/almayer/squads/req)
 "acc" = (
 /obj/structure/machinery/door/airlock/almayer/security{
@@ -769,9 +729,7 @@
 /turf/closed/wall/almayer/outer,
 /area/almayer/living/starboard_garden)
 "acg" = (
-/turf/open/floor/almayer/green/northeast{
-	dir = 4
-	},
+/turf/open/floor/almayer/green/northeast/east,
 /area/almayer/squads/req)
 "ach" = (
 /obj/structure/surface/table/almayer,
@@ -9704,14 +9662,10 @@
 	dir = 8;
 	icon_state = "pipe-y"
 	},
-/turf/open/floor/almayer/plating_striped{
-	dir = 5
-	},
+/turf/open/floor/almayer/plating_striped/northeast,
 /area/almayer/squads/req)
 "bmD" = (
-/turf/open/floor/almayer/plating_striped{
-	dir = 6
-	},
+/turf/open/floor/almayer/plating_striped/southeast,
 /area/almayer/squads/req)
 "bmF" = (
 /obj/structure/machinery/light{
@@ -11005,9 +10959,7 @@
 /area/almayer/maint/hull/lower/l_m_s)
 "byu" = (
 /obj/structure/machinery/light,
-/turf/open/floor/almayer/green/west{
-	dir = 2
-	},
+/turf/open/floor/almayer/green/west/south,
 /area/almayer/squads/req)
 "byv" = (
 /obj/structure/machinery/camera/autoname/almayer{
@@ -11587,9 +11539,7 @@
 /area/almayer/living/cryo_cells)
 "bEc" = (
 /obj/structure/machinery/computer/supply/asrs,
-/turf/open/floor/almayer/green/west{
-	dir = 2
-	},
+/turf/open/floor/almayer/green/west/south,
 /area/almayer/squads/req)
 "bEd" = (
 /turf/open/floor/almayer/redcorner/west,
@@ -11600,9 +11550,7 @@
 /area/almayer/squads/req)
 "bEh" = (
 /obj/structure/surface/table/almayer,
-/turf/open/floor/almayer/green/northeast{
-	dir = 9
-	},
+/turf/open/floor/almayer/green/northeast/northwest,
 /area/almayer/squads/req)
 "bEi" = (
 /obj/vehicle/powerloader/ft,
@@ -12924,9 +12872,7 @@
 /obj/item/storage/backpack/marine,
 /obj/item/tool/hand_labeler,
 /obj/structure/surface/table/almayer,
-/turf/open/floor/almayer/green/west{
-	dir = 10
-	},
+/turf/open/floor/almayer/green/west/southwest,
 /area/almayer/squads/req)
 "bNC" = (
 /obj/structure/machinery/cm_vending/sorted/marine_food{
@@ -20082,9 +20028,7 @@
 /obj/structure/machinery/conveyor{
 	id = "belt"
 	},
-/turf/open/floor/almayer/green/east{
-	dir = 9
-	},
+/turf/open/floor/almayer/green/east/northwest,
 /area/almayer/hallways/lower/port_midship_hallway)
 "ehc" = (
 /obj/structure/machinery/camera/autoname/almayer{
@@ -21110,9 +21054,7 @@
 	gender = "female";
 	radio_alert_tag = ":U"
 	},
-/turf/open/floor/almayer/green/west{
-	dir = 9
-	},
+/turf/open/floor/almayer/green/west/northwest,
 /area/almayer/squads/req)
 "eAI" = (
 /turf/open/floor/almayer/orangecorner/west,
@@ -21398,9 +21340,7 @@
 /obj/structure/machinery/conveyor{
 	id = "belt2"
 	},
-/turf/open/floor/almayer/green/east{
-	dir = 5
-	},
+/turf/open/floor/almayer/green/east/northeast,
 /area/almayer/hallways/lower/port_midship_hallway)
 "eGr" = (
 /obj/structure/machinery/camera/autoname/almayer/containment/ares{
@@ -36226,9 +36166,7 @@
 	pixel_y = 30
 	},
 /obj/structure/surface/table/almayer,
-/turf/open/floor/almayer/green/west{
-	dir = 1
-	},
+/turf/open/floor/almayer/green/west/north,
 /area/almayer/squads/req)
 "kTp" = (
 /obj/structure/window/framed/almayer,
@@ -42013,10 +41951,7 @@
 /turf/open/floor/almayer/plate,
 /area/almayer/hallways/upper/aft_hallway)
 "noj" = (
-/turf/open/floor/almayer/test_floor4{
-	icon_state = "green2";
-	dir = 10
-	},
+/turf/open/floor/almayer/test_floor4/green2/southwest,
 /area/almayer/squads/req)
 "noo" = (
 /obj/structure/machinery/door/firedoor/border_only/almayer,
@@ -46028,10 +45963,7 @@
 /obj/structure/machinery/light{
 	dir = 1
 	},
-/turf/open/floor/almayer/test_floor4{
-	icon_state = "green2";
-	dir = 1
-	},
+/turf/open/floor/almayer/test_floor4/green2/north,
 /area/almayer/squads/req)
 "oTA" = (
 /obj/structure/machinery/cryopod,
@@ -48453,9 +48385,7 @@
 	dir = 1;
 	icon_state = "pipe-c"
 	},
-/turf/open/floor/almayer/greencorner{
-	dir = 1
-	},
+/turf/open/floor/almayer/greencorner/north,
 /area/almayer/squads/req)
 "pXZ" = (
 /obj/effect/landmark/start/marine/spec/charlie,
@@ -51393,9 +51323,7 @@
 	pixel_y = 31
 	},
 /obj/structure/surface/table/almayer,
-/turf/open/floor/almayer/green/west{
-	dir = 1
-	},
+/turf/open/floor/almayer/green/west/north,
 /area/almayer/squads/req)
 "reL" = (
 /obj/structure/surface/table/almayer,
@@ -54347,9 +54275,7 @@
 	dir = 4;
 	icon_state = "pipe-c"
 	},
-/turf/open/floor/almayer/plating_striped{
-	dir = 9
-	},
+/turf/open/floor/almayer/plating_striped/northwest,
 /area/almayer/squads/req)
 "snx" = (
 /obj/structure/pipes/standard/simple/hidden/supply,
@@ -63792,10 +63718,7 @@
 /turf/open/floor/almayer/sterile_green,
 /area/almayer/medical/containment)
 "vYC" = (
-/turf/open/floor/almayer/test_floor4{
-	icon_state = "green2";
-	dir = 8
-	},
+/turf/open/floor/almayer/test_floor4/green2/west,
 /area/almayer/squads/req)
 "vYM" = (
 /turf/open/floor/almayer/plate,
