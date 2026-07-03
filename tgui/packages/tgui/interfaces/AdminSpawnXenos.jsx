@@ -5,7 +5,18 @@ import { Box, Button, Icon, NumberInput, Section, Stack } from '../components';
 import { Window } from '../layouts';
 
 const SPAWN_MODES = [
-  { value: 'npc', label: 'NPC', icon: 'robot', desc: 'Uncontrolled NPC xeno' },
+  {
+    value: 'npc',
+    label: 'NPC',
+    icon: 'robot',
+    desc: 'Uncontrolled, inert xeno',
+  },
+  {
+    value: 'ai',
+    label: 'AI',
+    icon: 'microchip',
+    desc: 'AI-piloted - moves, hunts and attacks on its own. Still ghost-joinable at any time.',
+  },
   {
     value: 'freed',
     label: 'Available',
@@ -31,7 +42,7 @@ const HIVE_COLORS = {
 
 export const AdminSpawnXenos = () => {
   const { act, data } = useBackend();
-  const { hives = [], castes = [] } = data;
+  const { hives = [], castes = [], picking = false } = data;
   const [casteSearch, setCasteSearch] = useState('');
   const [selectedHive, setSelectedHive] = useState(hives[0] || '');
   const [selectedCaste, setSelectedCaste] = useState('');
@@ -251,7 +262,17 @@ export const AdminSpawnXenos = () => {
           {/* Spawn button */}
           <Stack.Item>
             <Box style={{ padding: '0 4px' }}>
-              {selectedHive && selectedCaste ? (
+              {picking ? (
+                <Button
+                  fluid
+                  icon="crosshairs"
+                  color="orange"
+                  style={{ padding: '8px', fontSize: '0.95rem' }}
+                  onClick={() => act('cancel_spawn')}
+                >
+                  Click a tile on the map… (Cancel)
+                </Button>
+              ) : selectedHive && selectedCaste ? (
                 <Button
                   fluid
                   icon="bug"

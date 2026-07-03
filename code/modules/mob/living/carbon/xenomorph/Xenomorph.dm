@@ -74,6 +74,12 @@
 	//
 	//////////////////////////////////////////////////////////////////
 	var/datum/caste_datum/caste // Used to extract determine ALL Xeno stats.
+	/// Composed AI decision-making datum. Null for player-piloted xenos. See code/modules/mob/living/carbon/xenomorph/ai/.
+	var/datum/xeno_ai_controller/ai_controller
+	/// Cheap TRUE/FALSE mirror of (ai_controller != null), kept in sync by the AI lifecycle procs so other systems (e.g. SSquadtree) don't need to null-check ai_controller.
+	var/is_ai_controlled = FALSE
+	/// Sticky flag set once at AI spawn time; survives ghost takeover/give-back so only mobs that started as AI ever fall back to AI on disconnect.
+	var/was_ai_spawned = FALSE
 	var/speaking_key = "x"
 	var/speaking_noise = "alien_talk"
 	slash_verb = "slash"
@@ -718,6 +724,9 @@
 	GLOB.living_xeno_list -= src
 	GLOB.xeno_mob_list -= src
 	SSxeno.processable_xeno_list -= src
+
+	if(ai_controller)
+		detach_xeno_ai(src)
 
 	if(tracked_marker)
 		tracked_marker.xenos_tracking -= src

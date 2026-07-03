@@ -29,3 +29,10 @@ GLOBAL_LIST_EMPTY_TYPED(hellhound_list, /mob/living/carbon/xenomorph/hellhound)
 GLOBAL_LIST_EMPTY_TYPED(zombie_list, /mob/living/carbon/human)
 GLOBAL_LIST_EMPTY_TYPED(yautja_mob_list, /mob/living/carbon/human)
 
+/// All xenomorphs currently piloted by a xeno_ai_controller (no client). Maintained by the AI lifecycle procs, not derived on demand.
+GLOBAL_LIST_EMPTY_TYPED(ai_xeno_list, /mob/living/carbon/xenomorph)
+/// Count of currently active AI-piloted xenos, used to enforce GLOB.ai_xeno_max_active.
+GLOBAL_VAR_INIT(ai_xeno_active_count, 0)
+/// Hard cap on concurrently AI-piloted xenos, enforced in spawn_ai_xeno().
+GLOBAL_VAR_INIT(ai_xeno_max_active, 40)
+

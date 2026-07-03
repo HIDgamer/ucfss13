@@ -871,12 +871,17 @@
 
 /datum/admin_spawn_humans
 	var/datum/admins/admin_datum
+	/// Spawn params stashed by "spawn" while armed, consumed by InterceptClickOn() once the admin clicks a tile.
+	var/list/pending_params
 
 /datum/admin_spawn_humans/New(datum/admins/AD)
 	admin_datum = AD
 
 /datum/admin_spawn_humans/Destroy()
+	if(admin_datum?.owner?.click_intercept == src)
+		admin_datum.owner.click_intercept = null
 	admin_datum = null
+	pending_params = null
 	return ..()
 
 /datum/admin_spawn_humans/tgui_interact(mob/user, datum/tgui/ui)
@@ -896,6 +901,29 @@
 	data["presets"] = presets
 	return data
 
+/datum/admin_spawn_humans/ui_data(mob/user)
+	var/list/data = list()
+	data["picking"] = (user.client?.click_intercept == src)
+	return data
+
+/// Pressing Spawn arms this instead of spawning immediately; the admin's next map click (see InterceptClickOn) is where it actually happens.
+/datum/admin_spawn_humans/proc/arm_spawn(mob/user, list/params)
+	pending_params = params.Copy()
+	if(user.client)
+		user.client.click_intercept = src
+	to_chat(user, SPAN_NOTICE("Click a tile to spawn there."))
+	SStgui.update_uis(src)
+
+/datum/admin_spawn_humans/proc/InterceptClickOn(mob/user, list/params, atom/A)
+	if(user.client)
+		user.client.click_intercept = null
+	var/list/spawn_params = pending_params
+	pending_params = null
+	SStgui.update_uis(src)
+	if(spawn_params)
+		do_spawn(user, get_turf(A), spawn_params)
+	return TRUE
+
 /datum/admin_spawn_humans/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
 	if(.)
@@ -904,66 +932,77 @@
 	if(!check_client_rights(user.client, R_SPAWN))
 		return
 
+	if(action == "cancel_spawn")
+		if(user.client?.click_intercept == src)
+			user.client.click_intercept = null
+		pending_params = null
+		return TRUE
+
 	if(action == "spawn")
 		if(SSticker?.current_state < GAME_STATE_PLAYING)
 			to_chat(user, SPAN_WARNING("Wait until the game has started."))
 			return TRUE
-
 		var/job_name = params["job"]
 		if(!job_name || !(job_name in GLOB.gear_name_presets_list))
 			return TRUE
-
-		var/count = clamp(text2num(params["count"]), 1, 100)
-		var/spawn_range = clamp(text2num(params["range"]), 0, 10)
-		var/spawn_as = params["spawn_as"] || "npc"
-		var/equip_with = params["equip_with"] || "full"
-
-		var/turf/spawn_turf = get_turf(user)
-		var/list/turfs = list()
-		if(spawn_range)
-			for(var/turf/T in range(spawn_range, spawn_turf))
-				if(!T || istype(T, /turf/closed)) continue
-				turfs += T
-		else
-			turfs = list(spawn_turf)
-
-		if(!length(turfs))
-			return TRUE
-
-		var/list/humans = list()
-		for(var/i = 1 to count)
-			var/turf/T = pick(turfs)
-			var/mob/living/carbon/human/H = new(T)
-			if(!H.hud_used)
-				H.create_hud()
-			if(spawn_as == "freed")
-				admin_datum.owner.free_for_ghosts(H)
-			arm_equipment(H, job_name, TRUE, FALSE)
-			humans += H
-
-			if(equip_with == "no_equipment")
-				for(var/obj/item/I in H)
-					if(istype(I, /obj/item/card/id/)) continue
-					qdel(I)
-			else if(equip_with == "no_weapons")
-				for(var/obj/item/I in H.GetAllContents(3))
-					if(istype(I, /obj/item/ammo_magazine) || istype(I, /obj/item/weapon) || istype(I, /obj/item/explosive))
-						qdel(I)
-
-		if(spawn_as == "ert")
-			var/datum/emergency_call/custom/em_call = new()
-			var/name = input(user, "Name your ERT:", "ERT Name", "Admin spawned humans") as text|null
-			em_call.name = name || "Admin spawned humans"
-			em_call.mob_max = length(humans)
-			em_call.players_to_offer = humans
-			em_call.owner = admin_datum.owner
-
-			var/ql = tgui_alert(user, "Broadcast the beacon launch to all players?", "Announce?", list("Yes", "No"), 20 SECONDS)
-			var/ar = tgui_alert(user, "Announce beacon received message?", "Announce?", list("Yes", "No"), 20 SECONDS)
-			em_call.activate(ql != "Yes", ar == "Yes")
-
-		message_admins("[key_name_admin(user)] created [count] humans as [job_name] at [get_area(user)]")
+		arm_spawn(user, params)
 		return TRUE
+
+/datum/admin_spawn_humans/proc/do_spawn(mob/user, turf/spawn_turf, list/params)
+	if(!spawn_turf)
+		return
+
+	var/job_name = params["job"]
+	var/count = clamp(text2num(params["count"]), 1, 100)
+	var/spawn_range = clamp(text2num(params["range"]), 0, 10)
+	var/spawn_as = params["spawn_as"] || "npc"
+	var/equip_with = params["equip_with"] || "full"
+
+	var/list/turfs = list()
+	if(spawn_range)
+		for(var/turf/T in range(spawn_range, spawn_turf))
+			if(!T || istype(T, /turf/closed)) continue
+			turfs += T
+	else
+		turfs = list(spawn_turf)
+
+	if(!length(turfs))
+		return
+
+	var/list/humans = list()
+	for(var/i = 1 to count)
+		var/turf/T = pick(turfs)
+		var/mob/living/carbon/human/H = new(T)
+		if(!H.hud_used)
+			H.create_hud()
+		if(spawn_as == "freed")
+			admin_datum.owner.free_for_ghosts(H)
+		arm_equipment(H, job_name, TRUE, FALSE)
+		humans += H
+
+		if(equip_with == "no_equipment")
+			for(var/obj/item/I in H.contents.Copy()) // Copy first - qdel'ing while iterating H's live contents list skips entries.
+				if(istype(I, /obj/item/card/id))
+					continue
+				qdel(I)
+		else if(equip_with == "no_weapons")
+			for(var/obj/item/I in H.GetAllContents(3).Copy())
+				if(istype(I, /obj/item/ammo_magazine) || istype(I, /obj/item/weapon) || istype(I, /obj/item/explosive))
+					qdel(I)
+
+	if(spawn_as == "ert")
+		var/datum/emergency_call/custom/em_call = new()
+		var/name = input(user, "Name your ERT:", "ERT Name", "Admin spawned humans") as text|null
+		em_call.name = name || "Admin spawned humans"
+		em_call.mob_max = length(humans)
+		em_call.players_to_offer = humans
+		em_call.owner = admin_datum.owner
+
+		var/ql = tgui_alert(user, "Broadcast the beacon launch to all players?", "Announce?", list("Yes", "No"), 20 SECONDS)
+		var/ar = tgui_alert(user, "Announce beacon received message?", "Announce?", list("Yes", "No"), 20 SECONDS)
+		em_call.activate(ql != "Yes", ar == "Yes")
+
+	message_admins("[key_name_admin(user)] created [count] humans as [job_name] at [get_area(spawn_turf)]")
 
 /datum/admins/var/create_humans_html = null
 /datum/admins/proc/create_humans(mob/user)
@@ -982,12 +1021,17 @@
 
 /datum/admin_spawn_xenos
 	var/datum/admins/admin_datum
+	/// Spawn params stashed by "spawn" while armed, consumed by InterceptClickOn() once the admin clicks a tile.
+	var/list/pending_params
 
 /datum/admin_spawn_xenos/New(datum/admins/AD)
 	admin_datum = AD
 
 /datum/admin_spawn_xenos/Destroy()
+	if(admin_datum?.owner?.click_intercept == src)
+		admin_datum.owner.click_intercept = null
 	admin_datum = null
+	pending_params = null
 	return ..()
 
 /datum/admin_spawn_xenos/tgui_interact(mob/user, datum/tgui/ui)
@@ -1011,6 +1055,29 @@
 	data["castes"] = castes
 	return data
 
+/datum/admin_spawn_xenos/ui_data(mob/user)
+	var/list/data = list()
+	data["picking"] = (user.client?.click_intercept == src)
+	return data
+
+/// Pressing Spawn arms this instead of spawning immediately; the admin's next map click (see InterceptClickOn) is where it actually happens.
+/datum/admin_spawn_xenos/proc/arm_spawn(mob/user, list/params)
+	pending_params = params.Copy()
+	if(user.client)
+		user.client.click_intercept = src
+	to_chat(user, SPAN_NOTICE("Click a tile to spawn there."))
+	SStgui.update_uis(src)
+
+/datum/admin_spawn_xenos/proc/InterceptClickOn(mob/user, list/params, atom/A)
+	if(user.client)
+		user.client.click_intercept = null
+	var/list/spawn_params = pending_params
+	pending_params = null
+	SStgui.update_uis(src)
+	if(spawn_params)
+		do_spawn(user, get_turf(A), spawn_params)
+	return TRUE
+
 /datum/admin_spawn_xenos/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
 	if(.)
@@ -1019,61 +1086,79 @@
 	if(!check_client_rights(user.client, R_SPAWN))
 		return
 
+	if(action == "cancel_spawn")
+		if(user.client?.click_intercept == src)
+			user.client.click_intercept = null
+		pending_params = null
+		return TRUE
+
 	if(action == "spawn")
 		if(SSticker?.current_state < GAME_STATE_PLAYING)
 			to_chat(user, SPAN_WARNING("Wait until the game has started."))
 			return TRUE
-
 		var/xeno_hive = params["hive"]
 		var/xeno_caste = params["caste"]
 		if(!xeno_hive || !xeno_caste)
 			return TRUE
-
-		var/count = clamp(text2num(params["count"]), 1, 100)
-		var/spawn_range = clamp(text2num(params["range"]), 0, 10)
-		var/spawn_as = params["spawn_as"] || "npc"
-
-		var/turf/spawn_turf = get_turf(user)
-		var/list/turfs = list()
-		if(spawn_range)
-			for(var/turf/T in range(spawn_range, spawn_turf))
-				if(!T || istype(T, /turf/closed)) continue
-				turfs += T
-		else
-			turfs = list(spawn_turf)
-
-		if(!length(turfs))
-			return TRUE
-
-		var/caste_type = GLOB.RoleAuthority.get_caste_by_text(xeno_caste)
-		if(!caste_type)
-			to_chat(user, SPAN_WARNING("Unknown xeno caste: [xeno_caste]"))
-			return TRUE
-
-		var/list/xenos = list()
-		for(var/i = 1 to count)
-			var/turf/T = pick(turfs)
-			var/mob/living/carbon/xenomorph/X = new caste_type(T, null, xeno_hive)
-			if(!X.hud_used)
-				X.create_hud()
-			if(spawn_as == "freed")
-				admin_datum.owner.free_for_ghosts(X)
-			xenos += X
-
-		if(spawn_as == "ert")
-			var/datum/emergency_call/custom/em_call = new()
-			var/name = input(user, "Name your ERT:", "ERT Name", "Admin spawned xenos") as text|null
-			em_call.name = name || "Admin spawned xenos"
-			em_call.mob_max = length(xenos)
-			em_call.players_to_offer = xenos
-			em_call.owner = admin_datum.owner
-
-			var/ql = tgui_alert(user, "Broadcast the beacon launch to all players?", "Announce?", list("Yes", "No"), 20 SECONDS)
-			var/ar = tgui_alert(user, "Announce beacon received message?", "Announce?", list("Yes", "No"), 20 SECONDS)
-			em_call.activate(ql != "Yes", ar == "Yes")
-
-		message_admins("[key_name_admin(user)] created [count] xenos as [xeno_caste] ([xeno_hive]) at [get_area(user)]")
+		arm_spawn(user, params)
 		return TRUE
+
+/datum/admin_spawn_xenos/proc/do_spawn(mob/user, turf/spawn_turf, list/params)
+	if(!spawn_turf)
+		return
+
+	var/xeno_hive = params["hive"]
+	var/xeno_caste = params["caste"]
+	var/count = clamp(text2num(params["count"]), 1, 100)
+	var/spawn_range = clamp(text2num(params["range"]), 0, 10)
+	var/spawn_as = params["spawn_as"] || "npc"
+
+	var/list/turfs = list()
+	if(spawn_range)
+		for(var/turf/T in range(spawn_range, spawn_turf))
+			if(!T || istype(T, /turf/closed)) continue
+			turfs += T
+	else
+		turfs = list(spawn_turf)
+
+	if(!length(turfs))
+		return
+
+	var/caste_type = GLOB.RoleAuthority.get_caste_by_text(xeno_caste)
+	if(!caste_type)
+		to_chat(user, SPAN_WARNING("Unknown xeno caste: [xeno_caste]"))
+		return
+
+	var/list/xenos = list()
+	var/ai_attach_failures = 0
+	for(var/i = 1 to count)
+		var/turf/T = pick(turfs)
+		var/mob/living/carbon/xenomorph/X = new caste_type(T, null, xeno_hive)
+		if(!X.hud_used)
+			X.create_hud()
+		if(spawn_as == "freed")
+			admin_datum.owner.free_for_ghosts(X)
+		else if(spawn_as == "ai")
+			if(!attach_xeno_ai(X, T))
+				ai_attach_failures++
+		xenos += X
+
+	if(ai_attach_failures)
+		to_chat(user, SPAN_WARNING("[ai_attach_failures] xeno\s spawned without AI control - the active AI xeno cap ([GLOB.ai_xeno_max_active]) was reached."))
+
+	if(spawn_as == "ert")
+		var/datum/emergency_call/custom/em_call = new()
+		var/name = input(user, "Name your ERT:", "ERT Name", "Admin spawned xenos") as text|null
+		em_call.name = name || "Admin spawned xenos"
+		em_call.mob_max = length(xenos)
+		em_call.players_to_offer = xenos
+		em_call.owner = admin_datum.owner
+
+		var/ql = tgui_alert(user, "Broadcast the beacon launch to all players?", "Announce?", list("Yes", "No"), 20 SECONDS)
+		var/ar = tgui_alert(user, "Announce beacon received message?", "Announce?", list("Yes", "No"), 20 SECONDS)
+		em_call.activate(ql != "Yes", ar == "Yes")
+
+	message_admins("[key_name_admin(user)] created [count] xenos as [xeno_caste] ([xeno_hive]) at [get_area(spawn_turf)]")
 
 /datum/admins/var/create_xenos_html = null
 /datum/admins/proc/create_xenos(mob/user)
@@ -1085,6 +1170,107 @@
 	set category = "Admin.Events"
 	if(admin_holder)
 		admin_holder.create_xenos(usr)
+
+// ─── Mission Control — TGUI datum ────────────────────────────────────────────
+// Live control surface for the dynamic mission system (see
+// code/game/gamemodes/colonialmarines/objectives/) - staff need to be able to
+// steer the automatic system without a full revert, per the Stage 2.8 design.
+// Stateless by design (reads everything live off SSticker.mode each poll), so
+// unlike admin_spawn_xenos/admin_spawn_humans it needs no per-instance vars.
+
+/datum/admin_mission_control
+
+/datum/admin_mission_control/tgui_interact(mob/user, datum/tgui/ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new /datum/tgui(user, src, "AdminMissionControl", "Mission Control")
+		ui.open()
+
+/datum/admin_mission_control/ui_state(mob/user)
+	return GLOB.admin_state
+
+/datum/admin_mission_control/ui_data(mob/user)
+	var/list/data = list()
+	data["ai_xeno_count"] = GLOB.ai_xeno_active_count
+	data["ai_xeno_max"] = GLOB.ai_xeno_max_active
+
+	var/datum/game_mode/colonialmarines/mode = istype(SSticker.mode, /datum/game_mode/colonialmarines) ? SSticker.mode : null
+	data["mode_active"] = !!mode
+	if(!mode)
+		return data
+
+	data["dynamic_missions_enabled"] = mode.dynamic_missions_enabled
+	var/datum/mission_controller/controller = mode.mission_controller
+	data["controller_active"] = !!controller
+	if(!controller)
+		return data
+
+	data["difficulty_multiplier"] = controller.difficulty_multiplier
+	data["completed_count"] = length(controller.completed_objective_types)
+	data["failed_count"] = length(controller.failed_objective_types)
+
+	var/datum/mission_objective/objective = controller.current_objective
+	data["objective_active"] = !!objective
+	if(objective)
+		data["objective_name"] = objective.name
+		data["objective_description"] = objective.description
+		data["objective_elapsed"] = round((world.time - objective.started_at) / 10) // deciseconds -> seconds
+		data["objective_time_limit"] = objective.time_limit ? round(objective.time_limit / 10) : 0
+	return data
+
+/datum/admin_mission_control/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	. = ..()
+	if(.)
+		return
+	var/mob/user = ui.user
+	if(!check_client_rights(user.client, R_SPAWN))
+		return
+
+	var/datum/game_mode/colonialmarines/mode = istype(SSticker.mode, /datum/game_mode/colonialmarines) ? SSticker.mode : null
+
+	switch(action)
+		if("toggle_dynamic_missions")
+			if(!mode)
+				return TRUE
+			mode.dynamic_missions_enabled = !mode.dynamic_missions_enabled
+			if(mode.dynamic_missions_enabled && !mode.mission_controller)
+				mode.start_mission_controller()
+			message_admins("[key_name_admin(user)] [mode.dynamic_missions_enabled ? "enabled" : "disabled"] the dynamic mission system.")
+			return TRUE
+
+		if("force_complete")
+			if(mode?.mission_controller?.force_complete_current())
+				message_admins("[key_name_admin(user)] force-completed the current mission objective.")
+			return TRUE
+
+		if("force_fail")
+			if(mode?.mission_controller?.force_fail_current())
+				message_admins("[key_name_admin(user)] force-failed the current mission objective.")
+			return TRUE
+
+		if("set_ai_cap")
+			var/new_cap = clamp(text2num(params["value"]), 0, 200)
+			GLOB.ai_xeno_max_active = new_cap
+			message_admins("[key_name_admin(user)] set the AI xeno cap to [new_cap].")
+			return TRUE
+
+		if("set_difficulty")
+			if(!mode?.mission_controller)
+				return TRUE
+			var/new_difficulty = clamp(text2num(params["value"]), 0.25, 4)
+			mode.mission_controller.difficulty_multiplier = new_difficulty
+			message_admins("[key_name_admin(user)] set the mission difficulty multiplier to [new_difficulty].")
+			return TRUE
+
+/datum/admins/proc/mission_control(mob/user)
+	var/datum/admin_mission_control/datum = new()
+	datum.tgui_interact(user)
+
+/client/proc/mission_control()
+	set name = "Mission Control"
+	set category = "Admin.Events"
+	if(admin_holder)
+		admin_holder.mission_control(usr)
 
 /client/proc/clear_mutineers()
 	set name = "Clear All Mutineers"

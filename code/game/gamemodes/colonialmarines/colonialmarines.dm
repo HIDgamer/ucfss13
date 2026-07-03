@@ -33,6 +33,11 @@
 	 */
 	var/near_lz_protection_delay = 8 MINUTES
 
+	/// Drives the procedural objective chain (see code/game/gamemodes/colonialmarines/objectives/). Purely additive for now - does not affect check_win()/hijack, which remain unchanged until that framework is validated in isolation.
+	var/datum/mission_controller/mission_controller
+	/// Single off-switch for the dynamic mission layer, in case it needs to be disabled without a full revert.
+	var/dynamic_missions_enabled = TRUE
+
 ////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////
 
@@ -139,7 +144,13 @@
 	addtimer(CALLBACK(src, PROC_REF(start_lz_hazards)), DISTRESS_LZ_HAZARD_START)
 	addtimer(CALLBACK(SSentity_manager, TYPE_PROC_REF(/datum/controller/subsystem/entity_manager, select), /datum/entity/survivor_survival), 7 MINUTES)
 
+	if(dynamic_missions_enabled)
+		addtimer(CALLBACK(src, PROC_REF(start_mission_controller)), 30 SECONDS)
+
 	return ..()
+
+/datum/game_mode/colonialmarines/proc/start_mission_controller()
+	mission_controller = new()
 
 /datum/game_mode/colonialmarines/ds_first_landed(obj/docking_port/stationary/marine_dropship)
 	. = ..()
@@ -372,6 +383,9 @@
 	. = ..()
 	if(--round_started > 0)
 		return FALSE //Initial countdown, just to be safe, so that everyone has a chance to spawn before we check anything.
+
+	if(mission_controller && !is_in_endgame) // Objectives stop advancing once hijack/evac starts - that phase already has its own pacing.
+		mission_controller.process()
 
 	if(is_in_endgame)
 		check_hijack_explosions()

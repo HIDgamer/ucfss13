@@ -48,7 +48,7 @@ const EQUIP_MODES = [
 
 export const AdminSpawnHumans = () => {
   const { act, data } = useBackend();
-  const { presets = [] } = data;
+  const { presets = [], picking = false } = data;
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState('');
   const [count, setCount] = useState(1);
@@ -273,7 +273,17 @@ export const AdminSpawnHumans = () => {
           {/* Spawn button */}
           <Stack.Item>
             <Box style={{ padding: '0 4px' }}>
-              {selected ? (
+              {picking ? (
+                <Button
+                  fluid
+                  icon="crosshairs"
+                  color="orange"
+                  style={{ padding: '8px', fontSize: '0.95rem' }}
+                  onClick={() => act('cancel_spawn')}
+                >
+                  Click a tile on the map… (Cancel)
+                </Button>
+              ) : selected ? (
                 <Button
                   fluid
                   icon="user-plus"
