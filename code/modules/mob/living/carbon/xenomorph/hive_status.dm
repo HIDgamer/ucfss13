@@ -43,6 +43,11 @@
 	var/list/total_dead_xenos = list()
 	var/xeno_queen_timer
 	var/isSlotOpen = TRUE //Set true for starting alerts only after the hive has reached its full potential
+
+	/// Turf the AI Queen last flagged as a threat - other same-hive AI xenos check this during idle patrol (see xeno_ai_controller.dm's respond_to_hive_alert()) and head there instead of wandering randomly. This is how she "commands" the hive without a hard command hierarchy.
+	var/turf/queen_alert_turf
+	/// world.time queen_alert_turf was last set, so the alert goes stale (see AI_XENO_HIVE_ALERT_WINDOW) instead of calling the whole hive to a fight that's long since over.
+	var/queen_alert_time = 0
 	var/allowed_nest_distance = 15 //How far away do we allow nests from an ovied Queen. Default 15 tiles.
 	var/obj/effect/alien/resin/special/pylon/core/hive_location = null //Set to ref every time a core is built, for defining the hive location
 

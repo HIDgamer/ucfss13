@@ -18,12 +18,16 @@
 /**
  * Only override needed: patrol() is called from the base tick() at exactly
  * the point where the pilot is confirmed idle with no target - rolling build
- * attempts in here instead of duplicating the whole state machine.
+ * attempts in here instead of duplicating the whole state machine. Checks
+ * for a Queen hive-alert first, same priority order as the base controller -
+ * a call to arms takes precedence over routine building.
  */
 /datum/xeno_ai_controller/drone_worker/patrol()
+	if(respond_to_hive_alert())
+		return
 	if(prob(AI_DRONE_BUILD_CHANCE) && attempt_build_action())
 		return
-	return ..()
+	wander()
 
 /// Calls the real plant_weeds ability directly - its own internal checks (weedable ground, not already weeded enough, hive ownership) handle rejection silently if the current tile isn't suitable, same as a player clicking it somewhere bad.
 /datum/xeno_ai_controller/drone_worker/proc/attempt_build_action()

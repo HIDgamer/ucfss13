@@ -36,3 +36,14 @@
 #define AI_XENO_RANGED_PREFERRED_DISTANCE 5
 /// If the target closes to within this distance, a ranged xeno actively backs away instead of just holding position.
 #define AI_XENO_RANGED_MIN_DISTANCE 2
+/// How long other hive members will respond to the Queen's last hive-alert broadcast before it goes stale (see hive_status.dm's queen_alert_turf).
+#define AI_XENO_HIVE_ALERT_WINDOW 30 SECONDS
+/// There's only ever one Queen at a time, so she can afford a much wider awareness radius than population-scale castes.
+#define AI_QUEEN_ATTACK_DISTANCE 18
+#define AI_QUEEN_RETURN_DISTANCE 28
+/// stored_larva level at/above which the hive doesn't urgently need more, so she won't reflexively mount the ovipositor just because it's safe to.
+#define AI_QUEEN_LARVA_COMFORTABLE_THRESHOLD 8
+/// Radius around the marine LZ used to judge whether the hive's attack on it counts as a "heavy" siege worth the Queen personally joining.
+#define AI_QUEEN_LZ_SIEGE_RADIUS 12
+/// Number of same-hive AI xenos actively fighting near the LZ before the Queen considers it a heavy siege and moves to join.
+#define AI_QUEEN_LZ_SIEGE_THRESHOLD 3

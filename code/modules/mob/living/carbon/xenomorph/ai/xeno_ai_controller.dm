@@ -126,21 +126,58 @@
 	process_movement()
 
 /**
+ * Idle xenos check for a live hive-wide alert from the Queen first (see
+ * respond_to_hive_alert()) - "command" without a hard hierarchy - and only
+ * fall back to aimless wander() if there's nothing to respond to. Concrete
+ * subtypes that override patrol() (e.g. drone_worker, to roll build attempts)
+ * should check respond_to_hive_alert() first too, before their own idle
+ * behavior, so a Queen's call takes priority over routine tasks.
+ */
+/datum/xeno_ai_controller/proc/patrol()
+	if(respond_to_hive_alert())
+		return
+	wander()
+
+/**
  * Idle xenos drift a short distance around their anchor instead of standing
  * perfectly still - makes an idle group look alive rather than frozen, and
  * doubles as a light patrol behavior. Bounded to AI_XENO_PATROL_RADIUS (well
  * inside return_distance) so it never turns into an unbounded wander; a mob
  * that's drifted to the edge heads back in instead of continuing outward.
  */
-/datum/xeno_ai_controller/proc/patrol()
+/datum/xeno_ai_controller/proc/wander()
 	if(!pilot || !anchor_turf)
 		return
+	if(pilot.resting)
+		return // Healing up at the anchor (see return_to_anchor()) - don't get up and wander off mid-heal.
 	if(!prob(AI_XENO_PATROL_CHANCE))
 		return
 	if(get_dist(pilot, anchor_turf) >= AI_XENO_PATROL_RADIUS)
 		step_towards(pilot, anchor_turf)
 		return
 	step(pilot, pick(GLOB.alldirs))
+
+/**
+ * Checks for a live hive-wide alert (see hive_status.dm's queen_alert_turf/
+ * queen_alert_time, set by the Queen controller) and heads there if one
+ * exists and hasn't gone stale. Returns FALSE (meaning "nothing to respond
+ * to, fall back to normal idle behavior") if the pilot has no hive, no alert
+ * is active, the alert is too old, or the pilot is already close enough that
+ * normal target scanning should take over instead.
+ */
+/datum/xeno_ai_controller/proc/respond_to_hive_alert()
+	if(!pilot || pilot.resting) // Healing up (see return_to_anchor()) - let other, healthy hive members answer the call instead.
+		return FALSE
+	if(!pilot.hive?.queen_alert_turf)
+		return FALSE
+	if(world.time - pilot.hive.queen_alert_time > AI_XENO_HIVE_ALERT_WINDOW)
+		return FALSE
+	var/turf/alert_turf = pilot.hive.queen_alert_turf
+	if(get_dist(pilot, alert_turf) <= 3)
+		return FALSE
+	if(!advance_along_path(alert_turf))
+		step_towards(pilot, alert_turf)
+	return TRUE
 
 /// Critically wounded or on-fire xenos disengage and head home instead of fighting on - mirrors a player's own instinct to flee/resist rather than burn or fight to the death.
 /datum/xeno_ai_controller/proc/should_flee()
@@ -202,6 +239,8 @@
 	turf_block = null
 	blocked_attempts = 0
 	ai_state = AI_STATE_APPROACHING
+	if(pilot.resting)
+		pilot.set_resting(FALSE) // Stand up to fight - see return_to_anchor() for why it might have been resting in the first place.
 
 	// Narrow, istype-guarded hook for the "Hive Incursion" gamemode's
 	// ambient-patrol -> hive-alert contact trigger (see hive_encounter.dm) -
@@ -270,6 +309,15 @@
 		return FALSE
 	return get_dist(pilot, anchor_turf) > return_distance
 
+/**
+ * Xenos only heal at a decent rate while resting (life.dm's
+ * handle_regular_status_updates(): heal_resting vs. the much slower
+ * heal_standing), and most castes need to be on hive weeds for that healing
+ * to happen at all (check_weeds_for_healing()) - so once safely home, an
+ * injured xeno actually lies down to heal instead of just standing there at
+ * low health. She/it stands back up the moment a target is acquired again
+ * (see process_target()).
+ */
 /datum/xeno_ai_controller/proc/return_to_anchor()
 	if(!pilot)
 		return
@@ -281,6 +329,8 @@
 	if(get_turf(pilot) == anchor_turf)
 		if(!pilot.on_fire)
 			ai_state = AI_STATE_IDLE
+			if(pilot.health < pilot.maxHealth && !pilot.resting)
+				pilot.set_resting(TRUE)
 		return
 	step_towards(pilot, anchor_turf)
 
