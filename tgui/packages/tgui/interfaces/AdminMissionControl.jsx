@@ -33,8 +33,12 @@ export const AdminMissionControl = () => {
                   fontStyle: 'italic',
                 }}
               >
-                <Icon name="triangle-exclamation" style={{ marginRight: '6px' }} />
-                Current gamemode isn&apos;t Distress Signal - nothing to control.
+                <Icon
+                  name="triangle-exclamation"
+                  style={{ marginRight: '6px' }}
+                />
+                Current gamemode isn&apos;t Distress Signal - nothing to
+                control.
               </Box>
             </Stack.Item>
           )}
@@ -46,7 +50,9 @@ export const AdminMissionControl = () => {
                   <Stack.Item>
                     <Button
                       fluid
-                      icon={dynamic_missions_enabled ? 'toggle-on' : 'toggle-off'}
+                      icon={
+                        dynamic_missions_enabled ? 'toggle-on' : 'toggle-off'
+                      }
                       color={dynamic_missions_enabled ? 'green' : 'red'}
                       onClick={() => act('toggle_dynamic_missions')}
                     >
@@ -87,7 +93,12 @@ export const AdminMissionControl = () => {
                       </Box>
                     </Stack.Item>
                     <Stack.Item>
-                      <Box style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)' }}>
+                      <Box
+                        style={{
+                          fontSize: '0.75rem',
+                          color: 'rgba(255,255,255,0.5)',
+                        }}
+                      >
                         Elapsed: {objective_elapsed}s
                         {objective_time_limit
                           ? ` / ${objective_time_limit}s limit`
@@ -149,7 +160,13 @@ export const AdminMissionControl = () => {
                     />
                   </Stack.Item>
                   <Stack.Item>
-                    <Box style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.5)', paddingTop: '4px' }}>
+                    <Box
+                      style={{
+                        fontSize: '0.75rem',
+                        color: 'rgba(255,255,255,0.5)',
+                        paddingTop: '4px',
+                      }}
+                    >
                       Scales objective time limits (and wave size once
                       generalized defense objectives land). 1x = default.
                     </Box>
