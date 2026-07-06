@@ -124,8 +124,7 @@
 		return
 
 	if(!isyautja(owner))
-		if(owner.stat >= DEAD)
-		else
+		if(owner.stat < DEAD)
 			SSminimaps.add_marker(owner, wearer_turf.z, MINIMAP_FLAG_YAUTJA, human_owner.assigned_equipment_preset.minimap_icon, 'icons/ui_icons/map_blips.dmi')
 /*
 *This is the main proc for checking AND draining the bracer energy. It must have human passed as an argument.
