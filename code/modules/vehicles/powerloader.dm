@@ -12,6 +12,7 @@
 	light_system = MOVABLE_LIGHT
 	light_mask_type = /atom/movable/lighting_mask/rotating
 	light_on = FALSE
+	glide_size = 0 //the attached light snaps instantly on move; disable icon glide so the loader doesn't lag visually behind its own warning light
 	move_delay = 8
 	buckling_y = 9
 	health = 200
