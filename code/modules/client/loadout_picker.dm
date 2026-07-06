@@ -55,7 +55,8 @@
 
 			var/total_cost = 0
 			for(var/gear_name in prefs.gear)
-				total_cost += GLOB.gear_datums_by_name[gear_name].cost
+				var/datum/gear/owned_gear = GLOB.gear_datums_by_name[gear_name]
+				total_cost += owned_gear.cost
 
 			total_cost += gear.cost
 			if(total_cost > MAX_GEAR_COST)
