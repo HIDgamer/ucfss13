@@ -48,20 +48,35 @@ const EQUIP_MODES = [
 
 export const AdminSpawnHumans = () => {
   const { act, data } = useBackend();
-  const { presets = [] } = data;
+  const { presets = [], picking = false } = data;
   const [search, setSearch] = useState('');
   const [selected, setSelected] = useState('');
   const [count, setCount] = useState(1);
   const [range, setRange] = useState(0);
   const [spawnAs, setSpawnAs] = useState('npc');
   const [equipWith, setEquipWith] = useState('full');
+  const [queue, setQueue] = useState([]);
 
   const filtered = search
     ? presets.filter((p) => p.toLowerCase().includes(search.toLowerCase()))
     : presets;
 
+  const addToQueue = () => {
+    if (!selected) {
+      return;
+    }
+    setQueue([...queue, { job: selected, count }]);
+    setCount(1);
+  };
+
+  const removeFromQueue = (index) => {
+    setQueue(queue.filter((_, i) => i !== index));
+  };
+
+  const totalQueued = queue.reduce((sum, row) => sum + row.count, 0);
+
   return (
-    <Window title="Create Humans" theme="crtblue" width={480} height={700}>
+    <Window title="Create Humans" theme="crtblue" width={480} height={760}>
       <Window.Content>
         <Stack vertical fill>
           {/* Job selection */}
@@ -174,9 +189,59 @@ export const AdminSpawnHumans = () => {
                     onChange={(v) => setRange(v)}
                   />
                 </Stack.Item>
+                <Stack.Item grow>
+                  <Box style={{ marginBottom: '3px' }}>&nbsp;</Box>
+                  <Button
+                    fluid
+                    icon="plus"
+                    disabled={!selected}
+                    onClick={addToQueue}
+                  >
+                    Add to Queue
+                  </Button>
+                </Stack.Item>
               </Stack>
             </Section>
           </Stack.Item>
+
+          {/* Queue */}
+          {queue.length > 0 && (
+            <Stack.Item>
+              <Section title={`Queue (${totalQueued} total)`}>
+                <Box style={{ maxHeight: '120px', overflowY: 'auto' }}>
+                  {queue.map((row, index) => (
+                    <Box
+                      key={index}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '3px 6px',
+                        fontSize: '0.82rem',
+                        borderBottom: '1px solid rgba(255,255,255,0.06)',
+                      }}
+                    >
+                      <Box>
+                        {row.count}× {row.job}
+                      </Box>
+                      <Box
+                        as="button"
+                        onClick={() => removeFromQueue(index)}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          color: 'rgba(255,255,255,0.4)',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <Icon name="times" />
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              </Section>
+            </Stack.Item>
+          )}
 
           {/* Spawn mode */}
           <Stack.Item>
@@ -273,7 +338,17 @@ export const AdminSpawnHumans = () => {
           {/* Spawn button */}
           <Stack.Item>
             <Box style={{ padding: '0 4px' }}>
-              {selected ? (
+              {picking ? (
+                <Button
+                  fluid
+                  icon="crosshairs"
+                  color="orange"
+                  style={{ padding: '8px', fontSize: '0.95rem' }}
+                  onClick={() => act('cancel_spawn')}
+                >
+                  Click a tile on the map… (Cancel)
+                </Button>
+              ) : queue.length > 0 ? (
                 <Button
                   fluid
                   icon="user-plus"
@@ -281,15 +356,14 @@ export const AdminSpawnHumans = () => {
                   style={{ padding: '8px', fontSize: '0.95rem' }}
                   onClick={() =>
                     act('spawn', {
-                      job: selected,
-                      count,
+                      queue,
                       range,
                       spawn_as: spawnAs,
                       equip_with: equipWith,
                     })
                   }
                 >
-                  Spawn {count}× {selected}
+                  Spawn Queue ({totalQueued}×)
                 </Button>
               ) : (
                 <Box
@@ -303,7 +377,7 @@ export const AdminSpawnHumans = () => {
                   }}
                 >
                   <Icon name="hand-pointer" style={{ marginRight: '6px' }} />
-                  Select a preset above
+                  Select a preset, then Add to Queue
                 </Box>
               )}
             </Box>

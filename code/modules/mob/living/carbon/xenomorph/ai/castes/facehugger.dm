@@ -1,0 +1,68 @@
+/**
+ * Facehugger AI - a pure ambush predator. Leap (the pounce ability) can hug
+ * on landing regardless of whether the target is standing or lying down -
+ * can_hug() (Facehuggers.dm) never checks body_position at all, only the
+ * slow manual melee windup (UnarmedAttack()/execute_facehugger_hug()) is
+ * restricted to LYING_DOWN targets. So the correct AI is: always prefer
+ * leaping, at any range including already-adjacent, since it's strictly
+ * better than the interruptible windup and works on anyone; only fall back
+ * to approaching/waiting on the slow windup while Leap is on cooldown (a
+ * short one, 3 seconds), which will only actually connect if the target
+ * happens to already be down.
+ *
+ * Also hides (xenohide) while patrolling, same "lie in wait" identity the
+ * caste already has via its own base_actions - nothing un-hides it again
+ * since neither moving nor landing a hug breaks the hide (only a stat
+ * change does, per the ability's own signal handler), which suits an
+ * ambush predator fine.
+ */
+/datum/xeno_ai_controller/facehugger
+
+/datum/xeno_ai_controller/facehugger/patrol()
+	attempt_hide()
+	return ..()
+
+/datum/xeno_ai_controller/facehugger/proc/attempt_hide()
+	if(!pilot || pilot.layer == XENO_HIDING_LAYER)
+		return
+	var/datum/action/xeno_action/onclick/xenohide/hide = get_ability(/datum/action/xeno_action/onclick/xenohide)
+	hide?.use_ability(pilot)
+
+/**
+ * Same duplication tradeoff as crusher.dm/ravager.dm/runner.dm - attempting
+ * the leap (checked even when already adjacent, unlike every other dash
+ * caste's controller) differs enough from the base melee policy to warrant
+ * a full override.
+ */
+/datum/xeno_ai_controller/facehugger/process_movement()
+	if(!pilot || !current_target)
+		return
+
+	if(!is_valid_target(current_target))
+		drop_target()
+		return
+
+	last_seen_turf = get_turf(current_target)
+
+	if(attempt_leap(current_target))
+		return
+
+	if(get_dist(pilot, current_target) <= 1 && pilot.Adjacent(current_target))
+		ai_state = AI_STATE_ATTACKING
+		blocked_attempts = 0
+		path_queue = null
+		return
+
+	return ..()
+
+/// Fires Leap at target if it's off cooldown and within its reach (including adjacent - it's still strictly better than the slow melee windup); returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/wait behavior.
+/datum/xeno_ai_controller/facehugger/proc/attempt_leap(atom/target)
+	var/datum/action/xeno_action/activable/pounce/facehugger/leap = get_ability(/datum/action/xeno_action/activable/pounce/facehugger)
+	if(!leap || !leap.action_cooldown_check())
+		return FALSE
+	if(get_dist(pilot, target) > leap.distance)
+		return FALSE
+	if(!has_line_of_sight(target, physical_path = TRUE)) // A leap is a physical pounce - tables/fences/barricades block it same as a wall would.
+		return FALSE
+	leap.use_ability(target)
+	return TRUE

@@ -149,7 +149,8 @@
 		return
 
 	user.forceMove(next_pipe)
-	user.client.eye = next_pipe //if we don't do this, Byond only updates the eye every tick - required for smooth movement
+	if(user.client) // AI-piloted xenos vent-crawl too (see xeno_ai_vents.dm) and have no client to update the eye of.
+		user.client.eye = next_pipe //if we don't do this, Byond only updates the eye every tick - required for smooth movement
 	user.update_pipe_icons(next_pipe)
 
 	if(world.time - user.last_played_vent > VENT_SOUND_DELAY)

@@ -617,9 +617,6 @@
 /turf/proc/is_weedable()
 	return density ? NOT_WEEDABLE : FULLY_WEEDABLE
 
-/turf/open/space/is_weedable()
-	return NOT_WEEDABLE
-
 /turf/open/gm/grass/is_weedable()
 	return SEMI_WEEDABLE
 
