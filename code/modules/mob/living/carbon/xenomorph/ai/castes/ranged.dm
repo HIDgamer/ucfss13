@@ -17,10 +17,18 @@
 	return null
 
 /**
- * Overrides the base melee movement policy entirely - continuous kiting via
- * the shared maintain_kiting_distance() helper (xeno_ai_movement.dm) instead
- * of a bespoke band, so the "die in place" bug it fixes is fixed once for
- * every ranged caste rather than four times.
+ * Overrides the base melee movement policy entirely. Two-phase, matching
+ * boiler.dm's already-correct pattern: hold/retreat to AI_XENO_RANGED_HIDE_DISTANCE
+ * whenever every ranged ability is on cooldown, only closing back in to the
+ * much tighter AI_XENO_RANGED_PREFERRED_DISTANCE kiting band once something's
+ * actually ready to fire.
+ *
+ * "Sentinel/Spitter get killed a lot, too predictable, walking in the same 3
+ * tiles over and over" - the old version held the same close band
+ * unconditionally regardless of ability state, so a Sentinel with her one
+ * long-cooldown spit on cooldown just sat at melee-adjacent-plus-five the
+ * entire time instead of actually falling back, getting walked down and
+ * finished off while she had nothing to answer with.
  */
 /datum/xeno_ai_controller/ranged/process_movement()
 	if(!pilot || !current_target)
@@ -31,21 +39,34 @@
 		return
 
 	last_seen_turf = get_turf(current_target)
-	maintain_kiting_distance(current_target, AI_XENO_RANGED_PREFERRED_DISTANCE)
+	var/dist = get_dist(pilot, current_target)
+
+	var/datum/action/xeno_action/ability = get_ranged_ability()
+	var/ability_ready = ability && ability.action_cooldown_check()
+	if(!ability_ready)
+		if(dist < AI_XENO_RANGED_HIDE_DISTANCE)
+			var/turf/defensible = find_cover_turf(current_target) || find_defensible_turf()
+			if(defensible && get_dist(pilot, defensible) > 0 && cardinal_step_towards(defensible, avoid_mobs = TRUE))
+				return
+			var/away_dir = get_dir(current_target, pilot)
+			if(!ai_step(away_dir))
+				navigate_around(current_target)
+			return
+		return // Already far enough out - sit tight and let the cooldown run.
+
+	maintain_kiting_distance(current_target, AI_XENO_RANGED_PREFERRED_DISTANCE, seek_cover = TRUE)
 
 /**
  * Fires the ranged ability once in band. Spitter's spit is a 60-second
  * cooldown - with no fallback, the AI would just stand at range doing
  * nothing for roughly 59 of every 60 seconds mid-fight (use_ability()'s own
- * cooldown check silently no-ops). Now checks the cooldown itself first: if
- * the ability isn't ready, it fights in melee instead of idling out the
- * wait, closing distance directly if not yet adjacent rather than routing
- * through ai_state (APPROACHING would immediately flip back to ATTACKING
- * via process_movement()'s own "within preferred distance" check without
- * ever actually taking a step, since nothing here changed how far away it
- * is). Once the ability comes off cooldown again, too-close/too-far both
- * hand off to APPROACHING so process_movement() re-establishes the
- * preferred kiting distance instead of plinking away point-blank forever.
+ * cooldown check silently no-ops), which is why get_ranged_ability() falls
+ * back to Spray Acid (a much shorter cooldown) whenever the big spit isn't
+ * up. Adjacent is treated as "cornered" (something closed the distance
+ * despite process_movement()'s own retreat/kiting) rather than a deliberate
+ * approach - fights back instead of standing there, but no longer walks
+ * toward the target on its own to get there; process_movement() above owns
+ * all positioning now; this proc only ever fires or fights back in place.
  */
 /datum/xeno_ai_controller/ranged/process_attack()
 	if(!pilot || !current_target)
@@ -56,27 +77,15 @@
 		drop_target()
 		return
 
+	if(pilot.Adjacent(current_target)) // Cornered - fight back rather than just standing there and dying.
+		execute_attack(current_target)
+		return
+
 	var/datum/action/xeno_action/ability = get_ranged_ability()
-	var/ability_ready = ability && ability.action_cooldown_check()
-
-	if(!ability_ready)
-		if(pilot.Adjacent(current_target))
-			execute_attack(current_target)
-		else if(!advance_along_path(current_target))
-			cardinal_step_towards(current_target)
-		return
-
-	var/dist = get_dist(pilot, current_target)
-	if(dist <= AI_XENO_RANGED_MIN_DISTANCE || dist > AI_XENO_RANGED_PREFERRED_DISTANCE + 2)
-		ai_state = AI_STATE_APPROACHING
-		return
-
-	if(!has_line_of_sight(current_target))
-		ai_state = AI_STATE_APPROACHING // No clean shot (wall/dense obstacle in the way) - close in instead of plinking uselessly at cover.
-		return
-
-	pilot.setDir(get_dir(pilot, current_target))
-	ability.use_ability(current_target)
+	if(ability && ability.action_cooldown_check() && has_line_of_sight(current_target))
+		pilot.setDir(get_dir(pilot, current_target))
+		ability.use_ability(current_target)
+	ai_state = AI_STATE_APPROACHING // Always re-evaluate positioning next tick, win or lose - process_movement() above decides hide vs. hold vs. close in.
 
 /**
  * Spitter - "doesn't have an AI fight preset, they just death charge" was a
@@ -95,8 +104,42 @@
  */
 /datum/xeno_ai_controller/ranged/spitter
 
+/// Ranged glass cannon, no armor investment - should disengage sooner than a melee caste rather than sharing the population default.
+/datum/xeno_ai_controller/ranged/spitter/get_flee_threshold()
+	return AI_SPITTER_FLEE_HEALTH_PERCENT
+
 /datum/xeno_ai_controller/ranged/spitter/get_ranged_ability()
 	var/datum/action/xeno_action/activable/xeno_spit/spit = get_ability(/datum/action/xeno_action/activable/xeno_spit)
 	if(spit && spit.action_cooldown_check())
 		return spit
 	return get_ability(/datum/action/xeno_action/activable/spray_acid/spitter)
+
+/**
+ * Charge Spit was granted but never called - its own file literally
+ * comments its armor/speed buff as "so they can close the distance," the
+ * exact gap-close niche every other caste's process_movement() already
+ * fills with a dash. It's a one-shot self-buff (not a toggle) that also
+ * empowers her next spit, so it's tried once while still outside her
+ * preferred kiting band, before falling through to the base ranged
+ * movement policy.
+ */
+/datum/xeno_ai_controller/ranged/spitter/process_movement()
+	if(!pilot || !current_target)
+		return
+	if(!is_valid_target(current_target))
+		drop_target()
+		return
+	attempt_charge_spit()
+	return ..()
+
+/// Only worth firing while still closing - the speed buff is wasted once she's already holding her kiting band.
+/datum/xeno_ai_controller/ranged/spitter/proc/attempt_charge_spit()
+	if(!pilot || !current_target)
+		return FALSE
+	var/datum/action/xeno_action/onclick/charge_spit/charge = get_ability(/datum/action/xeno_action/onclick/charge_spit)
+	if(!charge || charge.buffs_active || !charge.action_cooldown_check())
+		return FALSE
+	if(get_dist(pilot, current_target) <= AI_XENO_RANGED_PREFERRED_DISTANCE)
+		return FALSE
+	charge.use_ability(pilot)
+	return TRUE

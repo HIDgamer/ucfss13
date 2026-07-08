@@ -50,12 +50,24 @@
  * also the answer for a genuinely missing library, not just "no path."
  */
 /proc/rustg_xeno_pathfind(grid_desc, blocked_map)
+	// A bad caller (null/empty args) must not get conflated with "library
+	// missing/broken" - returning here, before the one-shot check below is
+	// ever consulted or written, keeps a caller bug from permanently
+	// blacklisting a perfectly good library for the rest of the round.
+	if(!grid_desc || !blocked_map)
+		return ""
 	if(__xeno_pathfind_checked && !__xeno_pathfind_available)
 		return ""
 	. = ""
 	try
 		. = XENO_PATHFIND_CALL(XENO_PATHFIND_LIB, "xeno_pathfind")(grid_desc, blocked_map)
+		// The doc comment above promises callers always get a string back -
+		// a non-text result (e.g. null) is just as much a "this isn't
+		// actually working" signal as a thrown exception.
+		if(!istext(.))
+			. = ""
 		__xeno_pathfind_available = TRUE
 	catch
+		. = ""
 		__xeno_pathfind_available = FALSE
 	__xeno_pathfind_checked = TRUE

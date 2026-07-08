@@ -49,6 +49,25 @@
 	circle_dir = pick(90, -90)
 
 /**
+ * "Using a few abilities would send the casts into daydreaming and doing
+ * nothing... one or two ability uses makes the AI stop in its tracks" -
+ * Berserker's Eviscerate (berserker.dm) ADD_TRAITs TRAIT_IMMOBILIZED on
+ * herself for its windup, same as Defender's Fortify/Burrower's Burrow -
+ * without this override the base tick()'s generic immobilize freeze check
+ * skipped ALL AI logic (movement, retreating, everything) for the entire
+ * windup, every single time she cast it. HAS_TRAIT_FROM_ONLY (not a bare
+ * HAS_TRAIT check) matters here - TRAIT_IMMOBILIZED isn't exclusively
+ * self-inflicted (e.g. TRAIT_KNOCKEDOUT from a marine-landed stun forces it
+ * too, living.dm), so this only lets her keep acting when Eviscerate is the
+ * *only* thing holding the trait, not when a real hostile stun is stacked
+ * on top of it.
+ */
+/datum/xeno_ai_controller/ravager/can_act_while_immobilized()
+	if(..())
+		return TRUE
+	return HAS_TRAIT_FROM_ONLY(pilot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_ABILITY("Eviscerate"))
+
+/**
  * Same duplication tradeoff as crusher.dm - the "close in" trigger
  * condition (attempt a dash first) differs enough from the base melee
  * approach that this is a full override rather than a shared helper.
@@ -83,6 +102,11 @@
 	if(attempt_charge(current_target))
 		return
 
+	attempt_apprehend() // Berserker-only self-buff opener, side effect only - never blocks the fallthrough below.
+
+	if(attempt_rav_spikes(current_target))
+		return
+
 	return ..()
 
 /// Fires Charge at target if it's off cooldown and within its reach; returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/pathfinding chain.
@@ -97,16 +121,111 @@
 	charge.use_ability(target)
 	return TRUE
 
+/// Berserker-strain-only self-buff opener (target arg unused) - next slash gets bonus damage+slow. get_ability() returning null on a non-Berserker is the strain check.
+/datum/xeno_ai_controller/ravager/proc/attempt_apprehend()
+	if(!pilot)
+		return FALSE
+	var/datum/action/xeno_action/onclick/apprehend/apprehend = get_ability(/datum/action/xeno_action/onclick/apprehend)
+	if(!apprehend || !apprehend.action_cooldown_check())
+		return FALSE
+	apprehend.use_ability(pilot)
+	return TRUE
+
+/// Berserker-strain-only targeted fling+self-heal, needs an adjacent target - tried before Eviscerate/plain melee in use_caste_ability() below.
+/datum/xeno_ai_controller/ravager/proc/attempt_clothesline(mob/living/target)
+	if(!pilot || !target)
+		return FALSE
+	var/datum/action/xeno_action/activable/clothesline/clothesline = get_ability(/datum/action/xeno_action/activable/clothesline)
+	if(!clothesline || !clothesline.action_cooldown_check())
+		return FALSE
+	if(!pilot.Adjacent(target))
+		return FALSE
+	clothesline.use_ability(target)
+	return TRUE
+
+/// Hedgehog-strain-only ranged poke while still closing distance - ammo cost is shard-gated via the ability's own action_cooldown_check() override, no separate resource check needed here.
+/datum/xeno_ai_controller/ravager/proc/attempt_rav_spikes(atom/target)
+	if(!pilot || !target)
+		return FALSE
+	var/datum/action/xeno_action/activable/rav_spikes/spikes = get_ability(/datum/action/xeno_action/activable/rav_spikes)
+	if(!spikes || !spikes.action_cooldown_check())
+		return FALSE
+	if(!has_line_of_sight(target))
+		return FALSE
+	spikes.use_ability(target)
+	return TRUE
+
+/// Hedgehog-strain-only reactive shield, same below-half-health trigger shape as crusher.dm's attempt_shield() - shard cost is already folded into the ability's own action_cooldown_check() override.
+/datum/xeno_ai_controller/ravager/proc/attempt_spike_shield()
+	if(!pilot || !pilot.maxHealth || (pilot.health / pilot.maxHealth) >= 0.5)
+		return FALSE
+	var/datum/action/xeno_action/onclick/spike_shield/shield = get_ability(/datum/action/xeno_action/onclick/spike_shield)
+	if(!shield || !shield.action_cooldown_check())
+		return FALSE
+	shield.use_ability(pilot)
+	return TRUE
+
+/// Hedgehog-strain-only self-AoE - same "2+ targets already adjacent" gate as attempt_eviscerate() above, since it also disables shard generation for 30s afterward (a real commitment, not a free panic button).
+/datum/xeno_ai_controller/ravager/proc/attempt_spike_shed()
+	if(!pilot)
+		return FALSE
+	var/datum/action/xeno_action/onclick/spike_shed/shed = get_ability(/datum/action/xeno_action/onclick/spike_shed)
+	if(!shed || !shed.action_cooldown_check())
+		return FALSE
+	var/nearby_targets = 0
+	for(var/mob/living/carbon/nearby in orange(1, pilot))
+		if(!is_valid_target(nearby))
+			continue
+		nearby_targets++
+		if(nearby_targets >= 2)
+			break
+	if(nearby_targets < 2)
+		return FALSE
+	shed.use_ability(pilot)
+	return TRUE
+
+/// Berserker-strain-only channeled AoE finisher - fires only when 2+ valid targets are already adjacent (a windup that immobilizes her is a bad trade against a single target), same nearby-count scan shape as crusher.dm's Stomp check.
+/datum/xeno_ai_controller/ravager/proc/attempt_eviscerate()
+	if(!pilot)
+		return FALSE
+	var/datum/action/xeno_action/activable/eviscerate/eviscerate = get_ability(/datum/action/xeno_action/activable/eviscerate)
+	if(!eviscerate || !eviscerate.action_cooldown_check())
+		return FALSE
+	var/nearby_targets = 0
+	for(var/mob/living/carbon/nearby in orange(1, pilot))
+		if(!is_valid_target(nearby))
+			continue
+		nearby_targets++
+		if(nearby_targets >= 2)
+			break
+	if(nearby_targets < 2)
+		return FALSE
+	eviscerate.use_ability(pilot)
+	return TRUE
+
 /**
  * Prefers Scissor Cut (hits everything in a line several tiles ahead)
  * over a plain melee swing whenever more than one valid target is
  * nearby, then considers arming Empower when a real group fight is
  * happening. Falls through to the inherited single-target melee whenever
  * neither condition is met (the common case: a normal 1-on-1).
+ *
+ * Berserker strain: attempt_clothesline()/attempt_eviscerate() above take
+ * priority - Scissor Cut/Empower are both removed by the strain so
+ * get_ability() already no-ops them for her.
  */
 /datum/xeno_ai_controller/ravager/use_caste_ability(mob/living/target)
 	if(!pilot)
 		return FALSE
+
+	attempt_spike_shield() // Hedgehog-only reactive shield, side effect only - never blocks anything below.
+
+	if(attempt_clothesline(target))
+		return TRUE
+	if(attempt_eviscerate())
+		return TRUE
+	if(attempt_spike_shed())
+		return TRUE
 
 	var/datum/action/xeno_action/activable/scissor_cut/cut = get_ability(/datum/action/xeno_action/activable/scissor_cut)
 	if(cut && cut.action_cooldown_check())

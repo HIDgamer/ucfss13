@@ -88,8 +88,8 @@ export const AdminSpawnXenos = () => {
 
   return (
     <Window title="Create Xenos" theme="hive_status" width={460} height={720}>
-      <Window.Content>
-        <Stack vertical fill>
+      <Window.Content scrollable>
+        <Stack vertical>
           {/* Mode toggle */}
           <Stack.Item>
             <Box style={{ display: 'flex', gap: '4px' }}>

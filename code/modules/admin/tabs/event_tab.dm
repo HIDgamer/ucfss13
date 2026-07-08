@@ -1263,6 +1263,16 @@
 			else if(spawn_as == "ai")
 				if(!attach_xeno_ai(X, T))
 					ai_attach_failures++
+				// "Make the xeno spawner in admin spawn an alien with a
+				// random strain" - matches SSxeno_spawner's own
+				// spawner_maybe_assign_strain() (xeno_spawner.dm), which
+				// this admin tool never called before (it doesn't funnel
+				// through spawn_ai_xeno() at all). Deliberately does NOT
+				// call spawner_max_out_carrier_eggs() here - "the carrier
+				// spawns with no eggs at all still via xeno spawner at
+				// least" - that stays exclusive to the automatic
+				// population-maintenance subsystem, not this manual tool.
+				spawner_maybe_assign_strain(X)
 			xenos += X
 
 		total_count += count
@@ -1272,7 +1282,7 @@
 		return
 
 	if(ai_attach_failures)
-		to_chat(user, SPAN_WARNING("[ai_attach_failures] xeno\s spawned without AI control - the active AI xeno cap ([GLOB.ai_xeno_max_active]) was reached."))
+		to_chat(user, SPAN_WARNING("[ai_attach_failures] xeno\s spawned without AI control - a per-caste AI cap was reached."))
 
 	if(spawn_as == "ert")
 		var/datum/emergency_call/custom/em_call = new()
@@ -1414,10 +1424,14 @@
 /datum/admin_ai_difficulty/ui_data(mob/user)
 	var/list/data = list()
 	data["ai_xeno_count"] = GLOB.ai_xeno_active_count
-	data["ai_xeno_max"] = GLOB.ai_xeno_max_active
 	data["ai_flee_multiplier"] = GLOB.ai_flee_multiplier
 	data["ai_distance_multiplier"] = GLOB.ai_distance_multiplier
 	data["difficulty_multiplier"] = GLOB.ai_difficulty_multiplier
+
+	data["spawner_enabled"] = GLOB.xeno_spawner_enabled
+	data["spawner_target_population"] = spawner_target_population()
+	var/datum/hive_status/spawner_hive = GLOB.xeno_spawner_hive ? GLOB.hive_datum[GLOB.xeno_spawner_hive] : null
+	data["spawner_hive_name"] = spawner_hive ? spawner_hive.name : "None"
 
 	var/list/castes = list()
 	for(var/c in ALL_XENO_CASTES)
@@ -1431,6 +1445,7 @@
 	for(var/c in ALL_XENO_CASTES)
 		caste_counts[c] = count_active_ai_xenos_of_caste(c)
 	data["ai_caste_counts"] = caste_counts
+
 	return data
 
 /datum/admin_ai_difficulty/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
@@ -1442,23 +1457,43 @@
 		return
 
 	switch(action)
-		if("set_ai_cap")
-			var/new_cap = clamp(text2num(params["value"]), 0, 200)
-			GLOB.ai_xeno_max_active = new_cap
-			message_admins("[key_name_admin(user)] set the AI xeno cap to [new_cap].")
+		if("set_spawner_enabled")
+			GLOB.xeno_spawner_enabled = !!params["enabled"]
+			message_admins("[key_name_admin(user)] [GLOB.xeno_spawner_enabled ? "enabled" : "disabled"] the Xeno Spawner.")
 			return TRUE
 
-		if("set_difficulty")
+		if("set_spawner_hive")
+			// "I want to be able to select which hive is auto spawned on
+			// round start if any at all" - GLOB.hive_datum always has all 13
+			// XENO_HIVE_* hives instantiated regardless of whether they're
+			// in play this round (global_lists.dm), so this list needs its
+			// own explicit "None" entry rather than assuming an empty
+			// selection is possible some other way.
+			var/list/hive_options = list("None (spawner disabled)" = null)
+			for(var/hivenumber in GLOB.hive_datum)
+				var/datum/hive_status/hive_option = GLOB.hive_datum[hivenumber]
+				hive_options["[hive_option.name]"] = hivenumber
+			var/choice = tgui_input_list(user, "Which hive should the Xeno Spawner reinforce?", "Xeno Spawner Hive", hive_options)
+			if(isnull(choice))
+				return TRUE // Cancelled - distinct from actually picking "None", which is a null *value*, not a null *key*.
+			GLOB.xeno_spawner_hive = hive_options[choice]
+			message_admins("[key_name_admin(user)] set the Xeno Spawner's target hive to [choice].")
+			return TRUE
+
+		if("set_spawner_difficulty")
+			// "Hook the spawn rate to the difficulty, remove the difficulty
+			// section that was merged with the presets as it's no longer
+			// needed" - this used to also drive ai_flee_multiplier/
+			// ai_distance_multiplier (merged with the AI Behavior presets
+			// below so the two couldn't disagree), but that coupling is
+			// gone: difficulty is now purely the Spawner's population/
+			// spawn-rate knob (spawner_target_population()/
+			// spawner_maintain_population()'s max_per_fire scaling,
+			// xeno_spawner.dm), and AI Behavior's presets/sliders are the
+			// sole, independent control for aggression/awareness.
 			var/new_difficulty = clamp(text2num(params["value"]), 0.25, 4)
 			GLOB.ai_difficulty_multiplier = new_difficulty
-			// "The difficulty settings didn't really do much in terms of AI
-			// difficulty and spawn rate. Please merge the difficulty preset
-			// with the difficulty number setter" - the numeric slider drives
-			// the same AI aggression/awareness globals as the preset buttons
-			// below, so the two settings can't disagree.
-			GLOB.ai_flee_multiplier = 1 / new_difficulty
-			GLOB.ai_distance_multiplier = new_difficulty
-			message_admins("[key_name_admin(user)] set the AI difficulty multiplier to [new_difficulty] (updated AI aggression/awareness).")
+			message_admins("[key_name_admin(user)] set the Xeno Spawner difficulty multiplier to [new_difficulty].")
 			return TRUE
 
 		if("set_caste_cap")
@@ -1488,27 +1523,25 @@
 
 		if("set_behavior_preset")
 			var/preset = params["preset"]
-			var/preset_difficulty
 			switch(preset)
 				if("passive")
 					GLOB.ai_flee_multiplier = 1.5
 					GLOB.ai_distance_multiplier = 0.7
-					preset_difficulty = 0.5
 				if("balanced")
 					GLOB.ai_flee_multiplier = 1
 					GLOB.ai_distance_multiplier = 1
-					preset_difficulty = 1
 				if("aggressive")
 					GLOB.ai_flee_multiplier = 0.6
 					GLOB.ai_distance_multiplier = 1.3
-					preset_difficulty = 1.5
 				if("ruthless")
 					GLOB.ai_flee_multiplier = 0.25
 					GLOB.ai_distance_multiplier = 1.5
-					preset_difficulty = 2
 				else
 					return TRUE
-			GLOB.ai_difficulty_multiplier = preset_difficulty // Keep the numeric slider in sync with whichever preset was last picked - one merged setting, not two that can disagree.
+			// No longer syncs GLOB.ai_difficulty_multiplier - see
+			// set_spawner_difficulty's doc comment above. Presets are purely
+			// an aggression/awareness shortcut now, independent of the
+			// Spawner's difficulty/spawn-rate knob.
 			message_admins("[key_name_admin(user)] set the AI behavior preset to [preset].")
 			return TRUE
 
@@ -1535,7 +1568,7 @@
 /datum/admin_hive_status/ui_state(mob/user)
 	return GLOB.admin_state
 
-/// One row per currently AI-piloted xeno - health, location, how long it's been alive, and cumulative damage dealt (see xeno_ai_attack.dm's record_damage_dealt()). Rebuilt fresh every open/poll rather than cached, same as every other admin monitoring panel - this list is at most ai_xeno_max_active entries long.
+/// One row per currently AI-piloted xeno - health, location, how long it's been alive, and cumulative damage dealt (see xeno_ai_attack.dm's record_damage_dealt()). Rebuilt fresh every open/poll rather than cached, same as every other admin monitoring panel.
 /datum/admin_hive_status/ui_data(mob/user)
 	var/list/data = list()
 	var/list/xenos = list()

@@ -80,6 +80,10 @@
 	var/is_ai_controlled = FALSE
 	/// Sticky flag set once at AI spawn time; survives ghost takeover/give-back so only mobs that started as AI ever fall back to AI on disconnect.
 	var/was_ai_spawned = FALSE
+	/// Caste this AI larva will organically grow into once ai_growth_ready_at passes - null unless director-spawned via HIVE_SPAWN_STYLE_ORGANIC (see hive_director.dm).
+	var/ai_growth_target_caste
+	/// world.time grow_larva_into_caste() should attempt to fire for this larva - 0 means "not on an organic growth timer."
+	var/ai_growth_ready_at = 0
 	var/speaking_key = "x"
 	var/speaking_noise = "alien_talk"
 	slash_verb = "slash"
@@ -609,10 +613,7 @@
 			return
 	return ..()
 
-	. = COMPONENT_NO_BURN
-	// Burrowed xenos also cannot be ignited
-	if((caste.fire_immunity & FIRE_IMMUNITY_NO_IGNITE) || HAS_TRAIT(src, TRAIT_ABILITY_BURROWED))
-		. |= COMPONENT_NO_IGNITE
+/mob/living/carbon/xenomorph/proc/get_component_flags()
 	if(caste.fire_immunity & FIRE_IMMUNITY_XENO_FRENZY)
 		. |= COMPONENT_XENO_FRENZY
 

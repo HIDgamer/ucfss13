@@ -9,6 +9,14 @@
  * controller.
  */
 /datum/xeno_ai_controller/warrior
+	/// Rotational direction (90 or -90) this Warrior always sidesteps toward - same reasoning as ravager.dm's identical var, picked once so repositioning reads as one consistent circling motion.
+	var/circle_dir
+	/// pilot.health as of the last process_attack() call - lets the reposition check tell "just got hit, this is a reactive dodge" from "nothing happened, this is just the baseline roll," same pattern as ravager.dm.
+	var/last_known_health
+
+/datum/xeno_ai_controller/warrior/New(mob/living/carbon/xenomorph/new_pilot)
+	. = ..()
+	circle_dir = pick(90, -90)
 
 /**
  * Same duplication tradeoff as crusher.dm/ravager.dm/runner.dm - attempting
@@ -48,9 +56,56 @@
 	lunge.use_ability(target)
 	return TRUE
 
+/**
+ * Fling (a knockback/stun/slow, adjacency-required) was granted but never
+ * called anywhere - tried first as a crowd-control peel when 2+ valid
+ * targets are already adjacent (same nearby-count-scan shape as crusher.dm's
+ * Stomp check), before Punch/Tail Stab's normal single-target rotation.
+ */
 /datum/xeno_ai_controller/warrior/use_caste_ability(mob/living/target)
+	if(attempt_fling(target))
+		return TRUE
+
 	var/datum/action/xeno_action/activable/warrior_punch/punch = get_ability(/datum/action/xeno_action/activable/warrior_punch)
 	if(punch && punch.action_cooldown_check())
 		punch.use_ability(target)
 		return TRUE
 	return attempt_tail_stab(target)
+
+/// Only worth the knockback when actually surrounded - a lone target is better handled by Punch/Tail Stab's straight damage.
+/datum/xeno_ai_controller/warrior/proc/attempt_fling(mob/living/target)
+	if(!pilot || !target)
+		return FALSE
+	var/datum/action/xeno_action/activable/fling/fling = get_ability(/datum/action/xeno_action/activable/fling)
+	if(!fling || !fling.action_cooldown_check())
+		return FALSE
+	if(!pilot.Adjacent(target))
+		return FALSE
+	var/nearby_targets = 0
+	for(var/mob/living/carbon/nearby in orange(1, pilot))
+		if(!is_valid_target(nearby))
+			continue
+		nearby_targets++
+		if(nearby_targets >= 2)
+			break
+	if(nearby_targets < 2)
+		return FALSE
+	fling.use_ability(target)
+	return TRUE
+
+/// Warrior had no post-attack repositioning at all - same damage-reactive-plus-baseline-roll shape as ravager.dm's own circle-step.
+/datum/xeno_ai_controller/warrior/get_flee_threshold()
+	return AI_WARRIOR_FLEE_HEALTH_PERCENT
+
+/datum/xeno_ai_controller/warrior/process_attack()
+	. = ..()
+	if(!pilot || !current_target || ai_state != AI_STATE_ATTACKING)
+		last_known_health = pilot?.health
+		return
+	var/took_damage = (last_known_health != null) && (pilot.health < last_known_health)
+	last_known_health = pilot.health
+	if(!took_damage && !prob(AI_WARRIOR_REPOSITION_CHANCE))
+		return
+	var/target_dir = get_dir(pilot, current_target)
+	if(!ai_step(turn(target_dir, circle_dir)))
+		ai_step(turn(target_dir, -circle_dir))

@@ -118,8 +118,8 @@
 
 	var/has_species_tab_items = FALSE
 
-	/// Fire overlay sprite prefix
-	var/fire_sprite_prefix = "human"
+	/// Fire overlay sprite prefix - must match an actual icon_state in fire_sprite_sheet (OnFire.dmi only has Standing_weak/Standing_medium and k9_weak/k9_medium). "human" doesn't exist there, so update_fire() (human/update_icons.dm) was silently building an image() with a nonexistent icon_state: no runtime error, just nothing drawn, while the separate set_light_*() calls in the same proc still worked fine - "the glowing happens... but the onmob onfire doesn't show up."
+	var/fire_sprite_prefix = "Standing"
 	/// Fire overlay sprite sheet
 	var/fire_sprite_sheet = 'icons/mob/humans/onmob/OnFire.dmi'
 	/// List of burst scream sound files

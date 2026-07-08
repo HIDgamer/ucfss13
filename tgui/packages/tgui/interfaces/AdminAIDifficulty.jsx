@@ -6,67 +6,108 @@ export const AdminAIDifficulty = () => {
   const { act, data } = useBackend();
   const {
     ai_xeno_count = 0,
-    ai_xeno_max = 0,
     ai_flee_multiplier = 1,
     ai_distance_multiplier = 1,
     ai_castes = [],
     ai_caste_caps = {},
     ai_caste_counts = {},
     difficulty_multiplier = 1,
+    spawner_enabled = false,
+    spawner_target_population = 0,
+    spawner_hive_name = 'None',
   } = data;
 
   return (
-    <Window title="AI Difficulty" theme="crtblue" width={480} height={640}>
-      <Window.Content>
-        <Stack vertical fill>
+    <Window title="AI Difficulty" theme="crtblue" width={480} height={760}>
+      <Window.Content scrollable>
+        <Stack vertical>
           <Stack.Item>
-            <Section title="Difficulty">
-              <Stack>
+            <Section title="Xeno Spawner">
+              <Stack vertical>
                 <Stack.Item>
-                  <NumberInput
-                    value={difficulty_multiplier}
-                    minValue={0.25}
-                    maxValue={4}
-                    step={0.25}
-                    format={(v) => `${v}x`}
-                    width="5rem"
-                    onChange={(v) => act('set_difficulty', { value: v })}
-                  />
+                  <Stack>
+                    <Stack.Item grow>
+                      <Box style={{ fontSize: '0.85rem' }}>
+                        {ai_xeno_count} active / {spawner_target_population}{' '}
+                        target
+                      </Box>
+                      <Box
+                        style={{
+                          fontSize: '0.7rem',
+                          color: 'rgba(255,255,255,0.5)',
+                        }}
+                      >
+                        No hard cap - per-caste caps below still apply.
+                        Spawning stops entirely if the hive's Core is
+                        destroyed.
+                      </Box>
+                    </Stack.Item>
+                    <Stack.Item>
+                      <Button
+                        color={spawner_enabled ? 'good' : 'bad'}
+                        onClick={() =>
+                          act('set_spawner_enabled', {
+                            enabled: !spawner_enabled,
+                          })
+                        }
+                      >
+                        {spawner_enabled ? 'Enabled' : 'Disabled'}
+                      </Button>
+                    </Stack.Item>
+                  </Stack>
                 </Stack.Item>
                 <Stack.Item>
-                  <Box
-                    style={{
-                      fontSize: '0.75rem',
-                      color: 'rgba(255,255,255,0.5)',
-                      paddingTop: '4px',
-                    }}
-                  >
-                    Merged with the behavior presets below - moving one
-                    updates the other. 1x = default.
-                  </Box>
+                  <Stack>
+                    <Stack.Item grow>
+                      <Box style={{ fontSize: '0.8rem' }}>Difficulty</Box>
+                      <Box
+                        style={{
+                          fontSize: '0.7rem',
+                          color: 'rgba(255,255,255,0.5)',
+                        }}
+                      >
+                        Scales both the target population and how fast the
+                        hive spawns toward it. 1x = default.
+                      </Box>
+                    </Stack.Item>
+                    <Stack.Item>
+                      <NumberInput
+                        value={difficulty_multiplier}
+                        minValue={0.25}
+                        maxValue={4}
+                        step={0.25}
+                        format={(v) => `${v}x`}
+                        width="5rem"
+                        onChange={(v) =>
+                          act('set_spawner_difficulty', { value: v })
+                        }
+                      />
+                    </Stack.Item>
+                  </Stack>
                 </Stack.Item>
-              </Stack>
-            </Section>
-          </Stack.Item>
-
-          <Stack.Item>
-            <Section title="AI Xenomorph Population">
-              <Stack>
                 <Stack.Item>
-                  <Box style={{ fontSize: '0.85rem' }}>
-                    {ai_xeno_count} / {ai_xeno_max} active
-                  </Box>
-                </Stack.Item>
-                <Stack.Item grow />
-                <Stack.Item>
-                  <NumberInput
-                    value={ai_xeno_max}
-                    minValue={0}
-                    maxValue={200}
-                    step={5}
-                    width="5rem"
-                    onChange={(v) => act('set_ai_cap', { value: v })}
-                  />
+                  <Stack>
+                    <Stack.Item grow>
+                      <Box style={{ fontSize: '0.8rem' }}>Target hive</Box>
+                      <Box
+                        style={{
+                          fontSize: '0.7rem',
+                          color: 'rgba(255,255,255,0.5)',
+                        }}
+                      >
+                        Only this one hive is reinforced - used to spawn every
+                        hive in existence at once, chaos. "None" spawns
+                        nothing regardless of the Enabled toggle above.
+                      </Box>
+                    </Stack.Item>
+                    <Stack.Item>
+                      <Button
+                        onClick={() => act('set_spawner_hive')}
+                      >
+                        {spawner_hive_name}
+                      </Button>
+                    </Stack.Item>
+                  </Stack>
                 </Stack.Item>
               </Stack>
             </Section>
@@ -183,8 +224,8 @@ export const AdminAIDifficulty = () => {
             </Section>
           </Stack.Item>
 
-          <Stack.Item grow>
-            <Section title="Per-Caste Population Caps" fill scrollable>
+          <Stack.Item>
+            <Section title="Per-Caste Population Caps">
               <Stack vertical>
                 {ai_castes.map((caste) => (
                   <Stack.Item key={caste}>

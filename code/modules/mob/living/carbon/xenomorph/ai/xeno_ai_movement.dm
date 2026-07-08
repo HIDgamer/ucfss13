@@ -65,12 +65,16 @@
 			attack_blocking_obstacle(climbable_obstacle)
 			blocked_attempts = 0
 			return
+		if(is_direct_approach_too_risky(climbable_obstacle, current_target) && retreat_to_cover(current_target))
+			return
 		if(attempt_climb_obstacle(climbable_obstacle))
 			blocked_attempts = 0
 			return
 
 	var/atom/blocking_obstacle = get_blocking_obstacle(current_target)
 	if(blocking_obstacle)
+		if(is_direct_approach_too_risky(blocking_obstacle, current_target) && retreat_to_cover(current_target))
+			return
 		attack_blocking_obstacle(blocking_obstacle)
 		blocked_attempts = 0
 		return
@@ -102,13 +106,13 @@
  * Sets ai_state directly (ATTACKING once holding in band) so callers are
  * just this one call from their own process_movement() override.
  */
-/datum/xeno_ai_controller/proc/maintain_kiting_distance(atom/target, preferred_distance)
+/datum/xeno_ai_controller/proc/maintain_kiting_distance(atom/target, preferred_distance, seek_cover = FALSE)
 	if(!pilot || !target)
 		return
 	var/dist = get_dist(pilot, target)
 
 	if(dist < preferred_distance)
-		var/turf/defensible = find_defensible_turf()
+		var/turf/defensible = seek_cover ? (find_cover_turf(target) || find_defensible_turf()) : find_defensible_turf()
 		if(defensible && get_dist(pilot, defensible) > 0 && cardinal_step_towards(defensible))
 			return
 		var/away_dir = get_dir(target, pilot)
@@ -117,6 +121,14 @@
 		return
 
 	if(dist <= preferred_distance + 1)
+		// "Smaller T1/T2 ranged are light and small enough to kite and dodge
+		// while aiming and firing accurately" - a caste that opts in (see
+		// process_attack()'s own alternating fire/move ticks) takes one dodge
+		// step toward cover instead of freezing in the open, then still holds
+		// the band and fires next tick either way - never actually stands
+		// still, but never skips a shot for it either.
+		if(seek_cover)
+			attempt_seek_cover_step(target)
 		ai_state = AI_STATE_ATTACKING
 		blocked_attempts = 0
 		path_queue = null
@@ -135,12 +147,16 @@
 			attack_blocking_obstacle(climbable_obstacle)
 			blocked_attempts = 0
 			return
+		if(is_direct_approach_too_risky(climbable_obstacle, target) && retreat_to_cover(target))
+			return
 		if(attempt_climb_obstacle(climbable_obstacle))
 			blocked_attempts = 0
 			return
 
 	var/atom/blocking_obstacle = get_blocking_obstacle(target)
 	if(blocking_obstacle)
+		if(is_direct_approach_too_risky(blocking_obstacle, target) && retreat_to_cover(target))
+			return
 		attack_blocking_obstacle(blocking_obstacle)
 		blocked_attempts = 0
 		return
@@ -321,12 +337,22 @@
 	if(!goal_turf)
 		return FALSE
 
-	if(!path_queue || !length(path_queue) || !path_goal || get_dist(path_goal, goal_turf) > PATH_GOAL_REPLAN_TOLERANCE)
+	var/goal_unchanged = path_goal && get_dist(path_goal, goal_turf) <= PATH_GOAL_REPLAN_TOLERANCE
+	if(!path_queue || !length(path_queue) || !goal_unchanged)
+		// A prior failure against essentially the same goal waits out a short
+		// cooldown before trying again, instead of re-running the full
+		// grid-build + native solver call every single tick indefinitely -
+		// exactly what happens chasing a target across an open LZ/Thunderdome
+		// pad, where the bounding box blows the cell budget every time.
+		if(path_failed && goal_unchanged && world.time < next_path_attempt)
+			return FALSE
 		path_queue = compute_path(goal_turf)
 		path_goal = goal_turf
-
-	if(!path_queue || !length(path_queue))
-		return FALSE
+		if(!path_queue || !length(path_queue))
+			path_failed = TRUE
+			next_path_attempt = world.time + PATH_RETRY_COOLDOWN
+			return FALSE
+		path_failed = FALSE
 
 	var/turf/pilot_turf = get_turf(pilot)
 	if(pilot_turf == path_queue[1])
@@ -352,13 +378,33 @@
  * too large for local grid pathing, or no path exists - long-range chases
  * are already handled fine by the greedy approach, this is specifically for
  * routing around nearby walls/dead-ends.
+ *
+ * "Pathfinding cannot go around walls alone, it only tries to go through
+ * them, the shortest path, even if that path fails" - the margin around the
+ * direct pilot-goal bounding box used to be a flat 2 tiles regardless of how
+ * much of the tier's actual cell budget (get_pathfind_cell_budget()) that
+ * left unused. A real door/entrance is almost never within 2 tiles of the
+ * straight line between two points in a room-and-corridor layout, so the
+ * bounded grid essentially never actually contained a usable detour - the
+ * solver came back "no path," and every single wall-vs-door decision fell
+ * through to the dumb greedy walk-straight-at-the-wall fallback (which has
+ * no concept of "go around" at all, only "smash what's directly ahead").
+ * Grows the margin as far as the remaining budget allows instead, capped at
+ * AI_PATHFIND_MAX_MARGIN, so a detour through a door a few tiles off the
+ * direct line is actually visible to the solver.
  */
 /datum/xeno_ai_controller/proc/compute_path(turf/goal_turf)
 	var/turf/pilot_turf = get_turf(pilot)
 	if(!pilot_turf || !goal_turf || pilot_turf.z != goal_turf.z)
 		return null
 
-	var/margin = 2
+	var/base_width = abs(pilot_turf.x - goal_turf.x) + 1
+	var/base_height = abs(pilot_turf.y - goal_turf.y) + 1
+	var/budget = get_pathfind_cell_budget()
+	var/margin = AI_PATHFIND_MIN_MARGIN
+	while(margin < AI_PATHFIND_MAX_MARGIN && (base_width + 2 * (margin + 1)) * (base_height + 2 * (margin + 1)) <= budget)
+		margin++
+
 	var/min_x = max(min(pilot_turf.x, goal_turf.x) - margin, 1)
 	var/min_y = max(min(pilot_turf.y, goal_turf.y) - margin, 1)
 	var/max_x = min(max(pilot_turf.x, goal_turf.x) + margin, world.maxx)
@@ -434,6 +480,14 @@
 	if(.)
 		next_step_time = world.time + pilot.movement_delay()
 
+/// Same as ai_step() but treats a destination turf already holding another living mob as blocked - see turf_occupied_by_other_mob()'s doc comment. Used by wander()'s own free-heading steps, which don't go through cardinal_step_towards()'s avoid_mobs param.
+/datum/xeno_ai_controller/proc/ai_step_avoiding_mobs(direction)
+	if(!pilot)
+		return FALSE
+	if(turf_occupied_by_other_mob(get_step(pilot, direction)))
+		return FALSE
+	return ai_step(direction)
+
 /**
  * goal defaults to current_target so every existing chase-path call site is
  * unaffected - passed explicitly by return_to_anchor() (xeno_ai_controller.dm),
@@ -505,6 +559,149 @@
 	return best
 
 /**
+ * Like find_defensible_turf() but specifically targets REAL cover - a
+ * structure with actual projectile_coverage (a smashed window's leftover
+ * window_frame, a flipped table, a barricade) sitting between the candidate
+ * turf and threat, not just generic wall-adjacency. Directional (ON_BORDER)
+ * cover only counts when it's actually facing the right way to block a shot
+ * coming from the threat's direction - the same facing check
+ * projectile.dm's own get_projectile_hit_boolean() makes, so a flipped
+ * table facing the wrong way is correctly treated as no protection at all.
+ */
+/datum/xeno_ai_controller/proc/find_cover_turf(atom/threat, radius = AI_XENO_DEFENSIBLE_SEARCH_RADIUS)
+	if(!pilot || !threat)
+		return null
+	var/turf/pilot_turf = get_turf(pilot)
+	var/turf/threat_turf = get_turf(threat)
+	if(!pilot_turf || !threat_turf)
+		return null
+
+	// "Too predictable, walking in the same 3 tiles over and over" - a pure
+	// nearest-turf pick returns the exact same tile every single call for as
+	// long as nothing about the room changes. Collects every candidate
+	// within AI_XENO_COVER_VARIETY_TOLERANCE tiles of the closest one and
+	// picks randomly among those instead, so a room with more than one
+	// usable piece of cover actually gets used as more than one option.
+	var/list/candidate_dists = list()
+	var/best_dist = INFINITY
+	for(var/turf/candidate in range(radius, pilot_turf))
+		if(candidate.density)
+			continue
+		var/has_real_cover = FALSE
+		for(var/obj/structure/S in candidate)
+			if(!S.density || !S.throwpass || S.projectile_coverage < PROJECTILE_COVERAGE_MEDIUM)
+				continue
+			if((S.flags_atom & ON_BORDER) && !(S.dir & get_dir(candidate, threat_turf)))
+				continue // Directional cover (flipped table/barricade) facing the wrong way - no real protection from this threat.
+			has_real_cover = TRUE
+			break
+		if(!has_real_cover)
+			continue
+		var/dist = get_dist(pilot_turf, candidate)
+		candidate_dists[candidate] = dist
+		if(dist < best_dist)
+			best_dist = dist
+	if(!length(candidate_dists))
+		return null
+
+	var/list/near_best = list()
+	for(var/turf/candidate in candidate_dists)
+		if(candidate_dists[candidate] <= best_dist + AI_XENO_COVER_VARIETY_TOLERANCE)
+			near_best += candidate
+	return pick(near_best)
+
+/**
+ * "Flipping tables to use as cover" - if an unflipped table is adjacent,
+ * flip it to face the current threat instead of only ever using cover that
+ * already happens to exist. flip() (tables_racks.dm) is the same real proc
+ * the player-facing verb uses - already handles its own cooldown/geometry
+ * checks, this just calls it directly instead of routing through the
+ * usr-based verb wrapper, the same established pattern
+ * attempt_climb_obstacle() already uses for do_climb().
+ */
+/datum/xeno_ai_controller/proc/attempt_flip_table_for_cover(atom/threat)
+	if(!pilot || !threat)
+		return FALSE
+	var/turf/threat_turf = get_turf(threat)
+	if(!threat_turf)
+		return FALSE
+	for(var/obj/structure/surface/table/table in range(1, pilot))
+		if(table.flipped)
+			continue
+		var/needed_dir = get_dir(get_turf(table), threat_turf)
+		if(!needed_dir)
+			continue
+		table.flip(needed_dir)
+		return TRUE
+	return FALSE
+
+/**
+ * Best-effort dodge for a ranged xeno holding position in her kiting band
+ * (see maintain_kiting_distance()'s seek_cover param) instead of just
+ * freezing there - flips a nearby table for instant cover first, then
+ * steps toward existing real cover (find_cover_turf()) if any is in reach,
+ * and failing both, still takes a lateral step perpendicular to the
+ * threat's line of fire rather than standing dead still - harder to hit
+ * even in the open.
+ */
+/datum/xeno_ai_controller/proc/attempt_seek_cover_step(atom/threat)
+	if(!pilot || !threat)
+		return FALSE
+	if(attempt_flip_table_for_cover(threat))
+		return TRUE
+	var/turf/cover_turf = find_cover_turf(threat)
+	if(cover_turf && get_turf(pilot) != cover_turf)
+		return cardinal_step_towards(cover_turf)
+	var/facing_dir = get_dir(threat, pilot)
+	if(!facing_dir)
+		return FALSE
+	return ai_step(pick(turn(facing_dir, 90), turn(facing_dir, -90)))
+
+/**
+ * "An enemy that is ready for it" - a marine with a weapon actually raised
+ * (aiming down sights, or a gun wielded two-handed) is a live, accurate
+ * threat right now; one who hasn't reacted yet is a completely different
+ * risk to press an attack against. Used to gate whether climbing/smashing
+ * straight toward a target is actually worth it (is_direct_approach_too_risky())
+ * rather than treating every target as equally dangerous to approach.
+ */
+/datum/xeno_ai_controller/proc/is_target_a_ready_threat(atom/target)
+	if(!ishuman(target))
+		return FALSE
+	var/mob/living/carbon/human/human_target = target
+	if(human_target.is_zoomed)
+		return TRUE
+	var/obj/item/weapon/gun/held_gun = human_target.get_active_hand()
+	return istype(held_gun) && (held_gun.flags_item & WIELDED)
+
+/**
+ * "Is what I'm doing right now worth it" - climbing through a window or
+ * smashing a wall directly toward a target that's already aimed and close
+ * means being exposed mid-vault/mid-swing right in their kill zone.
+ * Deliberately only gates a FRESH decision: an obstacle already committed
+ * to (get_blocking_obstacle()'s committed_obstacle) is exempt, since
+ * abandoning a smash halfway through for being "too risky" would just waste
+ * the commitment for nothing. Only actually holds back if real cover is
+ * somewhere to retreat to - pressing on is still the only option when
+ * there's nowhere safer to go.
+ */
+/datum/xeno_ai_controller/proc/is_direct_approach_too_risky(atom/obstacle, atom/threat)
+	if(!pilot || !threat || obstacle == committed_obstacle)
+		return FALSE
+	if(!is_target_a_ready_threat(threat))
+		return FALSE
+	if(get_dist(pilot, threat) > AI_XENO_RISKY_APPROACH_RANGE)
+		return FALSE
+	return find_cover_turf(threat) != null
+
+/// Steps toward the nearest real cover from threat, if any exists and isn't already where the pilot's standing. Returns FALSE (no-op) if there's nowhere better to go - callers fall through to their normal smash/climb behavior.
+/datum/xeno_ai_controller/proc/retreat_to_cover(atom/threat)
+	var/turf/cover_turf = find_cover_turf(threat)
+	if(!cover_turf || get_turf(pilot) == cover_turf)
+		return FALSE
+	return cardinal_step_towards(cover_turf)
+
+/**
  * Continues an already-committed skirt (see navigate_around() above) for as
  * long as skirt_until hasn't lapsed, instead of re-deriving "which way is
  * the goal" fresh every tick while stuck. Returns FALSE (nothing to do,
@@ -537,7 +734,7 @@
  * the larger remaining distance first, falling back to the other axis if
  * that step is blocked (mirrors navigate_around()'s two-option fallback).
  */
-/datum/xeno_ai_controller/proc/cardinal_step_towards(atom/goal)
+/datum/xeno_ai_controller/proc/cardinal_step_towards(atom/goal, avoid_mobs = FALSE)
 	if(!pilot || !goal)
 		return FALSE
 
@@ -545,6 +742,8 @@
 	if(!dir_to_goal)
 		return FALSE
 	if(!(dir_to_goal & (dir_to_goal - 1))) // Single bit set - already a pure cardinal direction, nothing to decompose.
+		if(avoid_mobs && turf_occupied_by_other_mob(get_step(pilot, dir_to_goal)))
+			return FALSE
 		return ai_step(dir_to_goal)
 
 	var/turf/pilot_turf = get_turf(pilot)
@@ -557,9 +756,31 @@
 	var/primary_dir = (abs(dx) >= abs(dy)) ? (dx > 0 ? EAST : WEST) : (dy > 0 ? NORTH : SOUTH)
 	var/secondary_dir = (primary_dir == EAST || primary_dir == WEST) ? (dy > 0 ? NORTH : SOUTH) : (dx > 0 ? EAST : WEST)
 
-	if(ai_step(primary_dir))
+	if(!(avoid_mobs && turf_occupied_by_other_mob(get_step(pilot, primary_dir))) && ai_step(primary_dir))
 		return TRUE
+	if(avoid_mobs && turf_occupied_by_other_mob(get_step(pilot, secondary_dir)))
+		return FALSE
 	return ai_step(secondary_dir)
+
+/**
+ * "They need to stop pushing each other around when idle, consider the mob
+ * standing on a turf before moving to it" - xenos pass freely through each
+ * other (initialize_pass_flags()'s PASS_MOB_THRU_XENO, needed so a chase
+ * doesn't get stuck behind a crowd of allies mid-fight), so nothing ever
+ * stopped two idling xenos from freely overlapping and shuffling on and off
+ * the same tile. Checked only by idle-only movement (wander/patrol/pack
+ * cohesion/ambush hide/rest-seeking/build-site walks via cardinal_step_towards's
+ * avoid_mobs param) - deliberately NOT applied to combat movement
+ * (chasing/retreating/kiting), which still relies on walking straight through
+ * allies to reach a target or cover.
+ */
+/datum/xeno_ai_controller/proc/turf_occupied_by_other_mob(turf/destination)
+	if(!destination)
+		return FALSE
+	for(var/mob/living/occupant in destination)
+		if(occupant != pilot && occupant.stat != DEAD)
+			return TRUE
+	return FALSE
 
 /**
  * "Pathfinding is very messed up when it comes to none blocking, blocking
@@ -582,20 +803,34 @@
 /datum/xeno_ai_controller/proc/get_blocking_obstacle(atom/goal)
 	if(!pilot || !goal)
 		return null
+
+	// "Keeps pathfinding moving between smashing different walls instead of
+	// focusing on the original wall" - a target shifting a tile or two behind
+	// cover used to make a completely different wall segment line up as "the"
+	// blocking obstacle on the very next tick, abandoning whatever damage was
+	// already dealt to the old one. Stay committed to whatever's already
+	// mid-smash for a while, as long as it's actually still there/blocking and
+	// still reachable - a destroyed obstacle or one the pilot's since moved
+	// away from falls through to a fresh pick below instead of being stuck
+	// referencing something stale forever.
+	if(committed_obstacle && world.time < committed_obstacle_until && is_obstacle_still_blocking(committed_obstacle))
+		return committed_obstacle
+	committed_obstacle = null
+
 	var/turf/next_turf = get_step(pilot, get_dir(pilot, goal))
 	if(!next_turf)
 		return null
 	for(var/obj/structure/blocking_obstacle in next_turf)
 		if(!blocking_obstacle.density || blocking_obstacle.unslashable || blocking_obstacle.climbable)
 			continue
-		return blocking_obstacle
+		return commit_to_obstacle(blocking_obstacle)
 	// /obj/vehicle is a sibling of /obj/structure, not a subtype - the loop
 	// above never matches one, so a parked vehicle directly in the way was
 	// invisible to this whole obstacle-forcing chain regardless of caste,
 	// same class of gap as the wall check below used to be.
 	for(var/obj/vehicle/blocking_vehicle in next_turf)
 		if(blocking_vehicle.density)
-			return blocking_vehicle
+			return commit_to_obstacle(blocking_vehicle)
 	// "King/Queen/most T3 can smash open walls, and yet they get stuck on
 	// walls instead" - only obj obstacles were ever considered breakable; a
 	// solid wall turf directly in the way was never in scope at all, even
@@ -611,8 +846,25 @@
 	if(istype(next_turf, /turf/closed/wall))
 		var/turf/closed/wall/wall = next_turf
 		if(pilot.claw_type >= wall.claws_minimum)
-			return wall
+			return commit_to_obstacle(wall)
 	return null
+
+/// Sets/refreshes the obstacle commitment (see get_blocking_obstacle()'s doc comment) and returns it, so every "found a new obstacle" branch above stays a one-liner.
+/datum/xeno_ai_controller/proc/commit_to_obstacle(atom/obstacle)
+	committed_obstacle = obstacle
+	committed_obstacle_until = world.time + AI_XENO_OBSTACLE_COMMIT_DURATION
+	return obstacle
+
+/// Whether a previously-committed obstacle is still actually there, still blocking, and still reachable - a destroyed structure/vehicle is QDELETED, a destroyed wall's turf type has already changed away from /turf/closed/wall (turfs are never qdel'd), and a pilot who's since been forced elsewhere is no longer adjacent to any of it.
+/datum/xeno_ai_controller/proc/is_obstacle_still_blocking(atom/obstacle)
+	if(!pilot || QDELETED(obstacle) || !pilot.Adjacent(obstacle))
+		return FALSE
+	if(istype(obstacle, /turf/closed/wall))
+		return TRUE
+	if(istype(obstacle, /obj/structure) || istype(obstacle, /obj/vehicle))
+		var/atom/movable/movable_obstacle = obstacle
+		return movable_obstacle.density
+	return FALSE
 
 /// A climbable structure (table, some fences/crates) directly ahead on the way to goal - see get_blocking_obstacle()'s doc comment above for why this needs separate handling instead of being treated as freely passable.
 /datum/xeno_ai_controller/proc/get_climbable_obstacle(atom/goal)
@@ -672,3 +924,5 @@
 	target_obstacle.attack_alien(pilot)
 	if(pilot) // attack_alien() can retaliate/kill the pilot (e.g. an explosive barricade) - don't write to it if it just died.
 		pilot.next_move = world.time + XENO_MELEE_ATTACK_DELAY
+		if(committed_obstacle == target_obstacle)
+			committed_obstacle_until = world.time + AI_XENO_OBSTACLE_COMMIT_DURATION

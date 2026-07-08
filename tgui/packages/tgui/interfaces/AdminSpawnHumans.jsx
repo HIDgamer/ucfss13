@@ -77,8 +77,8 @@ export const AdminSpawnHumans = () => {
 
   return (
     <Window title="Create Humans" theme="crtblue" width={480} height={760}>
-      <Window.Content>
-        <Stack vertical fill>
+      <Window.Content scrollable>
+        <Stack vertical>
           {/* Job selection */}
           <Stack.Item>
             <Section title="Job / Equipment Preset">

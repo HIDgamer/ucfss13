@@ -15,11 +15,26 @@
  */
 /datum/xeno_ai_controller/larva
 
-/// Spotting any valid living hostile is reason enough to run - no health/ally/target-condition exceptions, she can't win a fight regardless of the numbers.
+/**
+ * Spotting any valid living hostile is reason enough to run - no health/
+ * ally/target-condition exceptions, she can't win a fight regardless of the
+ * numbers.
+ *
+ * "The larva returns into the core as soon as they spawn" - an organic-
+ * growth larva's anchor_turf IS the Hive Core (spawn_organic() spawns her
+ * there with no anchor_override), so return_to_anchor()'s destination is
+ * that same tile - fleeing "home" while already standing on it just reads
+ * as never having left at all. She's not in any more danger standing still
+ * there than she would be after "fleeing" a single tile back to the exact
+ * spot she's already on, so skip the whole flee cycle while already this
+ * close to anchor instead of visibly panicking in place.
+ */
 /datum/xeno_ai_controller/larva/should_flee()
-	if(!pilot)
+	if(!pilot || !current_target || !is_valid_target(current_target))
 		return FALSE
-	return current_target && is_valid_target(current_target)
+	if(anchor_turf && get_dist(pilot, anchor_turf) <= AI_XENO_LARVA_SAFE_HOME_RADIUS)
+		return FALSE
+	return TRUE
 
 /// Never - she has no attack worth turning around for, cornered or not. Always keep running/hiding instead of return_to_anchor()'s generic desperate-stand fallback.
 /datum/xeno_ai_controller/larva/get_desperate_threshold()

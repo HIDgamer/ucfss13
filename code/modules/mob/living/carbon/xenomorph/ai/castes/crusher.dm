@@ -23,6 +23,12 @@
  * per-hit damage cap) once actually taking a beating (below half health)
  * but not yet at the much lower flee threshold - "hurt but still fighting,"
  * not a panic button held in reserve forever.
+ *
+ * Phase 3 audit note: deliberately has no post-attack reposition/dodge
+ * logic (unlike Ravager/Warrior/etc's damage-reactive circle-step) - she's
+ * the wall the hive leans on, standing and tanking IS her identity, not an
+ * oversight. Base kit (Charge/Stomp/Shield) confirmed fully used and
+ * sensibly gated; don't "fix" the missing dodge without re-reading this.
  */
 /datum/xeno_ai_controller/crusher
 
@@ -57,6 +63,8 @@
 	if(attempt_charge(current_target))
 		return
 
+	attempt_charger_charge() // Side effect only (toggle) - never blocks the fallthrough walk below.
+
 	return ..()
 
 /// Fires Charge at target if it's off cooldown and within its reach; returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/pathfinding chain.
@@ -69,6 +77,25 @@
 	if(!has_line_of_sight(target, physical_path = TRUE)) // "Immediately lunge and often get stuck on easily avoidable terrain (tables, fences, barricades)" - a dash needs a clear physical line, not just distance/no-walls, or she rams straight into furniture between her and the target.
 		return FALSE
 	charge.use_ability(target)
+	return TRUE
+
+/**
+ * Charger-strain-only (Charge replaces base Crusher's pounce-based dash entirely, so
+ * attempt_charge() above already no-ops for her via get_ability() returning null). Charge is
+ * a persistent toggle (crusher_powers.dm's onclick/charger_charge/use_ability()) that builds
+ * momentum automatically off her own movement once active, not a one-shot dash aimed at a
+ * target - turning it on once and leaving it on for the walk-in gets the momentum/knockdown
+ * payoff for free through the normal approach chain process_movement() already falls through
+ * to below.
+ */
+/datum/xeno_ai_controller/crusher/proc/attempt_charger_charge()
+	if(!pilot)
+		return FALSE
+	var/datum/action/xeno_action/onclick/charger_charge/charge = get_ability(/datum/action/xeno_action/onclick/charger_charge)
+	if(!charge)
+		return FALSE
+	if(!charge.activated)
+		charge.use_ability(pilot)
 	return TRUE
 
 /**
@@ -87,6 +114,9 @@
 
 	attempt_shield() // Side effect only (own independent cooldown/plasma cost) - never blocks also using Stomp the same tick below.
 
+	if(attempt_charger_fling(target))
+		return TRUE
+
 	var/datum/action/xeno_action/onclick/crusher_stomp/stomp = get_ability(/datum/action/xeno_action/onclick/crusher_stomp)
 	if(!stomp || !stomp.action_cooldown_check())
 		return FALSE
@@ -102,6 +132,23 @@
 	stomp.use_ability(pilot) // Atom arg is unused by this ability (self-centered AoE) - see crusher_powers.dm.
 	return TRUE
 
+/**
+ * Charger-strain-only. Fling (shared with Warrior, granted here as
+ * activable/fling/charger) needs an adjacent target - useful as a quick shove right as she
+ * closes in on an isolated target, distinct from Stomp's AoE role below (checked first here
+ * so a single target gets shoved rather than always eating the AoE).
+ */
+/datum/xeno_ai_controller/crusher/proc/attempt_charger_fling(mob/living/target)
+	if(!pilot || !target)
+		return FALSE
+	var/datum/action/xeno_action/activable/fling/charger/fling = get_ability(/datum/action/xeno_action/activable/fling/charger)
+	if(!fling || !fling.action_cooldown_check())
+		return FALSE
+	if(!pilot.Adjacent(target))
+		return FALSE
+	fling.use_ability(target)
+	return TRUE
+
 /// Pops Shield once actually taking a beating (below half health) but above the much lower flee threshold - "hurt but still fighting."
 /datum/xeno_ai_controller/crusher/proc/attempt_shield()
 	if(!pilot || !pilot.maxHealth || (pilot.health / pilot.maxHealth) >= 0.5)
@@ -110,4 +157,35 @@
 	if(!shield || !shield.action_cooldown_check())
 		return FALSE
 	shield.use_ability(pilot)
+	return TRUE
+
+/**
+ * "Instead of approaching, xenos should consider using abilities to close the
+ * gap... not just to get to the enemy faster but escape it faster too" - a
+ * Crusher is XENO_SPEED_TIER_2, the slowest AI caste built so far, so a plain
+ * walk home is exactly the scenario this theme is meant to fix. Tries once
+ * per return_to_anchor() tick before falling through to the normal walk, same
+ * shape as attempt_charge()'s gap-close call in process_movement().
+ */
+/datum/xeno_ai_controller/crusher/return_to_anchor()
+	attempt_tumble_retreat()
+	return ..()
+
+/**
+ * Charger-strain-only - a baseline Crusher has no Tumble action at all, so
+ * get_ability() returning null here IS the strain check, no separate lookup
+ * needed. Tumble's use_ability() (crusher_powers.dm) needs a real atom to
+ * compute which perpendicular direction to dodge toward - by the time
+ * return_to_anchor() runs, tick()'s flee transition has already called
+ * drop_target() and nulled current_target, so last_threat_turf (set at that
+ * same transition, xeno_ai_controller.dm) stands in for the threat she's
+ * putting distance from.
+ */
+/datum/xeno_ai_controller/crusher/proc/attempt_tumble_retreat()
+	if(!pilot || !last_threat_turf)
+		return FALSE
+	var/datum/action/xeno_action/activable/tumble/tumble = get_ability(/datum/action/xeno_action/activable/tumble)
+	if(!tumble || !tumble.action_cooldown_check())
+		return FALSE
+	tumble.use_ability(last_threat_turf)
 	return TRUE

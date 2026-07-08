@@ -19,6 +19,20 @@
  *   cooldown, instead of a bare claw swing.
  */
 /datum/xeno_ai_controller/predalien
+	/// Rotational direction (90 or -90) this Predalien always sidesteps toward - same reasoning as ravager.dm's identical var.
+	var/circle_dir
+	/// pilot.health as of the last process_attack() call - see the reactive-dodge check there, same pattern as ravager.dm.
+	var/last_known_health
+
+/datum/xeno_ai_controller/predalien/New(mob/living/carbon/xenomorph/new_pilot)
+	. = ..()
+	circle_dir = pick(90, -90)
+
+/// Eviscerate/Devastate (feralfrenzy, predalien_powers.dm) "immobilizes both her and the target for a windup" per this file's own header - a real gap missed until now, no override existed at all despite that already being documented.
+/datum/xeno_ai_controller/predalien/can_act_while_immobilized()
+	if(..())
+		return TRUE
+	return HAS_TRAIT_FROM_ONLY(pilot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_ABILITY("Eviscerate")) || HAS_TRAIT_FROM_ONLY(pilot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_ABILITY("Devastate"))
 
 /datum/xeno_ai_controller/predalien/process_movement()
 	if(!pilot || !current_target)
@@ -60,9 +74,27 @@
 	roar.use_ability(pilot)
 	return TRUE
 
+/**
+ * **Safety fix, not a new-behavior addition**: Eviscerate/Devastate
+ * (feralfrenzy) roots her (`TRAIT_IMMOBILIZED`) for the entire windup with
+ * no check on how many hostiles are actually nearby - firing it into a
+ * clustered group self-traps her in the middle of a marine squad instead of
+ * landing the intended lone-target execute. Gated behind a nearby-hostile
+ * scan (same shape as crusher.dm's Stomp check, inverted: only fire when
+ * the count is low enough to be safe) before ever calling it.
+ *
+ * `attempt_toggle_gut_targeting()` reuses the same scan to flip to AoE
+ * targeting when multiple targets are actually clustered nearby (a real use
+ * case the base kit never took advantage of), single-target otherwise -
+ * independent of the safety gate above, which stays conservative regardless
+ * of targeting mode.
+ */
 /datum/xeno_ai_controller/predalien/use_caste_ability(mob/living/target)
+	var/nearby_targets = count_nearby_targets(pilot, 1)
+	attempt_toggle_gut_targeting(nearby_targets)
+
 	var/datum/action/xeno_action/activable/feralfrenzy/frenzy = get_ability(/datum/action/xeno_action/activable/feralfrenzy)
-	if(frenzy && frenzy.action_cooldown_check())
+	if(frenzy && frenzy.action_cooldown_check() && nearby_targets <= AI_PREDALIEN_FRENZY_MAX_TARGETS)
 		frenzy.use_ability(target)
 		return TRUE
 
@@ -72,3 +104,42 @@
 		return TRUE
 
 	return attempt_tail_stab(target)
+
+/// Small local scan, capped at 3 (nothing here needs an exact count beyond "more than the safety threshold").
+/datum/xeno_ai_controller/predalien/proc/count_nearby_targets(atom/center, radius)
+	var/count = 0
+	for(var/mob/living/carbon/nearby in orange(radius, center))
+		if(!is_valid_target(nearby))
+			continue
+		count++
+		if(count >= 3)
+			break
+	return count
+
+/// Flips to AoE gutting when multiple targets are clustered, single-target otherwise - a real use case the base kit never took advantage of.
+/datum/xeno_ai_controller/predalien/proc/attempt_toggle_gut_targeting(nearby_targets)
+	var/datum/action/xeno_action/activable/feralfrenzy/frenzy = get_ability(/datum/action/xeno_action/activable/feralfrenzy)
+	if(!frenzy)
+		return FALSE
+	var/desired_mode = (nearby_targets >= 2) ? AOETARGETGUT : SINGLETARGETGUT
+	if(frenzy.targeting == desired_mode)
+		return FALSE
+	var/datum/action/xeno_action/onclick/toggle_gut_targeting/toggle = get_ability(/datum/action/xeno_action/onclick/toggle_gut_targeting)
+	if(!toggle || !toggle.action_cooldown_check())
+		return FALSE
+	toggle.use_ability(pilot)
+	return TRUE
+
+/// Predalien had no post-attack repositioning at all - she's a front-line brawler like Ravager, same damage-reactive-plus-baseline-roll shape as ravager.dm's own circle-step.
+/datum/xeno_ai_controller/predalien/process_attack()
+	. = ..()
+	if(!pilot || !current_target || ai_state != AI_STATE_ATTACKING)
+		last_known_health = pilot?.health
+		return
+	var/took_damage = (last_known_health != null) && (pilot.health < last_known_health)
+	last_known_health = pilot.health
+	if(!took_damage && !prob(AI_WARRIOR_REPOSITION_CHANCE))
+		return
+	var/target_dir = get_dir(pilot, current_target)
+	if(!ai_step(turn(target_dir, circle_dir)))
+		ai_step(turn(target_dir, -circle_dir))

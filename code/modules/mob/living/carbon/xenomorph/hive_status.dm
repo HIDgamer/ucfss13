@@ -52,10 +52,8 @@
 	var/turf/queen_escort_turf
 	/// world.time queen_escort_turf was last set - same staleness reasoning as queen_alert_time.
 	var/queen_escort_time = 0
-	/// Turf the AI Queen wants idle daughters exploring toward, expanding outward over time while the hive hasn't been spotted yet - see queen.dm's broadcast_scout_order().
-	var/turf/queen_scout_turf
-	/// world.time queen_scout_turf was last set.
-	var/queen_scout_time = 0
+	/// world.time SSxeno_spawner can next attempt to auto-replace a dead Queen for this hive - see xeno_spawner.dm's spawner_ensure_queen(). Throttles retry attempts rather than hammering a failing spawn every subsystem tick.
+	var/next_queen_spawn_attempt = 0
 	var/allowed_nest_distance = 15 //How far away do we allow nests from an ovied Queen. Default 15 tiles.
 	var/obj/effect/alien/resin/special/pylon/core/hive_location = null //Set to ref every time a core is built, for defining the hive location
 

@@ -30,9 +30,19 @@
  * fight, not a reflex after every opener or a coin flip after every swing.
  */
 /datum/xeno_ai_controller/burrower
+	/// Rotational direction (90 or -90) this Burrower always sidesteps toward - same reasoning as ravager.dm's identical var.
+	var/circle_dir
+	/// pilot.health as of the last process_attack() call - see the reactive-dodge check there, same pattern as ravager.dm.
+	var/last_known_health
+
+/datum/xeno_ai_controller/burrower/New(mob/living/carbon/xenomorph/new_pilot)
+	. = ..()
+	circle_dir = pick(90, -90)
 
 /// See the caste doc comment above - lets her keep deciding what to do next while burrowed/tunneling instead of freezing entirely.
 /datum/xeno_ai_controller/burrower/can_act_while_immobilized()
+	if(..())
+		return TRUE
 	var/mob/living/carbon/xenomorph/burrower_pilot = pilot
 	return istype(burrower_pilot) && HAS_TRAIT(burrower_pilot, TRAIT_ABILITY_BURROWED)
 
@@ -52,7 +62,23 @@
 	if(prob(AI_BURROWER_AMBUSH_CHANCE) && attempt_burrow_ambush())
 		idle_activity = IDLE_ACTIVITY_AMBUSH
 		return
+	// "A trap-setting builder-brawler" per her own caste doc comment, but
+	// Place Trap (a resin trap hole) was granted and never used - same idle-
+	// build-roll shape as attempt_plant_weeds() above.
+	if(prob(AI_DEFENSE_BUILD_CHANCE) && attempt_place_trap())
+		idle_activity = IDLE_ACTIVITY_BUILD
+		return
 	return ..() // Falls through to the base patrol() (long patrol/pack cohesion/ambush hide/wander) instead of only ever plain wander().
+
+/// Self-turf placement (place_trap/use_ability(), general_powers.dm) - the passed atom arg is unused, a plain self-target call is enough. Already refuses to fire while burrowed (the ability's own check), so no extra guard needed here.
+/datum/xeno_ai_controller/burrower/proc/attempt_place_trap()
+	if(!pilot)
+		return FALSE
+	var/datum/action/xeno_action/onclick/place_trap/trap = get_ability(/datum/action/xeno_action/onclick/place_trap)
+	if(!trap || !trap.action_cooldown_check())
+		return FALSE
+	trap.use_ability(pilot)
+	return TRUE
 
 /// Fires Burrow if she's currently eligible (not already burrowed/tunneling/on cooldown) - see the caste doc comment above for why blocking tick() through the windup is safe here.
 /datum/xeno_ai_controller/burrower/proc/attempt_burrow_ambush()
@@ -152,3 +178,17 @@
 	if(!HAS_TRAIT(target, TRAIT_FLOORED) && !target.is_mob_incapacitated() && pilot.health < pilot.maxHealth * AI_BURROWER_CAUTIOUS_HEALTH_PERCENT)
 		start_tactical_retreat(AI_BURROWER_RETREAT_DURATION)
 	return FALSE
+
+/// Burrower had no post-attack repositioning at all - same damage-reactive-plus-baseline-roll shape as ravager.dm's own circle-step.
+/datum/xeno_ai_controller/burrower/process_attack()
+	. = ..()
+	if(!pilot || !current_target || ai_state != AI_STATE_ATTACKING)
+		last_known_health = pilot?.health
+		return
+	var/took_damage = (last_known_health != null) && (pilot.health < last_known_health)
+	last_known_health = pilot.health
+	if(!took_damage && !prob(AI_WARRIOR_REPOSITION_CHANCE))
+		return
+	var/target_dir = get_dir(pilot, current_target)
+	if(!ai_step(turn(target_dir, circle_dir)))
+		ai_step(turn(target_dir, -circle_dir))

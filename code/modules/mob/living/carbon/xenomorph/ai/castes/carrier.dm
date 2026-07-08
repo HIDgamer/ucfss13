@@ -20,6 +20,53 @@
 /datum/xeno_ai_controller/carrier/get_flee_threshold()
 	return AI_CARRIER_FLEE_HEALTH_PERCENT
 
+/// "Carrier will restock on eggs as well" - checked before falling through to the base patrol() (long patrol/pack cohesion/wander), same priority tier attempt_carry_egg() gets on Drone/Hivelord.
+/datum/xeno_ai_controller/carrier/patrol()
+	if(respond_to_hive_alert())
+		idle_activity = IDLE_ACTIVITY_ALERT
+		return
+	manage_egg_generation()
+	if(attempt_carry_egg())
+		idle_activity = IDLE_ACTIVITY_BUILD
+		return
+	// Place Trap (a resin trap hole) was granted and never used - low
+	// priority (she's a non-combatant support caste, this is downtime
+	// value-add, not combat-critical), same idle-build-roll shape as every
+	// other caste's attempt_plant_weeds() roll. Emit Pheromones (also
+	// granted, Carrier.dm) needs no wiring here - xeno_ai_controller.dm's
+	// shared attempt_combat_pheromones() already fires it generically for
+	// any caste that has it, Carrier included.
+	if(prob(AI_DEFENSE_BUILD_CHANCE) && attempt_place_trap())
+		idle_activity = IDLE_ACTIVITY_BUILD
+		return
+	return ..()
+
+/// Self-turf placement (place_trap/use_ability(), general_powers.dm) - the passed atom arg is unused, a plain self-target call is enough.
+/datum/xeno_ai_controller/carrier/proc/attempt_place_trap()
+	if(!pilot)
+		return FALSE
+	var/datum/action/xeno_action/onclick/place_trap/trap = get_ability(/datum/action/xeno_action/onclick/place_trap)
+	if(!trap || !trap.action_cooldown_check())
+		return FALSE
+	trap.use_ability(pilot)
+	return TRUE
+
+/**
+ * Eggsac-strain-only toggle convention, same shape as hivelord.dm's
+ * manage_resin_walker() - Generate Eggs (active_toggle/generate_egg) drains
+ * no plasma once eggs_cur reaches eggs_max (its own should_use_plasma()
+ * override gates that), so unlike Resin Walker there's no footing condition
+ * to reconcile against: just turn it on once and leave it, it's a
+ * plasma-free no-op whenever she's already full.
+ */
+/datum/xeno_ai_controller/carrier/proc/manage_egg_generation()
+	if(!pilot)
+		return
+	var/datum/action/xeno_action/active_toggle/generate_egg/generator = get_ability(/datum/action/xeno_action/active_toggle/generate_egg)
+	if(!generator || generator.action_active)
+		return
+	generator.action_activate()
+
 /datum/xeno_ai_controller/carrier/process_movement()
 	if(!pilot || !current_target)
 		return

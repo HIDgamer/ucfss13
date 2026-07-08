@@ -23,14 +23,11 @@ GLOBAL_LIST_INIT(ai_evolve_priority_castes, list(
 
 /**
  * Spawns a real, hive-linked xenomorph of the given caste and immediately attaches
- * AI control to it. Returns the new mob, or null if the spawn was refused (no room
- * under the population cap, unknown caste, no spawn turf).
+ * AI control to it. Returns the new mob, or null if the spawn was refused (unknown
+ * caste, no spawn turf, or the caste's own per-caste cap is full).
  */
 /proc/spawn_ai_xeno(caste_type = XENO_CASTE_DRONE, turf/spawn_turf, hivenumber = XENO_HIVE_NORMAL, turf/anchor_override)
 	if(!spawn_turf)
-		return null
-
-	if(GLOB.ai_xeno_active_count >= GLOB.ai_xeno_max_active)
 		return null
 
 	var/mob_type = GLOB.RoleAuthority.get_caste_by_text(caste_type)
@@ -39,15 +36,7 @@ GLOBAL_LIST_INIT(ai_evolve_priority_castes, list(
 
 	var/mob/living/carbon/xenomorph/new_xeno = new mob_type(spawn_turf, null, hivenumber)
 	if(!attach_xeno_ai(new_xeno, anchor_override || spawn_turf))
-		// "I need a queue for uncontrolled xenos - if the AI cap is reached
-		// and xenos spawn without AI, once an AI xeno dies, if there's a
-		// xeno without AI it should be chosen to become an AI xeno." Cap
-		// hit specifically (not some other attach failure) is the only case
-		// worth backlogging - still claimable directly by a ghost in the
-		// meantime (free_for_ghosts() below), same as any AI xeno.
-		if(GLOB.ai_xeno_active_count >= GLOB.ai_xeno_max_active)
-			GLOB.ai_xeno_backlog += new_xeno
-			new_xeno.free_for_ghosts(TRUE)
+		new_xeno.free_for_ghosts(TRUE) // Attach refused (almost always a full per-caste cap) - still claimable directly by a ghost.
 		return new_xeno // Mob exists but AI attach failed; hand back the plain mob rather than leaking it.
 
 	return new_xeno
@@ -59,9 +48,6 @@ GLOBAL_LIST_INIT(ai_evolve_priority_castes, list(
  */
 /proc/attach_xeno_ai(mob/living/carbon/xenomorph/xeno, turf/anchor_override)
 	if(!xeno || xeno.client || xeno.ai_controller)
-		return FALSE
-
-	if(GLOB.ai_xeno_active_count >= GLOB.ai_xeno_max_active)
 		return FALSE
 
 	var/caste_cap = GLOB.ai_xeno_max_per_caste[xeno.caste_type]
@@ -89,7 +75,6 @@ GLOBAL_LIST_INIT(ai_evolve_priority_castes, list(
  * deleted. Leaves the mob itself untouched.
  */
 /proc/detach_xeno_ai(mob/living/carbon/xenomorph/xeno)
-	GLOB.ai_xeno_backlog -= xeno // No-op if it was never backlogged - covers a ghost claiming a backlogged mob directly, bypassing the queue.
 	if(!xeno || !xeno.ai_controller)
 		return FALSE
 
@@ -100,23 +85,7 @@ GLOBAL_LIST_INIT(ai_evolve_priority_castes, list(
 	GLOB.ai_xeno_list -= xeno
 	GLOB.ai_xeno_active_count = max(0, GLOB.ai_xeno_active_count - 1)
 
-	promote_backlogged_xeno() // A slot just freed up - see if anything's waiting for one.
 	return TRUE
-
-/**
- * Hands the freshly-freed AI slot to the oldest still-eligible backlogged
- * xeno (died/deleted/claimed-by-a-ghost-already entries are skipped and
- * dropped). First-in-first-out, not a priority queue - "a backlog," per the
- * request, not a re-run of pick_needed_hive_caste()'s tier weighting.
- */
-/proc/promote_backlogged_xeno()
-	while(length(GLOB.ai_xeno_backlog))
-		var/mob/living/carbon/xenomorph/candidate = GLOB.ai_xeno_backlog[1]
-		GLOB.ai_xeno_backlog.Cut(1, 2)
-		if(QDELETED(candidate) || candidate.client || candidate.stat == DEAD)
-			continue
-		if(attach_xeno_ai(candidate, get_turf(candidate)))
-			return
 
 /**
  * Re-attaches AI control after a player who was piloting a formerly-AI-spawned
@@ -202,45 +171,100 @@ GLOBAL_LIST_INIT(ai_evolve_priority_castes, list(
 	if(!isnull(organ))
 		qdel(organ)
 
-	var/mob/living/carbon/xenomorph/new_xeno = new mob_type(get_turf(xeno), xeno)
+	return replace_ai_xeno_mob(xeno, mob_type)
+
+/**
+ * Shared mob-replacement mechanics for turning one AI-piloted xenomorph into another
+ * caste in place - qdels the old mob, constructs the new one, carries over tier
+ * bookkeeping/health-fraction/plasma-fraction/built structures, and re-attaches AI
+ * control. Used by both ai_evolve_xeno()'s reactive on-death evolution roll and
+ * grow_larva_into_caste()'s deliberate director-driven growth (hive_director.dm) - the two
+ * differ only in how the target caste gets chosen, not in the actual mob-swap mechanics.
+ */
+/proc/replace_ai_xeno_mob(mob/living/carbon/xenomorph/old_xeno, mob_type)
+	var/mob/living/carbon/xenomorph/new_xeno = new mob_type(get_turf(old_xeno), old_xeno)
 	if(!istype(new_xeno))
 		if(new_xeno)
 			qdel(new_xeno)
 		return null
 
-	new_xeno.creation_time = xeno.creation_time
+	new_xeno.creation_time = old_xeno.creation_time
 
 	var/area/xeno_area = get_area(new_xeno)
 	if(!should_block_game_interaction(new_xeno) || (xeno_area.flags_atom & AREA_ALLOW_XENO_JOIN))
 		switch(new_xeno.tier)
 			if(2)
-				xeno.hive.tier_2_xenos |= new_xeno
+				old_xeno.hive.tier_2_xenos |= new_xeno
 			if(3)
-				xeno.hive.tier_3_xenos |= new_xeno
+				old_xeno.hive.tier_3_xenos |= new_xeno
 
 	new_xeno.generate_name()
-	if(new_xeno.health - xeno.getBruteLoss() - xeno.getFireLoss() > 0)
-		new_xeno.bruteloss = xeno.bruteloss
-		new_xeno.fireloss = xeno.fireloss
+	if(new_xeno.health - old_xeno.getBruteLoss() - old_xeno.getFireLoss() > 0)
+		new_xeno.bruteloss = old_xeno.bruteloss
+		new_xeno.fireloss = old_xeno.fireloss
 		new_xeno.updatehealth()
 
-	if(xeno.plasma_max == 0)
+	if(old_xeno.plasma_max == 0)
 		new_xeno.plasma_stored = new_xeno.plasma_max
 	else
-		new_xeno.plasma_stored = new_xeno.plasma_max * (xeno.plasma_stored / xeno.plasma_max)
+		new_xeno.plasma_stored = new_xeno.plasma_max * (old_xeno.plasma_stored / old_xeno.plasma_max)
 
-	new_xeno.built_structures = xeno.built_structures?.Copy()
+	new_xeno.built_structures = old_xeno.built_structures?.Copy()
 
-	log_game("EVOLVE: [key_name(xeno)] (AI) evolved into [new_xeno].")
-	SEND_SIGNAL(xeno, COMSIG_XENO_EVOLVE_TO_NEW_CASTE, new_xeno)
+	log_game("EVOLVE: [key_name(old_xeno)] (AI) evolved into [new_xeno].")
+	SEND_SIGNAL(old_xeno, COMSIG_XENO_EVOLVE_TO_NEW_CASTE, new_xeno)
 
-	var/turf/evolve_turf = get_turf(new_xeno)
-	qdel(xeno) // Destroy() already detaches the old AI controller (see Xenomorph.dm) before this proc returns.
-	attach_xeno_ai(new_xeno, evolve_turf)
+	var/turf/new_turf = get_turf(new_xeno)
+	qdel(old_xeno) // Destroy() already detaches the old AI controller (see Xenomorph.dm) before this proc returns.
+	attach_xeno_ai(new_xeno, new_turf)
 
 	return new_xeno
 
-/// Count of currently AI-piloted xenos of one specific caste - backs the optional per-caste caps in GLOB.ai_xeno_max_per_caste. Small population (bounded by ai_xeno_max_active), so a plain scan is fine rather than maintaining a second set of per-caste counters.
+/**
+ * Organic-growth transform (HIVE_SPAWN_STYLE_ORGANIC, hive_director.dm) - turns a
+ * director-spawned, still-AI-piloted larva into the specific caste the director already
+ * decided it needed once its dwell timer elapses. Deliberately does NOT reuse
+ * ai_evolve_xeno()'s priority-list caste picker - the director already chose exactly which
+ * caste is needed; this only re-validates that choice is still live.
+ *
+ * "The larva mode just doesn't work, the larva just spawn and go back to the core, leaving
+ * the hive with only the queen" - this used to re-validate via can_evolve(), the same gate a
+ * player's evolve menu uses. can_evolve() checks hive.free_slots/used_slots - the round's
+ * configured PLAYER JOB slots (a handful per caste, sized for a human squad) - not the
+ * Director's own dynamic tier-capacity accounting (hive.get_tier_slots(), what
+ * pick_needed_hive_caste() actually validated against when it decided this caste was needed
+ * in the first place). Those job slots fill up almost immediately once the Director's
+ * spawning at all, so every larva past the first handful failed this check forever and just
+ * sat at the core (a Larva's own AI is fearful/hiding-only - see larva.dm) - direct-spawn
+ * style never hit this at all, since spawn_ai_xeno() never goes through can_evolve(). Now
+ * checks the same tier-slot accounting the Director itself uses instead.
+ */
+/proc/grow_larva_into_caste(mob/living/carbon/xenomorph/larva/larva_xeno, target_caste_type)
+	if(!larva_xeno || QDELETED(larva_xeno) || larva_xeno.stat == DEAD)
+		return null
+	if(larva_xeno.client)
+		return null // A human ghost claimed this larva since it was scheduled to grow - leave it alone entirely.
+	if(!larva_xeno.hive)
+		return null
+
+	var/datum/caste_datum/target_caste_ref = GLOB.xeno_datum_list[target_caste_type]
+	if(!target_caste_ref)
+		return null
+	// get_tier_slots()'s TIER_2/TIER_3/OPEN_SLOTS keys are macros locally #define'd and
+	// #undef'd within hive_status.dm itself - not visible here, hence the literal strings.
+	var/list/tier_slots = larva_xeno.hive.get_tier_slots()
+	if(target_caste_ref.tier == 2 && tier_slots["2"]["open_slots"] <= 0)
+		return null // Hive's tier-2 capacity filled up since this was scheduled - don't force a caste that's no longer needed.
+	if(target_caste_ref.tier == 3 && tier_slots["3"]["open_slots"] <= 0)
+		return null
+
+	var/mob_type = GLOB.RoleAuthority.get_caste_by_text(target_caste_type)
+	if(!mob_type)
+		return null
+
+	return replace_ai_xeno_mob(larva_xeno, mob_type)
+
+/// Count of currently AI-piloted xenos of one specific caste - backs the optional per-caste caps in GLOB.ai_xeno_max_per_caste. A plain scan is fine here rather than maintaining a second set of per-caste counters.
 /proc/count_active_ai_xenos_of_caste(caste_type)
 	var/count = 0
 	for(var/mob/living/carbon/xenomorph/xeno as anything in GLOB.ai_xeno_list)

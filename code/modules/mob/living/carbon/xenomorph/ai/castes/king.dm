@@ -38,6 +38,16 @@
 	attack_distance = AI_KING_ATTACK_DISTANCE
 	return_distance = AI_KING_RETURN_DISTANCE
 
+/// Destroy (King.dm) self-immobilizes for its leap windup - King.dm uses a bare "Destroy" string as the trait source, not the TRAIT_SOURCE_ABILITY() macro, so this has to match that literally rather than reusing the macro like every other override does.
+/datum/xeno_ai_controller/king/can_act_while_immobilized()
+	if(..())
+		return TRUE
+	return HAS_TRAIT_FROM_ONLY(pilot, TRAIT_IMMOBILIZED, "Destroy")
+
+/// Exactly as hard to replace as Queen (one-per-round investment) - mirrors AI_QUEEN_FLEE_HEALTH_PERCENT, which he never had a matching override for before Phase 3.
+/datum/xeno_ai_controller/king/get_flee_threshold()
+	return AI_KING_FLEE_HEALTH_PERCENT
+
 /// Broadcasts the instant he acquires a target, same as Queen's own tick() does for her - other AI xenos don't have to wait for him to already be swinging before they hear about it.
 /datum/xeno_ai_controller/king/process_target()
 	. = ..()
@@ -73,7 +83,10 @@
 		rend.use_ability(pilot)
 		return TRUE
 
-	return FALSE
+	// King grants tail_stab (King.dm) but was silently falling through to
+	// plain melee whenever Destroy/Doom/Rend were all on cooldown - Queen
+	// already does this exact fallback (queen.dm).
+	return attempt_tail_stab(target)
 
 /// Pops King Shield once he's actually taking a beating (below half health) - the same "is the fight bad enough" bar crusher.dm's own attempt_shield() uses, not just whenever it happens to be off cooldown.
 /datum/xeno_ai_controller/king/proc/attempt_shield()

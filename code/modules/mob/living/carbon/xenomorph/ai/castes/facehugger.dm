@@ -18,6 +18,29 @@
  */
 /datum/xeno_ai_controller/facehugger
 
+/**
+ * **Real bug, not a tuning nit**: had no should_flee()/get_flee_threshold()
+ * override at all before Phase 3, so a one-hit-fragile (max_health =
+ * XENO_HEALTH_LARVA) caste with no attack worth trading inherited the base
+ * should_flee()'s "target's in the same rough shape, finish it" and "not
+ * fighting alone" exceptions - both assume a xeno that can actually win a
+ * fight, which she never can. This deliberately does NOT mirror larva.dm's
+ * "flee from any spotted hostile" override - her whole gameplan is closing
+ * distance and Leaping (process_movement()/attempt_leap() above, confirmed
+ * correct this session), so should_flee() only needs to matter AFTER she's
+ * actually taken real damage, at a much higher threshold than the
+ * population default, with none of the base version's talk-herself-back-
+ * into-a-fight exceptions.
+ */
+/datum/xeno_ai_controller/facehugger/should_flee()
+	if(!pilot || !pilot.maxHealth)
+		return FALSE
+	return (pilot.health / pilot.maxHealth) < AI_FACEHUGGER_FLEE_HEALTH_PERCENT
+
+/// Never - same reasoning as larva.dm's identical override, she has no attack worth turning around for.
+/datum/xeno_ai_controller/facehugger/get_desperate_threshold()
+	return 0
+
 /datum/xeno_ai_controller/facehugger/patrol()
 	attempt_hide()
 	return ..()

@@ -40,6 +40,14 @@
 	var/list/path_queue
 	/// The turf path_queue was computed to reach; a route is only reused while the goal hasn't moved to a different tile.
 	var/turf/path_goal
+	/// TRUE if the last compute_path() attempt against path_goal came back empty (too big for the cell budget, or genuinely no route) - see next_path_attempt. Without this, a doomed hop (e.g. a target across an open LZ/Thunderdome pad) re-runs the full grid-build every single tick forever instead of just once per cooldown.
+	var/path_failed = FALSE
+	/// world.time advance_along_path() is next willing to retry a fresh compute_path() after a failed attempt against essentially the same goal.
+	var/next_path_attempt = 0
+	/// Obstacle (wall/structure) currently committed to smashing through - see attack_blocking_obstacle()/get_blocking_obstacle(). "Keeps pathfinding moving between smashing different walls instead of focusing on the original wall" - a target shifting a tile or two behind cover used to make a completely different wall segment line up as "the" blocking obstacle every tick, abandoning whatever damage was already dealt to the old one.
+	var/atom/committed_obstacle
+	/// world.time committed_obstacle can be abandoned for a different one even though it's still blocking - a generous minimum commitment window, not a hard lock, so a genuinely better route (a real door opening up) isn't ignored forever.
+	var/committed_obstacle_until = 0
 	/// Absolute direction of the last successful navigate_around() sidestep - tried again first next time, so the pilot commits to going around one side of an obstacle instead of flip-flopping as target_dir shifts tick to tick.
 	var/last_sidestep_dir
 	/// Direction a long obstacle-skirt (see attempt_skirt_obstacle()) is currently committed to, or null if not skirting - "long pathfinding around a building is not possible" fix: a single sidestep isn't enough distance to clear a whole building, so this keeps walking one direction for a while instead of re-aiming at the goal (and potentially flip-flopping) every tick.
@@ -64,6 +72,8 @@
 	var/wander_dir
 	/// world.time wander() will pick a new heading even if the current one hasn't failed yet.
 	var/next_wander_reroll = 0
+	/// world.time a dormant phase (see AI_XENO_DORMANT_CHANCE) ends - while world.time is below this, wander() skips movement entirely and ai_loop() sleeps the much longer AI_XENO_DORMANT_HEARTBEAT instead of AI_XENO_DEFAULT_IDLE_HEARTBEAT. 0 means "not dormant."
+	var/dormant_until = 0
 	/// world.time this controller can next actually move a tile - see ai_step() in xeno_ai_movement.dm.
 	var/next_step_time = 0
 	/// Destination of an in-progress long patrol leg (start_long_patrol()/continue_long_patrol()) - null whenever not mid-trip.
@@ -78,6 +88,18 @@
 	var/datum/cause_data/last_retaliation_data
 	/// A nearer, defensible turf (find_defensible_turf()) picked when this flee started, if one was actually closer than anchor_turf - null means "just go to anchor_turf as normal." Cleared on arrival/give-up same as anchor_turf's own resolution.
 	var/turf/flee_turf
+	/// The turf current_target occupied at the exact moment a flee transition dropped it (tick()) - drop_target() nulls current_target/last_seen_turf immediately, so a per-caste escape-ability hook (e.g. crusher.dm's attempt_tumble_retreat()) called from return_to_anchor() has nothing else to aim away from. Not cleared on arrival - stale is harmless, it's only ever read while actually retreating.
+	var/turf/last_threat_turf
+	/// Perimeter turf currently committed to for attempt_build_defense() - picked once and walked to across multiple idle ticks instead of re-rolled (and therefore essentially never actually reached, since a Drone/Queen has max_build_dist == 0) on every single call. Null whenever not mid-walk to a build site.
+	var/turf/build_target_turf
+	/// resin_construction type queued for build_target_turf - see attempt_build_defense().
+	var/build_target_wall_type
+	/// Loose /obj/item/xeno_egg currently being carried to egg_plant_turf - see attempt_carry_egg(). Null whenever not mid-carry.
+	var/obj/item/xeno_egg/carrying_egg
+	/// Turf picked to plant carrying_egg at - see attempt_carry_egg().
+	var/turf/egg_plant_turf
+	/// world.time this controller is next willing to roll/be picked for attempt_social_interaction() - set on both participants so the same pair doesn't immediately vignette again next tick, and so a xeno that was just on the receiving end isn't instantly picked as someone else's target too.
+	var/next_social_interaction = 0
 
 /// Flavor callsigns for solo bosses (Queen, King) - purely cosmetic (hive status roster only), no gameplay meaning.
 GLOBAL_LIST_INIT(ai_codenames_boss, list("Alpha Doom", "Doomsday", "Last Rites", "Omega Latch", "Final Curtain", "Iron Throne"))
@@ -150,6 +172,20 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	while(!detached && pilot && !QDELETED(pilot) && pilot.stat != DEAD)
 		try
 			tick()
+			update_movement_intent()
+			// Idle mobs sleep much longer between ticks than engaged ones - there's
+			// no urgency in scanning for a target 10x/sec when nothing's happening.
+			// Engaged mobs (approaching/attacking/returning/searching) re-run at
+			// the fastest interval sleep() grants (see AI_XENO_DEFAULT_HEARTBEAT) -
+			// their actual pace is already capped for free by the pilot's own
+			// movement/attack cooldowns, so tick() itself should never be the
+			// bottleneck on top of that. Checked against the post-tick state so
+			// this still matches whatever tick() just decided. Dormancy
+			// (wander()'s dormant_until) deliberately does NOT slow this
+			// heartbeat down further - "completely idle, not attacking" was
+			// partly this making target-scanning itself sluggish on top of
+			// skipping movement; dormancy only ever needed to cut the
+			// movement/pathing cost, not responsiveness to an actual target.
 		catch(var/exception/error)
 			// "Cannot read null.type" - the very diagnostic logging meant to
 			// keep one bad tick() from killing this coroutine was itself
@@ -157,16 +193,16 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 			// call (e.g. the xeno was gibbed mid-tick), since pilot is null
 			// by the time this catch block runs. pilot?.type instead of
 			// pilot.type so the log call itself can never re-throw.
+			//
+			// "AI plagued with instances of stale or deleted AI" -
+			// update_movement_intent() and the heartbeat pick used to run
+			// AFTER this try/catch, unprotected - any exception there (not
+			// just inside tick() itself) would unwind straight out of
+			// ai_loop() and silently end the coroutine for good, leaving a
+			// perfectly alive, non-deleted mob standing frozen forever with
+			// nothing left to ever tick it again. Both are now inside the
+			// same guarded block tick() already gets.
 			stack_trace("xeno_ai_controller/tick() error for [pilot] ([pilot?.type]): [error]")
-		update_movement_intent()
-		// Idle mobs sleep much longer between ticks than engaged ones - there's
-		// no urgency in scanning for a target 10x/sec when nothing's happening.
-		// Engaged mobs (approaching/attacking/returning/searching) re-run at
-		// the fastest interval sleep() grants (see AI_XENO_DEFAULT_HEARTBEAT) -
-		// their actual pace is already capped for free by the pilot's own
-		// movement/attack cooldowns, so tick() itself should never be the
-		// bottleneck on top of that. Checked against the post-tick state so
-		// this still matches whatever tick() just decided.
 		sleep((ai_state == AI_STATE_IDLE) ? ai_idle_heartbeat : ai_heartbeat)
 
 /**
@@ -185,9 +221,6 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		pilot.set_movement_intent(desired_intent)
 
 /datum/xeno_ai_controller/proc/tick()
-	if(pilot.is_ventcrawling)
-		return // Mid vent-crawl ambush (see xeno_ai_vents.dm's vent_travel(), running as its own coroutine) - nothing for the normal state machine to do until she exits.
-
 	check_retaliation() // Before the incapacitation check below - she should already be locked onto whoever just hit her by the time she's able to act again, not notice only once she recovers.
 
 	// Evolution as the growth path for AI xenos is retired - see
@@ -214,6 +247,7 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 
 	if(ai_state != AI_STATE_RETURNING && should_flee())
 		pilot.emote("needshelp") // Fires exactly once on the transition into fleeing, not every tick spent retreating.
+		last_threat_turf = current_target ? get_turf(current_target) : last_seen_turf
 		drop_target()
 		ai_state = AI_STATE_RETURNING
 		// "They should also consider corners and walls as defensive
@@ -252,15 +286,10 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
  * Idle xenos check for a live hive-wide alert from the Queen first (see
  * respond_to_hive_alert()) - "command" without a hard hierarchy - then
  * whether she's specifically calling for an escort (respond_to_queen_escort()),
- * then a small chance to duck into a nearby vent for a surprise relocation
- * (see xeno_ai_vents.dm's attempt_vent_ambush() - a no-op for castes too
- * big or otherwise ineligible to vent-crawl, so nothing extra is needed to
- * exclude them here), then a live scouting order (respond_to_scout_order(),
- * lowest priority - "something better to do than aimless wander," not
- * urgent), and only fall back to aimless wander() if none apply. Concrete
- * subtypes that override patrol() (e.g. drone_worker, to roll build
- * attempts) should check respond_to_hive_alert() first too, before their
- * own idle behavior, so a Queen's call takes priority over routine tasks.
+ * and only fall back to aimless wander() if none apply. Concrete subtypes
+ * that override patrol() (e.g. drone_worker, to roll build attempts) should
+ * check respond_to_hive_alert() first too, before their own idle behavior,
+ * so a Queen's call takes priority over routine tasks.
  */
 /datum/xeno_ai_controller/proc/patrol()
 	if(respond_to_hive_alert())
@@ -283,20 +312,20 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		idle_activity = IDLE_ACTIVITY_LONG_PATROL
 		continue_long_patrol()
 		return
-	if(prob(AI_VENT_AMBUSH_CHANCE) && attempt_vent_ambush())
-		idle_activity = IDLE_ACTIVITY_VENT
-		return
-	if(respond_to_scout_order())
-		idle_activity = IDLE_ACTIVITY_SCOUT
-		return
 	if(respond_to_pack_cohesion())
 		idle_activity = IDLE_ACTIVITY_PACK
 		return
 	if(attempt_ambush_hide())
 		idle_activity = IDLE_ACTIVITY_AMBUSH
 		return
+	if(attempt_slash_infrastructure())
+		idle_activity = IDLE_ACTIVITY_SABOTAGE
+		return
 	if(prob(AI_XENO_LONG_PATROL_CHANCE) && start_long_patrol())
 		idle_activity = IDLE_ACTIVITY_LONG_PATROL
+		return
+	if(attempt_social_interaction())
+		idle_activity = IDLE_ACTIVITY_SOCIAL
 		return
 	idle_activity = IDLE_ACTIVITY_WANDER
 	wander()
@@ -342,7 +371,7 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(get_dist(pilot, patrol_turf) <= 1)
 		patrol_turf = null
 		return
-	if(!advance_along_path(patrol_turf) && !cardinal_step_towards(patrol_turf))
+	if(!advance_along_path(patrol_turf) && !cardinal_step_towards(patrol_turf, avoid_mobs = TRUE))
 		patrol_turf = null // Truly stuck - drop it rather than grinding against the same obstacle forever.
 
 /// Current long-patrol radius from anchor_turf - grows with round time up to a cap, approximating "as the hive radius expands." Also used by start_long_patrol() as the minimum distance worth calling a "long" trip at all.
@@ -370,7 +399,7 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(get_dist(pilot, buddy) <= AI_PACK_COHESION_HOLD_DISTANCE)
 		return FALSE // Already close enough to read as "sticking together" - nothing more to do this tick.
 	if(!advance_along_path(buddy))
-		cardinal_step_towards(buddy)
+		cardinal_step_towards(buddy, avoid_mobs = TRUE)
 	return TRUE
 
 /// Nearest other idle/patrolling same-hive xeno within pack range - see respond_to_pack_cohesion().
@@ -394,6 +423,70 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	return best
 
 /**
+ * "Idle or AI to AI interactions should be a thing, bullying, playing, so
+ * on" - purely cosmetic flavor so a hive of 30+ always-idling AI xenos reads
+ * as alive instead of a room full of standing statues. Deliberately no
+ * mechanical effect whatsoever - no damage, no plasma cost, nothing that
+ * changes either xeno's actual state beyond the emote/flavor text and one
+ * cosmetic step. Lowest priority in patrol() - only rolled once genuinely
+ * nothing else is going on.
+ *
+ * Picks between two vignettes based on relative size: a clearly bigger/
+ * higher-tier same-hive ally "bullies" a smaller one (a mock lunge that
+ * shoves the smaller one back a step) - anything roughly matched in size
+ * "plays" instead (a harmless mutual hiss/growl/tail-swipe exchange, nobody
+ * moves). Both participants go on the same cooldown so the same pair can't
+ * loop the same vignette back to back.
+ */
+/datum/xeno_ai_controller/proc/attempt_social_interaction()
+	if(!pilot || world.time < next_social_interaction)
+		return FALSE
+	if(!prob(AI_XENO_SOCIAL_CHANCE))
+		return FALSE
+
+	var/mob/living/carbon/xenomorph/buddy = find_social_buddy()
+	if(!buddy)
+		return FALSE
+
+	next_social_interaction = world.time + AI_XENO_SOCIAL_COOLDOWN
+	var/datum/xeno_ai_controller/buddy_controller = buddy.ai_controller
+	if(buddy_controller)
+		buddy_controller.next_social_interaction = world.time + AI_XENO_SOCIAL_COOLDOWN
+
+	pilot.setDir(get_dir(pilot, buddy))
+	var/pilot_dominant = (pilot.tier > buddy.tier) || (pilot.tier == buddy.tier && pilot.mob_size > buddy.mob_size)
+	if(pilot_dominant)
+		pilot.emote("roar")
+		pilot.visible_message(SPAN_XENODANGER("[pilot] lunges at [buddy], bullying [buddy.p_them()] back!"), null, null, 5)
+		buddy_controller?.ai_step_avoiding_mobs(get_dir(pilot, buddy))
+	else
+		pilot.emote(pick("hiss", "growl", "tail"))
+		pilot.visible_message(SPAN_XENONOTICE("[pilot] roughhouses playfully with [buddy]!"), null, null, 5)
+	return TRUE
+
+/// Nearest other truly-idle same-hive xeno within AI_XENO_SOCIAL_RANGE - see attempt_social_interaction(). Much tighter range than find_pack_buddy() - a "bumped into each other" vignette only reads right at point-blank range.
+/datum/xeno_ai_controller/proc/find_social_buddy()
+	var/mob/living/carbon/xenomorph/best
+	var/best_dist = INFINITY
+	for(var/mob/living/carbon/xenomorph/ally as anything in GLOB.ai_xeno_list)
+		if(ally == pilot || ally.stat == DEAD || ally.hivenumber != pilot.hivenumber)
+			continue
+		if(ally.caste_type == XENO_CASTE_QUEEN || ally.caste_type == XENO_CASTE_KING)
+			continue
+		if(ally.resting || ally.layer == XENO_HIDING_LAYER)
+			continue
+		var/datum/xeno_ai_controller/ally_controller = ally.ai_controller
+		if(!ally_controller || ally_controller.ai_state != AI_STATE_IDLE || world.time < ally_controller.next_social_interaction)
+			continue
+		var/d = get_dist(pilot, ally)
+		if(d > AI_XENO_SOCIAL_RANGE)
+			continue
+		if(d < best_dist)
+			best_dist = d
+			best = ally
+	return best
+
+/**
  * "Gather intel on positions in the map for ambush or defense building" /
  * "hiding to ambush" - a low-probability idle detour that walks out toward
  * the marine LZ (get_lz_turf(), shared with queen.dm's own siege-response
@@ -409,7 +502,7 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(ambush_turf)
 		if(get_dist(pilot, ambush_turf) > 0)
 			if(!advance_along_path(ambush_turf))
-				cardinal_step_towards(ambush_turf)
+				cardinal_step_towards(ambush_turf, avoid_mobs = TRUE)
 			return TRUE
 		if(!ambush_hiding)
 			ambush_hiding = TRUE
@@ -438,7 +531,7 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 
 	ambush_turf = pick(candidates)
 	if(!advance_along_path(ambush_turf))
-		cardinal_step_towards(ambush_turf)
+		cardinal_step_towards(ambush_turf, avoid_mobs = TRUE)
 	return TRUE
 
 /// Un-hides (if actually hidden) and clears ambush state - shared by attempt_ambush_hide()'s timeout and process_target()'s interrupt-on-contact.
@@ -456,6 +549,60 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(!mode || !mode.active_lz)
 		return null
 	return get_turf(mode.active_lz)
+
+/**
+ * "AI should slash lights and wall apc's" - darkening an area and killing
+ * local power (cameras, turrets, and doors all lose power with it) is a real,
+ * valuable tactic that nothing previously did outside of one happening to be
+ * directly in the way of a chase. An idle-priority detour, same tier as
+ * attempt_ambush_hide() - walks to and claws a still-standing
+ * /obj/structure/machinery/light or /obj/structure/machinery/power/apc within
+ * range, via the same direct attack_alien() call attack_blocking_obstacle()
+ * (xeno_ai_movement.dm) already uses for obstacles.
+ */
+/datum/xeno_ai_controller/proc/attempt_slash_infrastructure()
+	if(!pilot || !prob(AI_XENO_INFRASTRUCTURE_SLASH_CHANCE))
+		return FALSE
+
+	var/obj/target = find_nearby_infrastructure_target()
+	if(!target)
+		return FALSE
+
+	if(!pilot.Adjacent(target))
+		if(!advance_along_path(target))
+			cardinal_step_towards(target, avoid_mobs = TRUE)
+		return TRUE
+
+	if(world.time <= pilot.next_move)
+		return TRUE
+	pilot.setDir(get_dir(pilot, target))
+	pilot.a_intent = INTENT_HARM
+	target.attack_alien(pilot)
+	if(pilot) // attack_alien() can in principle retaliate (an exploding structure) - don't write to a dead/deleted pilot.
+		pilot.next_move = world.time + XENO_MELEE_ATTACK_DELAY
+	return TRUE
+
+/// Nearest still-standing light or APC within AI_XENO_INFRASTRUCTURE_SEARCH_RADIUS - see attempt_slash_infrastructure().
+/datum/xeno_ai_controller/proc/find_nearby_infrastructure_target()
+	if(!pilot)
+		return null
+	var/obj/best
+	var/best_dist = INFINITY
+	for(var/obj/structure/machinery/light/light in range(AI_XENO_INFRASTRUCTURE_SEARCH_RADIUS, pilot))
+		if(light.unslashable || light.is_broken())
+			continue
+		var/d = get_dist(pilot, light)
+		if(d < best_dist)
+			best_dist = d
+			best = light
+	for(var/obj/structure/machinery/power/apc/apc in range(AI_XENO_INFRASTRUCTURE_SEARCH_RADIUS, pilot))
+		if(apc.unslashable || apc.health <= 0)
+			continue
+		var/d = get_dist(pilot, apc)
+		if(d < best_dist)
+			best_dist = d
+			best = apc
+	return best
 
 /**
  * Idle xenos actively range around their anchor instead of standing
@@ -505,15 +652,25 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 			var/turf/nearest_weed = find_nearest_hive_weed_turf()
 			if(nearest_weed)
 				if(!advance_along_path(nearest_weed))
-					cardinal_step_towards(nearest_weed)
+					cardinal_step_towards(nearest_weed, avoid_mobs = TRUE)
 				return
 	if(pilot.on_fire && pilot.can_resist())
 		pilot.resist() // Opportunistic while idle - see should_flee()'s doc comment for why this isn't a forced reflex mid-fight any more.
-	if(!prob(AI_XENO_PATROL_CHANCE))
+
+	// "They need to stop at some point and rest or stay dormant if they have
+	// nothing to do" / "lag is an issue, moving as a player is painfully
+	// slow" - continuous per-tile stepping (below) is only cheap in
+	// aggregate if a good chunk of the idle population isn't doing it at any
+	// given moment. Checked before the anchor-distance snap-back too, so a
+	// dormant xeno standing a little outside AI_XENO_PATROL_RADIUS just
+	// stays put rather than being forced to walk back while "resting."
+	if(dormant_until && world.time < dormant_until)
 		return
+	dormant_until = 0
+
 	if(get_dist(pilot, anchor_turf) >= AI_XENO_PATROL_RADIUS)
 		wander_dir = null // Snap back to anchor - re-roll a fresh heading once back in range instead of resuming whatever direction led out of it.
-		cardinal_step_towards(anchor_turf)
+		cardinal_step_towards(anchor_turf, avoid_mobs = TRUE)
 		return
 
 	// Commits to a heading for AI_XENO_WANDER_COMMIT_TIME instead of picking a
@@ -525,10 +682,21 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	// Re-rolls early if the committed direction becomes blocked, so it
 	// doesn't sit there repeatedly failing into a wall for the rest of the
 	// commit window either.
-	if(!wander_dir || world.time >= next_wander_reroll || !ai_step(wander_dir))
+	if(!wander_dir || world.time >= next_wander_reroll)
+		// Heading either never set or just expired - decide whether to keep
+		// pacing or go dormant for a while instead of always picking a fresh
+		// one. Jitter is fully handled by the heading-commitment itself, not
+		// by this roll - this is purely a "how much of the population is
+		// actively moving right now" throttle.
+		if(prob(AI_XENO_DORMANT_CHANCE))
+			wander_dir = null
+			dormant_until = world.time + rand(AI_XENO_DORMANT_MIN_DURATION, AI_XENO_DORMANT_MAX_DURATION)
+			return
 		wander_dir = pick(GLOB.alldirs)
 		next_wander_reroll = world.time + AI_XENO_WANDER_COMMIT_TIME
-		ai_step(wander_dir)
+
+	if(!ai_step_avoiding_mobs(wander_dir))
+		wander_dir = null // Blocked - force a fresh decision (walk or dormant) next tick instead of retrying the same blocked heading.
 
 /**
  * "They don't try patting their allies who are on fire" - a xeno clawing
@@ -558,7 +726,7 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 
 	if(!pilot.Adjacent(burning_ally))
 		if(!advance_along_path(burning_ally))
-			cardinal_step_towards(burning_ally)
+			cardinal_step_towards(burning_ally, avoid_mobs = TRUE)
 		return TRUE
 
 	pilot.a_intent = INTENT_HELP
@@ -623,10 +791,37 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
  * so this can be rolled speculatively same as attempt_plant_weeds() - a bad
  * tile (no owned weeds, already something built there, an unweedable area)
  * just silently no-ops instead of spamming a doomed build attempt.
+ *
+ * "Hivelords and drones aren't building resin structures manually" - the
+ * original version picked a perimeter turf and immediately tried to build on
+ * it with no regard for where the pilot actually was standing. build_resin()
+ * (Powers.dm) hard-requires get_dist(pilot, target) <= caste.max_build_dist,
+ * which is 0 for a Drone - meaning it only ever worked by pure chance that
+ * the randomly-picked perimeter turf happened to already be the pilot's own
+ * tile. Now walks to the committed build site first (re-rolling a fresh
+ * candidate every call, like the old version did, would have the pilot
+ * flip-flop between different perimeter turfs and never arrive at any of
+ * them) and only actually builds once in range.
  */
 /datum/xeno_ai_controller/proc/attempt_build_defense()
 	if(!pilot || !anchor_turf)
 		return FALSE
+
+	if(build_target_turf)
+		var/datum/resin_construction/committed_construction = GLOB.resin_constructions_list[build_target_wall_type]
+		if(!committed_construction || !committed_construction.can_build_here(build_target_turf, pilot))
+			build_target_turf = null
+			build_target_wall_type = null
+		else if(get_dist(pilot, build_target_turf) > pilot.caste.max_build_dist)
+			if(!advance_along_path(build_target_turf))
+				cardinal_step_towards(build_target_turf, avoid_mobs = TRUE)
+			return TRUE
+		else
+			pilot.selected_resin = build_target_wall_type
+			pilot.build_resin(build_target_turf)
+			build_target_turf = null
+			build_target_wall_type = null
+			return TRUE
 
 	var/wall_type = get_defense_wall_type()
 	if(!wall_type)
@@ -639,8 +834,8 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(!build_turf || !wall_construction.can_build_here(build_turf, pilot))
 		return FALSE
 
-	pilot.selected_resin = wall_type
-	pilot.build_resin(build_turf)
+	build_target_turf = build_turf
+	build_target_wall_type = wall_type
 	return TRUE
 
 /// Wall or door option this pilot's caste can build, picked randomly between the two when both exist - "walls and doors," not only ever walls.
@@ -656,26 +851,37 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	return pick(options)
 
 /**
- * A turf in the perimeter band around anchor_turf that's actually already
- * weeded and owned by the hive - can_build_here() hard-requires existing
- * owned weeds on the target tile, so picking a blind random turf in the
- * band (the old behavior) almost never actually landed on buildable ground,
- * which is why walls/doors essentially never got built at all. Falls back
- * to any owned weed tile regardless of distance band if nothing qualifies
- * in the ideal band, rather than giving up outright.
+ * A turf in the perimeter band that's actually already weeded and owned by
+ * the hive - can_build_here() hard-requires existing owned weeds on the
+ * target tile, so picking a blind random turf in the band (the old
+ * behavior) almost never actually landed on buildable ground, which is why
+ * walls/doors essentially never got built at all. Falls back to any owned
+ * weed tile regardless of distance band if nothing qualifies in the ideal
+ * band, rather than giving up outright.
+ *
+ * "Building defenses all over the map" - centered on the pilot's own current
+ * position rather than anchor_turf, so a Drone/Hivelord that's wandered or
+ * long-patrolled out to newly-weeded territory as the hive's coverage grows
+ * over a round builds defenses out there too, instead of every wall/door
+ * getting placed within the same fixed ring around the original hive core
+ * regardless of how far the hive itself has since spread. anchor_turf is
+ * still required as the "does this xeno have a home hive at all" gate.
  */
 /datum/xeno_ai_controller/proc/pick_defense_perimeter_turf()
 	if(!pilot || !anchor_turf)
 		return null
+	var/turf/search_center = get_turf(pilot)
+	if(!search_center)
+		return null
 	var/list/ideal_candidates = list()
 	var/list/fallback_candidates = list()
-	for(var/obj/effect/alien/weeds/weed in range(AI_XENO_DEFENSE_PERIMETER_MAX_RADIUS, anchor_turf))
+	for(var/obj/effect/alien/weeds/weed in range(AI_XENO_DEFENSE_PERIMETER_MAX_RADIUS, search_center))
 		if(weed.linked_hive.hivenumber != pilot.hivenumber)
 			continue
 		var/turf/weed_turf = get_turf(weed)
 		if(!weed_turf)
 			continue
-		if(get_dist(weed_turf, anchor_turf) >= AI_XENO_DEFENSE_PERIMETER_MIN_RADIUS)
+		if(get_dist(weed_turf, search_center) >= AI_XENO_DEFENSE_PERIMETER_MIN_RADIUS)
 			ideal_candidates += weed_turf
 		else
 			fallback_candidates += weed_turf
@@ -684,6 +890,76 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(length(fallback_candidates))
 		return pick(fallback_candidates)
 	return null
+
+/**
+ * "Drones and hivelords should plant eggs in the hive too" / "carrier will
+ * restock on eggs as well" - the Queen already drops loose /obj/item/xeno_egg
+ * items on her own tile automatically while on the ovipositor (Queen.dm's
+ * Life(): "one egg approximately every 30 seconds"), exactly like a real
+ * round; nothing ever picked any of them back up. Mirrors the real player
+ * mechanics instead of inventing new ones: a Drone/Hivelord carries a loose
+ * egg out to good weeded ground away from the Queen's own tile (so eggs
+ * spread through the hive instead of piling up where they dropped - Queen.dm
+ * caps her own tile at 25 objects before she stops laying entirely, so
+ * clearing them is also what keeps her able to keep producing) and plants it
+ * there (egg_item.dm's attack_self()/plant_egg(), the same entry point a
+ * player's own click reaches). A Carrier instead stores it internally
+ * (store_egg(), Carrier.dm) to restock her own eggs_cur/eggs_max supply for
+ * later use, same as a player Carrier walking over and grabbing one.
+ */
+/// TRUE if the pilot is already mid-delivery with an egg in hand - see attempt_carry_egg()'s callers, which always let an in-progress carry finish regardless of their own priority roll for picking a fresh one up.
+/datum/xeno_ai_controller/proc/is_carrying_egg()
+	return pilot && (istype(pilot.r_hand, /obj/item/xeno_egg) || istype(pilot.l_hand, /obj/item/xeno_egg))
+
+/datum/xeno_ai_controller/proc/attempt_carry_egg()
+	if(!pilot || pilot.caste.can_hold_eggs == CANNOT_HOLD_EGGS)
+		return FALSE
+
+	var/mob/living/carbon/xenomorph/carrier/carrier_pilot
+	if(iscarrier(pilot))
+		carrier_pilot = pilot
+		if(carrier_pilot.eggs_cur >= carrier_pilot.eggs_max)
+			return FALSE // Already full - nothing more to restock.
+
+	var/obj/item/xeno_egg/carried = istype(pilot.r_hand, /obj/item/xeno_egg) ? pilot.r_hand : (istype(pilot.l_hand, /obj/item/xeno_egg) ? pilot.l_hand : null)
+	if(carried)
+		if(!egg_plant_turf || !istype(egg_plant_turf))
+			egg_plant_turf = pick_defense_perimeter_turf() // Reuses the same "owned weeds away from anchor" picker used for wall placement.
+		if(!egg_plant_turf)
+			return FALSE
+		if(get_dist(pilot, egg_plant_turf) > 0)
+			if(!advance_along_path(egg_plant_turf))
+				cardinal_step_towards(egg_plant_turf, avoid_mobs = TRUE)
+			return TRUE
+		carried.attack_self(pilot) // Same entry point a player's own click reaches - handles the store_egg()/plant_egg() branch itself.
+		egg_plant_turf = null
+		return TRUE
+
+	if(pilot.r_hand || pilot.l_hand)
+		return FALSE // Hands full with something else already - not our business to drop it.
+
+	var/obj/item/xeno_egg/nearest_egg
+	var/best_dist = INFINITY
+	for(var/obj/item/xeno_egg/egg in range(AI_XENO_EGG_SEARCH_RADIUS, pilot))
+		if(egg.hivenumber != pilot.hivenumber)
+			continue
+		var/d = get_dist(pilot, egg)
+		if(d < best_dist)
+			best_dist = d
+			nearest_egg = egg
+	if(!nearest_egg)
+		return FALSE
+
+	if(!pilot.Adjacent(nearest_egg))
+		if(!advance_along_path(nearest_egg))
+			cardinal_step_towards(nearest_egg, avoid_mobs = TRUE)
+		return TRUE
+
+	if(carrier_pilot)
+		carrier_pilot.store_egg(nearest_egg) // Direct to internal storage - a Carrier never plants eggs herself.
+	else
+		nearest_egg.attack_alien(pilot) // Picks it up into a free hand, same as a player's own unarmed click.
+	return TRUE
 
 /**
  * "They don't even help the queen build her core" - travels to and weeds
@@ -707,8 +983,8 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 
 /**
  * "Queen escort and commanding thing isn't working at all" - shared by
- * respond_to_hive_alert()/respond_to_queen_escort()/respond_to_scout_order()
- * below, which all used to be a bare advance_along_path()/
+ * respond_to_hive_alert()/respond_to_queen_escort() below, which used to be
+ * a bare advance_along_path()/
  * cardinal_step_towards() with none of the obstacle handling the main chase
  * path (process_movement()) has - no skirt/climb-or-smash/navigate_around
  * fallback at all, so a table, wall, or long detour between here and the
@@ -784,13 +1060,67 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	boss_pilot.hive.queen_escort_turf = get_turf(boss_pilot)
 	boss_pilot.hive.queen_escort_time = world.time
 
+/// Same-hive living xenos already within radius of a point, regardless of state - a crude "how crowded is it there already" gauge, distinct from count_active_combatants_near() (which only counts APPROACHING/ATTACKING - a xeno walking toward a hive-alert never actually enters that state, since patrol()'s callers are all reached only while ai_state is still IDLE).
+/datum/xeno_ai_controller/proc/count_nearby_hive_members(turf/center_turf, radius)
+	if(!pilot || !center_turf)
+		return 0
+	var/count = 0
+	for(var/mob/living/carbon/xenomorph/hive_member as anything in GLOB.ai_xeno_list)
+		if(hive_member == pilot || hive_member.hivenumber != pilot.hivenumber || hive_member.stat == DEAD)
+			continue
+		if(get_dist(hive_member, center_turf) <= radius)
+			count++
+	return count
+
+/**
+ * Every other targeting primitive in this file is hostile-only - nothing before this let a
+ * controller find a *friendly* xeno to heal or buff. Backs strain abilities that target an
+ * ally instead of an enemy (Healer's Apply Salve/Sacrifice, Valkyrie's Rage/Prae Retrieve -
+ * see Phase 2 plan §2.2). Picks among the most-hurt candidates rather than always the exact
+ * nearest, same "don't always land on the same one" tie-break find_cover_turf() already uses.
+ */
+/datum/xeno_ai_controller/proc/find_nearby_ally_xeno(radius = AI_XENO_ALLY_SCAN_RADIUS, require_damaged = TRUE)
+	if(!pilot)
+		return null
+	var/list/candidates = list()
+	var/worst_health_fraction = 1
+	// GLOB.xeno_mob_list already contains every xenomorph mob, AI-piloted or
+	// not (Xenomorph.dm's New()) - GLOB.ai_xeno_list is a strict subset of
+	// it, so "+ GLOB.ai_xeno_list" was allocating a fresh concatenated list
+	// (with every AI xeno duplicated in it) on every single call for no
+	// actual coverage gain. Real cost: this runs from patrol()/idle-tick
+	// procs (Healer's Apply Salve/Sacrifice, Valkyrie's Rage/Fight or
+	// Flight/Retrieve) for every Healer/Valkyrie in the hive, every idle
+	// heartbeat - population-scaling waste, not correctness.
+	for(var/mob/living/carbon/xenomorph/ally as anything in GLOB.xeno_mob_list)
+		if(ally == pilot || ally.hivenumber != pilot.hivenumber || ally.stat == DEAD)
+			continue
+		if(get_dist(pilot, ally) > radius)
+			continue
+		if(!ally.maxHealth)
+			continue
+		var/health_fraction = ally.health / ally.maxHealth
+		if(require_damaged && health_fraction >= 1)
+			continue
+		if(health_fraction < worst_health_fraction)
+			worst_health_fraction = health_fraction
+			candidates = list(ally)
+		else if(health_fraction <= worst_health_fraction + 0.05)
+			candidates += ally
+	return length(candidates) ? pick(candidates) : null
+
 /**
  * Checks for a live hive-wide alert (see hive_status.dm's queen_alert_turf/
  * queen_alert_time, set by the Queen controller) and heads there if one
  * exists and hasn't gone stale. Returns FALSE (meaning "nothing to respond
  * to, fall back to normal idle behavior") if the pilot has no hive, no alert
- * is active, the alert is too old, or the pilot is already close enough that
- * normal target scanning should take over instead.
+ * is active, the alert is too old, the pilot is already close enough that
+ * normal target scanning should take over instead, or enough same-hive
+ * xenos are already converging (AI_XENO_HIVE_ALERT_MAX_RESPONDERS - "the
+ * queen ordering the other aliens shouldn't be the only way they behave,
+ * ultimately they'd scout, weed, take over sections of the map on their
+ * own"; unbounded participation also meant a Queen stuck on one bad target
+ * could pull the whole hive toward the same dead end).
  */
 /datum/xeno_ai_controller/proc/respond_to_hive_alert()
 	if(!pilot || pilot.resting) // Healing up (see return_to_anchor()) - let other, healthy hive members answer the call instead.
@@ -809,6 +1139,8 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	// getting a chance to weed/build until it's over.
 	if(get_dist(pilot, alert_turf) > AI_XENO_HIVE_ALERT_RESPONSE_RANGE)
 		return FALSE
+	if(count_nearby_hive_members(alert_turf, AI_XENO_HIVE_ALERT_RESPONDER_RADIUS) >= AI_XENO_HIVE_ALERT_MAX_RESPONDERS)
+		return FALSE // Already enough backup converging - stay on your own business instead of the whole hive piling in.
 	travel_to_broadcast_turf(alert_turf)
 	return TRUE
 
@@ -833,26 +1165,6 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	travel_to_broadcast_turf(escort_turf)
 	return TRUE
 
-/**
- * Checks for a live scouting order from the Queen (hive_status.dm's
- * queen_scout_turf/queen_scout_time, set by queen.dm's
- * broadcast_scout_order()) - lowest patrol priority, just "somewhere
- * purposeful to head instead of aimless wandering." Stops once close
- * enough that normal target scanning should take over from here.
- */
-/datum/xeno_ai_controller/proc/respond_to_scout_order()
-	if(!pilot || pilot.resting)
-		return FALSE
-	if(!pilot.hive?.queen_scout_turf)
-		return FALSE
-	if(world.time - pilot.hive.queen_scout_time > AI_QUEEN_SCOUT_ORDER_WINDOW)
-		return FALSE
-	var/turf/scout_turf = pilot.hive.queen_scout_turf
-	if(get_dist(pilot, scout_turf) <= 3)
-		return FALSE
-	travel_to_broadcast_turf(scout_turf)
-	return TRUE
-
 /// Health fraction (0-1) below which this caste even considers fleeing - overridden per-caste (see crusher.dm) instead of duplicating should_flee()'s decision logic for a different constant.
 /datum/xeno_ai_controller/proc/get_flee_threshold()
 	return AI_XENO_FLEE_HEALTH_PERCENT
@@ -861,9 +1173,33 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 /datum/xeno_ai_controller/proc/get_desperate_threshold()
 	return AI_XENO_DESPERATE_HEALTH_PERCENT
 
-/// TRUE if this xeno can still act (attack/use abilities) despite TRAIT_IMMOBILIZED - the exception for a caste that voluntarily immobilized itself but is still meant to fight from where it's planted (see defender.dm's Fortify override). FALSE by default: an ordinary stun/knockdown should freeze tick() entirely, same as it always has.
+/**
+ * TRUE if this xeno can still act (attack/use abilities) despite
+ * TRAIT_IMMOBILIZED - the exception for a caste that voluntarily
+ * immobilized itself but is still meant to fight from where it's planted
+ * (see defender.dm's Fortify override). FALSE by default: an ordinary
+ * stun/knockdown should freeze tick() entirely, same as it always has.
+ *
+ * "Attacking and moving, only to stop the other time and just get killed
+ * for being idle" - Pounce (XenoProcs.dm's pounced_mob(), the shared base
+ * behind Runner/Lurker/Crusher/Ravager/Facehugger/Vanguard's Prae Dash/base
+ * Praetorian's Dash - virtually every caste's gap-closer) self-immobilizes
+ * via ADD_TRAIT + a plain addtimer(), not a blocking do_after() - so the
+ * pounce call itself returns instantly, but every tick() for the next
+ * pounceAction.freeze_time (1-3+ seconds, ability-specific) hit this same
+ * freeze check and skipped ALL AI logic - no attack, no movement, no
+ * retreat - until the timer cleared, however many tick()s that spanned.
+ * Handled here at the base level (not a per-caste override) since almost
+ * any caste can end up using a pounce-family ability. HAS_TRAIT_FROM_ONLY
+ * (not a bare HAS_TRAIT) matters - TRAIT_IMMOBILIZED isn't exclusively
+ * self-inflicted (TRAIT_KNOCKEDOUT from a real marine-landed stun forces it
+ * too, living.dm), so this only exempts her when Pounce is the *only*
+ * thing holding the trait, never when a genuine hostile stun is stacked on
+ * top of it. Per-caste overrides below chain through here via ..() so they
+ * inherit this for free instead of re-declaring it.
+ */
 /datum/xeno_ai_controller/proc/can_act_while_immobilized()
-	return FALSE
+	return HAS_TRAIT_FROM_ONLY(pilot, TRAIT_IMMOBILIZED, TRAIT_SOURCE_ABILITY("Pounce"))
 
 /**
  * "My idea is to use retreating in combat instead of low health = retreat" -
@@ -958,6 +1294,28 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		if(ally.ai_controller?.ai_state == AI_STATE_RETURNING)
 			continue // Already disengaging itself - doesn't count as backup.
 		if(get_dist(pilot, ally) <= radius)
+			count++
+	return count
+
+/**
+ * Counts same-hive AI xenos actively fighting (AI_STATE_APPROACHING/ATTACKING) within
+ * radius of center_turf - the same scan the Queen's own check_lz_siege()/check_home_siege()
+ * used to do independently as momentary per-tick booleans. Promoted to the base controller
+ * so it's a shared primitive that FEEDS the hive's persistent threat score
+ * (hive_status.dm's add_threat(), driven from hive_director.dm's process_threat()) instead
+ * of being the sole momentary decision by itself.
+ */
+/datum/xeno_ai_controller/proc/count_active_combatants_near(turf/center_turf, radius)
+	if(!pilot || !center_turf)
+		return 0
+	var/count = 0
+	for(var/mob/living/carbon/xenomorph/hive_member as anything in GLOB.ai_xeno_list)
+		if(hive_member == pilot || hive_member.hivenumber != pilot.hivenumber)
+			continue
+		var/datum/xeno_ai_controller/member_controller = hive_member.ai_controller
+		if(!member_controller || (member_controller.ai_state != AI_STATE_APPROACHING && member_controller.ai_state != AI_STATE_ATTACKING))
+			continue
+		if(get_dist(hive_member, center_turf) <= radius)
 			count++
 	return count
 
@@ -1063,8 +1421,25 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
  * doesn't rip focus off a fight already in progress onto every incidental
  * hit from a third party.
  */
+/**
+ * "It's the fleeing mechanic, it breaks the AI completely once they start
+ * fleeing" - does not fire while AI_STATE_RETURNING. She's fleeing
+ * *because* she's already hurt, which is exactly when she's most likely to
+ * keep taking hits mid-flight - acquire_target() (below) unconditionally
+ * sets ai_state = AI_STATE_APPROACHING, which flips her straight out of
+ * AI_STATE_RETURNING. tick()'s very next line re-checks
+ * `ai_state != AI_STATE_RETURNING && should_flee()` - now true again since
+ * the state just changed - and re-triggers the entire flee transition
+ * (drop_target(), back to RETURNING). Every single tick she took damage
+ * while fleeing, this thrashed acquire-flee-drop-acquire forever, never
+ * actually completing either a retreat or a fight. return_to_anchor()
+ * already owns the real "hurt enough to turn and fight instead" decision
+ * (its own desperate-stand branch, re-checking should_flee() every tick on
+ * its own) - retaliation doesn't need to hijack ai_state to make that call
+ * a second, conflicting way.
+ */
 /datum/xeno_ai_controller/proc/check_retaliation()
-	if(!pilot || current_target)
+	if(!pilot || current_target || ai_state == AI_STATE_RETURNING)
 		return
 	if(!pilot.last_damage_data || pilot.last_damage_data == last_retaliation_data)
 		return
