@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>code&#x2F;__DEFINES&#x2F;__xeno_pathfind.dm - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+</header>
+<main>
+<h1>code/__DEFINES/__xeno_pathfind.dm 
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/__xeno_pathfind.dm">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;__xeno_pathfind.dm"/></a></h1>
+
+<table class="summary" cellspacing="0">
+        <tr><th>/var/<a href="global.html#var/__xeno_pathfind_checked">__xeno_pathfind_checked</a></th>
+                <td>Set once the first call either succeeds or fails, so a missing library is only probed once instead of retried every AI tick.</td></tr>
+        <tr><th>/var/<a href="global.html#var/__xeno_pathfind_available">__xeno_pathfind_available</a></th>
+                <td>Whether the native library is actually present and callable on this host.</td></tr>
+        <tr><th>/proc/<a href="global.html#proc/rustg_xeno_pathfind">rustg_xeno_pathfind</a></th>
+                <td>Calls the native A* solver. grid_desc is
+&quot;width,height,start_x,start_y,end_x,end_y&quot; (grid-local coordinates);
+blocked_map is a width*height-length string of '0'/'1' characters,
+row-major. Returns a ';'-separated list of &quot;x,y&quot; grid-local coordinates
+from start to end inclusive, or an empty string if no path exists, the
+input was malformed, or the native library isn't present on this host.</td></tr></table></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;defender - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/defender.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/defender.html">defender</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/defender.dm#L27">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;defender.dm 27"/></a></h1>
+
+<p>Defender AI - a stationary chokepoint tank rather than a chaser
+(can_vent_crawl = 0, built around Fortify's big armor/explosive buff
+while anchored in place). Patrol/search/movement are entirely inherited
+from the base melee controller - only the attack decision differs:</p>
+<ul>
+<li>Tail Sweep (a short AoE knockback) instead of a plain swing whenever
+more than one valid target is already adjacent, same threshold pattern
+as Crusher's Stomp.</li>
+<li>Fortify once actually engaged and not already anchored - she's meant
+to plant herself and hold, not fortify while still mid-chase (Fortify
+immobilizes her, so this only fires once adjacent/attacking).</li>
+<li>Headbutt (knockback + damage) as the default single-target option
+once neither of the above applies, since usable_while_fortified is
+only guaranteed on the steel_crest strain variant - falls through to
+plain melee if it's not off cooldown.</li>
+</ul>
+<p>Un-fortifies to reposition once the target's no longer adjacent instead of
+staying planted uselessly (see process_attack() override) - Fortify sets
+TRAIT_IMMOBILIZED, which used to hit the base tick()'s generic stun/
+knockdown freeze check every single tick while fortified, meaning a
+fortified Defender could never attack OR un-root herself again once the
+fight moved out of reach - the ability effectively bricked her AI for the
+rest of the round. can_act_while_immobilized() below carves out the
+exception so she can still act while deliberately planted.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/defender.html#proc/can_act_while_immobilized">can_act_while_immobilized</a></th><td>Fortify is a deliberate, voluntary immobilize - she's still meant to fight (and, per process_attack() below, un-root) from where she's planted, unlike an ordinary stun/knockdown.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/defender.html#proc/process_attack">process_attack</a></th><td>If the target's wandered out of melee range while she's fortified, staying
+planted accomplishes nothing - un-fortify first so the base process_attack()'s
+own Adjacent check below can transition her to APPROACHING and she can
+actually move again next tick (Fortify also sets anchored = TRUE, which
+blocks movement outright until this runs).</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/can_act_while_immobilized"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/can_act_while_immobilized">&uarr;</a></aside>can_act_while_immobilized<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/defender.dm#L30">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;defender.dm 30"/></a></aside>
+        </h3>
+        <p>Fortify is a deliberate, voluntary immobilize - she's still meant to fight (and, per process_attack() below, un-root) from where she's planted, unlike an ordinary stun/knockdown.</p><h3 id="proc/process_attack"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/process_attack">&uarr;</a></aside>process_attack<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/defender.dm#L41">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;defender.dm 41"/></a></aside>
+        </h3>
+        <p>If the target's wandered out of melee range while she's fortified, staying
+planted accomplishes nothing - un-fortify first so the base process_attack()'s
+own Adjacent check below can transition her to APPROACHING and she can
+actually move again next tick (Fortify also sets anchored = TRUE, which
+blocks movement outright until this runs).</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

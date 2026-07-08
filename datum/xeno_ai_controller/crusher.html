@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;crusher - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/crusher.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/crusher.html">crusher</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L27">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;crusher.dm 27"/></a></h1>
+
+<p>Crusher AI - the hive's frontline tank: a slow, heavily-armored charger
+built to soak damage and punch a hole in whatever's in front of it,
+matching the user's &quot;head-on scary&quot; caste design (as opposed to
+Ravager's hit-and-reposition style - see ravager.dm). Patrol/search
+behavior is entirely inherited from the base controller - the three
+overrides below are what make a Crusher feel different to fight:</p>
+<ul>
+<li>While closing on a target still out of melee range, fires its Charge
+ability (a long dash that knocks down and hits hard on landing)
+instead of plodding over on foot - a Crusher is XENO_SPEED_TIER_2
+(the slowest AI caste built so far), so without this it would take
+noticeably longer than every other caste to actually reach a target.</li>
+<li>Stomps (a self-centered AoE) instead of a plain melee swing whenever
+more than one valid target is already in range, so a Crusher wading
+into a cluster of marines hits all of them, not just whichever one
+it happens to be facing.</li>
+<li>Flees at a much lower health fraction than the default - a Crusher
+is meant to be the wall the hive leans on, not a caste that breaks
+off at the first sign of trouble like a squishier one would.</li>
+</ul>
+<p>Also proactively pops its defensive Shield (explosion immunity + a
+per-hit damage cap) once actually taking a beating (below half health)
+but not yet at the much lower flee threshold - &quot;hurt but still fighting,&quot;
+not a panic button held in reserve forever.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/attempt_charge">attempt_charge</a></th><td>Fires Charge at target if it's off cooldown and within its reach; returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/pathfinding chain.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/attempt_shield">attempt_shield</a></th><td>Pops Shield once actually taking a beating (below half health) but above the much lower flee threshold - &quot;hurt but still fighting.&quot;</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/process_movement">process_movement</a></th><td>Duplicates the base controller's adjacency-to-attacking transition and
+obstacle-handling tail (see xeno_ai_movement.dm's process_movement())
+rather than sharing it, since the trigger condition for &quot;close in&quot; is
+fundamentally different here - a real shared-helper refactor is a
+reasonable follow-up, not done here to avoid touching the
+already-verified base melee path (same tradeoff ranged.dm already
+made for the same reason).</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/use_caste_ability">use_caste_ability</a></th><td>&quot;Crusher never uses their stomping ability when near enemies&quot; - Stomp
+isn't just a self-centered AoE, it also knocks down everything it hits
+(crusher_powers.dm's create_stomp()/get_xeno_stun_duration()), so it was
+wrong to treat it as &quot;strictly worse than a normal attack&quot; against a lone
+target and gate it behind 2+ nearby marines - a single-target knockdown
+is still a big win, and 2+ marines standing that close together is the
+less common case in practice, which is exactly why it read as &quot;never&quot;
+firing. Now fires on anything valid in range, no minimum headcount.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_charge"><aside class="declaration">proc </aside>attempt_charge<aside>(/<a href="atom.html">atom</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L63">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;crusher.dm 63"/></a></aside>
+        </h3>
+        <p>Fires Charge at target if it's off cooldown and within its reach; returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/pathfinding chain.</p><h3 id="proc/attempt_shield"><aside class="declaration">proc </aside>attempt_shield<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L106">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;crusher.dm 106"/></a></aside>
+        </h3>
+        <p>Pops Shield once actually taking a beating (below half health) but above the much lower flee threshold - &quot;hurt but still fighting.&quot;</p><h3 id="proc/process_movement"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/process_movement">&uarr;</a></aside>process_movement<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L41">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;crusher.dm 41"/></a></aside>
+        </h3>
+        <p>Duplicates the base controller's adjacency-to-attacking transition and
+obstacle-handling tail (see xeno_ai_movement.dm's process_movement())
+rather than sharing it, since the trigger condition for &quot;close in&quot; is
+fundamentally different here - a real shared-helper refactor is a
+reasonable follow-up, not done here to avoid touching the
+already-verified base melee path (same tradeoff ranged.dm already
+made for the same reason).</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">&uarr;</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L84">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;crusher.dm 84"/></a></aside>
+        </h3>
+        <p>&quot;Crusher never uses their stomping ability when near enemies&quot; - Stomp
+isn't just a self-centered AoE, it also knocks down everything it hits
+(crusher_powers.dm's create_stomp()/get_xeno_stun_duration()), so it was
+wrong to treat it as &quot;strictly worse than a normal attack&quot; against a lone
+target and gate it behind 2+ nearby marines - a single-target knockdown
+is still a big win, and 2+ marines standing that close together is the
+less common case in practice, which is exactly why it read as &quot;never&quot;
+firing. Now fires on anything valid in range, no minimum headcount.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;ravager - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/ravager.html#var">Var Details</a> - <a href="datum/xeno_ai_controller/ravager.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/ravager.html">ravager</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/ravager.dm#L41">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;ravager.dm 41"/></a></h1>
+
+<p>Ravager AI - the hive's mobile bruiser: no innate dodge/evasion actually
+exists on the base caste (evasion = XENO_EVASION_NONE, confirmed against
+Xenomorph.dm's recalculate_evasion() and projectile.dm's hit-chance
+calc), so &quot;nimble and good at dodging&quot; per the user's original design
+is built here as a behavior instead of a stat: a Ravager sidesteps to a
+flanking tile after most attacks rather than trading blows standing
+still like every other melee caste, and prefers its multi-target
+abilities over a plain swing whenever a fight is worth escalating.
+Patrol/search behavior is entirely inherited from the base controller.</p>
+<ul>
+<li>While closing on a target still out of melee range, fires Charge to
+dash in instead of walking the whole distance - same reasoning as
+crusher.dm, just a shorter-range dash (Ravager's Charge distance is
+5, versus the Crusher's 9).</li>
+<li>Sweeps with Scissor Cut (a frontal line attack reaching several tiles
+ahead) instead of a plain melee swing whenever more than one valid
+target is nearby, so a Ravager fighting a cluster hits several of
+them in one motion rather than only the one it's facing.</li>
+<li>Arms Empower when several hostiles are nearby at once (a real group
+fight, e.g. an LZ siege) rather than every engagement - Empower's
+payoff scales with how many enemies are close when it resolves, so
+using it in a 1-on-1 would waste most of its value. Once armed, its
+own built-in timeout auto-resolves it a few seconds later (see
+empower/timeout() in Ravager.dm) - the AI doesn't need to remember to
+fire it a second time itself.</li>
+<li>After landing an attack, has a chance to sidestep to a flanking tile
+instead of standing in place - a Ravager should look like it's
+circling its prey, not slugging it out toe-to-toe. Always circles the
+same rotational direction (picked once, see circle_dir) rather than
+re-rolling left-vs-right each time - randomizing the side every attack
+produced a visible left-right-left wobble (&quot;walks in triangles&quot;)
+instead of an actual circling motion.</li>
+</ul>
+<p>Repositioning isn't just a flat probability roll - see process_attack():
+taking damage since her own last attack forces a reposition outright (a
+real reactive dodge, &quot;I just got hit, circle now&quot;) on top of the base
+chance the rest of the time, so getting shot actually makes her harder to
+pin down instead of only ever moving on an unrelated random tick.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/ravager.html#var/circle_dir">circle_dir</a></th><td>Rotational direction (90 or -90, relative to the direction facing the target) this Ravager always sidesteps toward - picked once so its circling reads as one consistent motion instead of a random left-right wobble.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/ravager.html#var/last_known_health">last_known_health</a></th><td>pilot.health as of the last process_attack() call - see the reactive-dodge check there.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/ravager.html#proc/attempt_charge">attempt_charge</a></th><td>Fires Charge at target if it's off cooldown and within its reach; returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/pathfinding chain.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/ravager.html#proc/process_attack">process_attack</a></th><td>Adds a post-attack flanking step on top of the base attack handling -
+this is the &quot;nimble&quot; half of the caste's identity, independent of
+whichever ability (or plain melee) actually landed above.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/ravager.html#proc/process_movement">process_movement</a></th><td>Same duplication tradeoff as crusher.dm - the &quot;close in&quot; trigger
+condition (attempt a dash first) differs enough from the base melee
+approach that this is a full override rather than a shared helper.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/ravager.html#proc/use_caste_ability">use_caste_ability</a></th><td>Prefers Scissor Cut (hits everything in a line several tiles ahead)
+over a plain melee swing whenever more than one valid target is
+nearby, then considers arming Empower when a real group fight is
+happening. Falls through to the inherited single-target melee whenever
+neither condition is met (the common case: a normal 1-on-1).</td></tr></table>
+    <h2 id="var">Var Details</h2><h3 id="var/circle_dir"><aside class="declaration">var </aside>circle_dir
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/ravager.dm#L43">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;ravager.dm 43"/></a></h3>
+        <p>Rotational direction (90 or -90, relative to the direction facing the target) this Ravager always sidesteps toward - picked once so its circling reads as one consistent motion instead of a random left-right wobble.</p><h3 id="var/last_known_health"><aside class="declaration">var </aside>last_known_health
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/ravager.dm#L47">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;ravager.dm 47"/></a></h3>
+        <p>pilot.health as of the last process_attack() call - see the reactive-dodge check there.</p><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_charge"><aside class="declaration">proc </aside>attempt_charge<aside>(/<a href="atom.html">atom</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/ravager.dm#L89">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;ravager.dm 89"/></a></aside>
+        </h3>
+        <p>Fires Charge at target if it's off cooldown and within its reach; returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/pathfinding chain.</p><h3 id="proc/process_attack"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/process_attack">&uarr;</a></aside>process_attack<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/ravager.dm#L150">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;ravager.dm 150"/></a></aside>
+        </h3>
+        <p>Adds a post-attack flanking step on top of the base attack handling -
+this is the &quot;nimble&quot; half of the caste's identity, independent of
+whichever ability (or plain melee) actually landed above.</p><h3 id="proc/process_movement"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/process_movement">&uarr;</a></aside>process_movement<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/ravager.dm#L56">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;ravager.dm 56"/></a></aside>
+        </h3>
+        <p>Same duplication tradeoff as crusher.dm - the &quot;close in&quot; trigger
+condition (attempt a dash first) differs enough from the base melee
+approach that this is a full override rather than a shared helper.</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">&uarr;</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/ravager.dm#L107">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;ravager.dm 107"/></a></aside>
+        </h3>
+        <p>Prefers Scissor Cut (hits everything in a line several tiles ahead)
+over a plain melee swing whenever more than one valid target is
+nearby, then considers arming Empower when a real group fight is
+happening. Falls through to the inherited single-target melee whenever
+neither condition is met (the common case: a normal 1-on-1).</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

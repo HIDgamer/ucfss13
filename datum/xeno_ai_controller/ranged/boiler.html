@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;ranged&#x2F;boiler - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/ranged/boiler.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/ranged.html">ranged</a>/<a href="datum/xeno_ai_controller/ranged/boiler.html">boiler</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm#L17">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;boiler.dm 17"/></a></h1>
+
+<p>Boiler AI - &quot;should only use ranged attacks, and only attack if enemies
+get too close, otherwise attack ranged, hide, then come out to attack
+again once the ability has recharged.&quot; Bombard has a genuine 60s cooldown
+(general_abilities.dm's base xeno_spit, which bombard inherits unchanged)</p>
+<ul>
+<li>the ranged base's own melee fallback (ranged.dm's process_attack(), used
+whenever nothing's off cooldown) would have her closing to melee for most
+of that minute, exactly the opposite of &quot;only use ranged attacks.&quot; Fully
+overrides both process_attack() and process_movement() instead of
+inheriting the shared kiting policy: rotates Bombard/Spray Acid (10s
+cooldown - the old code never actually looked at this second ability, so
+there was nothing to fall back on but melee) when either is up, actively
+retreats out to a safe distance whenever both are on cooldown instead of
+holding the kiting band and waiting to get pounced on, and only ever
+swings in melee once something is already adjacent.</li>
+</ul><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/ranged/boiler.html#proc/process_movement">process_movement</a></th><td>&quot;Attack ranged, hide, then come out to attack again once the ability has
+recharged&quot; - retreats to a wider, safer distance whenever nothing's off
+cooldown, instead of holding the plain ranged kiting band and waiting
+around to get closed on. Once something's ready again, closes back in to
+the normal preferred band so process_attack() can actually use it.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/process_movement"><aside class="parent"><a title="/datum/xeno_ai_controller/ranged" href="datum/xeno_ai_controller/ranged.html#proc/process_movement">&uarr;</a></aside>process_movement<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm#L57">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;boiler.dm 57"/></a></aside>
+        </h3>
+        <p>&quot;Attack ranged, hide, then come out to attack again once the ability has
+recharged&quot; - retreats to a wider, safer distance whenever nothing's off
+cooldown, instead of holding the plain ranged kiting band and waiting
+around to get closed on. Once something's ready again, closes back in to
+the normal preferred band so process_attack() can actually use it.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

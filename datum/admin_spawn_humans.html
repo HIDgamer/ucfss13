@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;admin_spawn_humans - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/admin_spawn_humans.html#var">Var Details</a> - <a href="datum/admin_spawn_humans.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/admin_spawn_humans.html">admin_spawn_humans</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/admin/tabs/event_tab.dm#L881">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;admin&#x2F;tabs&#x2F;event_tab.dm 881"/></a></h1>
+
+<table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr>
+            <tr><th><a href="datum/admin_spawn_humans.html#var/pending_params">pending_params</a></th><td>Spawn params stashed by &quot;spawn&quot; while armed, consumed by InterceptClickOn() once the admin clicks a tile.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/admin_spawn_humans.html#proc/InterceptClickOn">InterceptClickOn</a></th><td>Stays armed after a spawn instead of consuming pending_params on the first
+click, so an admin can place a whole squad by clicking tile after tile -
+right-click (matching the same LEFT_CLICK/RIGHT_CLICK modifier check
+buildmode's own click-intercept modes use) is what actually cancels it.</td></tr>
+            <tr><th><a href="datum/admin_spawn_humans.html#proc/arm_spawn">arm_spawn</a></th><td>Pressing Spawn arms this instead of spawning immediately; the admin's next map click (see InterceptClickOn) is where it actually happens.</td></tr>
+            <tr><th><a href="datum/admin_spawn_humans.html#proc/do_spawn">do_spawn</a></th><td>&quot;the ability to spawn multiple xenos, multiple different types at once&quot;
+applied the same way to humans - params[&quot;queue&quot;] is a list of {job, count}
+rows built up client-side (see AdminSpawnHumans.jsx's &quot;Add to Queue&quot;), all
+spawned together into the same clicked turf/range in one do_spawn() call.</td></tr>
+            <tr><th><a href="datum/admin_spawn_humans.html#proc/ui_close">ui_close</a></th><td>Closing the window (not just cancelling) left the spawn armed forever since nothing else cleared click_intercept - clear it here too.</td></tr></table>
+    <h2 id="var">Var Details</h2><h3 id="var/pending_params"><aside class="declaration">var </aside>pending_params
+            <aside>&ndash; /list</aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/admin/tabs/event_tab.dm#L886">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;admin&#x2F;tabs&#x2F;event_tab.dm 886"/></a></h3>
+        <p>Spawn params stashed by &quot;spawn&quot; while armed, consumed by InterceptClickOn() once the admin clicks a tile.</p><h2 id="proc">Proc Details</h2><h3 id="proc/InterceptClickOn"><aside class="declaration">proc </aside>InterceptClickOn<aside>(/<a href="mob.html">mob</a>/user, params, /<a href="atom.html">atom</a>/A) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/admin/tabs/event_tab.dm#L939">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;admin&#x2F;tabs&#x2F;event_tab.dm 939"/></a></aside>
+        </h3>
+        <p>Stays armed after a spawn instead of consuming pending_params on the first
+click, so an admin can place a whole squad by clicking tile after tile -
+right-click (matching the same LEFT_CLICK/RIGHT_CLICK modifier check
+buildmode's own click-intercept modes use) is what actually cancels it.</p><h3 id="proc/arm_spawn"><aside class="declaration">proc </aside>arm_spawn<aside>(/<a href="mob.html">mob</a>/user, /list/params) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/admin/tabs/event_tab.dm#L926">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;admin&#x2F;tabs&#x2F;event_tab.dm 926"/></a></aside>
+        </h3>
+        <p>Pressing Spawn arms this instead of spawning immediately; the admin's next map click (see InterceptClickOn) is where it actually happens.</p><h3 id="proc/do_spawn"><aside class="declaration">proc </aside>do_spawn<aside>(/<a href="mob.html">mob</a>/user, /<a href="turf.html">turf</a>/spawn_turf, /list/params) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/admin/tabs/event_tab.dm#L994">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;admin&#x2F;tabs&#x2F;event_tab.dm 994"/></a></aside>
+        </h3>
+        <p>&quot;the ability to spawn multiple xenos, multiple different types at once&quot;
+applied the same way to humans - params[&quot;queue&quot;] is a list of {job, count}
+rows built up client-side (see AdminSpawnHumans.jsx's &quot;Add to Queue&quot;), all
+spawned together into the same clicked turf/range in one do_spawn() call.</p><h3 id="proc/ui_close"><aside class="parent"><a title="/datum" href="datum.html#proc/ui_close">&uarr;</a></aside>ui_close<aside>(/<a href="mob.html">mob</a>/user) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/admin/tabs/event_tab.dm#L903">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;admin&#x2F;tabs&#x2F;event_tab.dm 903"/></a></aside>
+        </h3>
+        <p>Closing the window (not just cancelling) left the spawn armed forever since nothing else cleared click_intercept - clear it here too.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

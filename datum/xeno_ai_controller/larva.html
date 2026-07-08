@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;larva - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/larva.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/larva.html">larva</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm#L16">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;larva.dm 16"/></a></h1>
+
+<p>Larva AI - &quot;larva needs to hide, and just in general be scared since they
+are fragile.&quot; Unlike every other caste's controller, spotting a living
+hostile at all is the flee trigger here, not taking damage - a larva has
+no attack worth using and dies in one or two hits, so the generic
+approach-and-attack default (inherited from the base controller before
+this file existed) was actively suicidal. should_flee() is completely
+overridden rather than just tuning get_flee_threshold() higher, since the
+base version's health/ally-count/target-condition reasoning (&quot;finish it
+off,&quot; &quot;not fighting alone&quot;) all assume a xeno that can actually win a
+fight - none of that applies to her. She never enters AI_STATE_ATTACKING
+at all: the base tick()'s flee-check runs before movement/attack logic
+every tick, so an unconditional should_flee() intercepts her before she'd
+ever close distance on a target.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/larva.html#proc/get_desperate_threshold">get_desperate_threshold</a></th><td>Never - she has no attack worth turning around for, cornered or not. Always keep running/hiding instead of return_to_anchor()'s generic desperate-stand fallback.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/larva.html#proc/should_flee">should_flee</a></th><td>Spotting any valid living hostile is reason enough to run - no health/ally/target-condition exceptions, she can't win a fight regardless of the numbers.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/get_desperate_threshold"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/get_desperate_threshold">&uarr;</a></aside>get_desperate_threshold<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm#L25">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;larva.dm 25"/></a></aside>
+        </h3>
+        <p>Never - she has no attack worth turning around for, cornered or not. Always keep running/hiding instead of return_to_anchor()'s generic desperate-stand fallback.</p><h3 id="proc/should_flee"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/should_flee">&uarr;</a></aside>should_flee<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm#L19">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;larva.dm 19"/></a></aside>
+        </h3>
+        <p>Spotting any valid living hostile is reason enough to run - no health/ally/target-condition exceptions, she can't win a fight regardless of the numbers.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

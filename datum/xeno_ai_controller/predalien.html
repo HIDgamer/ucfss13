@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;predalien - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/predalien.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/predalien.html">predalien</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/predalien.dm#L21">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;predalien.dm 21"/></a></h1>
+
+<p>Predalien AI - &quot;could use a face lift in the combat department too.&quot; The
+old AI only ever threw Feral Smash and nothing else, despite a real kit
+of five offensive/support actions (Predalien.dm's base_actions):</p>
+<ul>
+<li>Feral Rush (self speed/armor buff, no target) - popped once at the
+start of an engagement rather than never used at all.</li>
+<li>Feral Smash (grab-lunge-slam, works from range same as Warrior's
+Lunge) - now fired as a gap-closer while still approaching, on top of
+its existing use as a hard-hitting finisher once adjacent.</li>
+<li>Eviscerate/Devastate (feralfrenzy, single-target by default per
+toggle_gut_targeting's initial value) - the actual biggest finisher in
+the kit, immobilizes both her and the target for a windup then deals
+heavy damage; preferred over a plain Feral Smash reuse once adjacent.</li>
+<li>Predalien Roar (AoE debuff on nearby humans + a stacking buff for
+nearby same-hive xenos) - fired opportunistically on engagement, cheap
+value that cost nothing to add.</li>
+<li>Tail Stab - the plain melee fallback once everything else is on
+cooldown, instead of a bare claw swing.</li>
+</ul><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/predalien.html#proc/attempt_feral_rush">attempt_feral_rush</a></th><td>Self-buff, no target needed - fires once per cooldown rather than never at all.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/predalien.html#proc/attempt_roar">attempt_roar</a></th><td>AoE debuff/support - opportunistic, no real downside to firing it the moment it's off cooldown while a fight's on.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_feral_rush"><aside class="declaration">proc </aside>attempt_feral_rush<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/predalien.dm#L48">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;predalien.dm 48"/></a></aside>
+        </h3>
+        <p>Self-buff, no target needed - fires once per cooldown rather than never at all.</p><h3 id="proc/attempt_roar"><aside class="declaration">proc </aside>attempt_roar<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/predalien.dm#L56">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;predalien.dm 56"/></a></aside>
+        </h3>
+        <p>AoE debuff/support - opportunistic, no real downside to firing it the moment it's off cooldown while a fight's on.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

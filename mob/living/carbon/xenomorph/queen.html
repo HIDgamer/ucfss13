@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;queen - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="mob/living/carbon/xenomorph/queen.html#proc">Proc Details</a></header>
+<main>
+<h1>Queen <aside>/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/<a href="mob/living/carbon/xenomorph/queen.html">queen</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/castes/Queen.dm#L256">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;castes&#x2F;Queen.dm 256"/></a></h1>
+
+<table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="mob/living/carbon/xenomorph/queen.html#proc/force_immature">force_immature</a></th><td>Reverses make_combat_effective() for admin &quot;spawn as Immature&quot; testing -
+meant to be called immediately after construction, before she's acted.
+A freshly-spawned Queen is normally combat-effective right away (Initialize()
+only defers to the age timer when hive.dynamic_evolution is on), so this
+undoes that: give_combat_abilities()'s own hide_from() pass only hides the
+action button, it doesn't actually revoke the ability - remove_action() is
+what takes Screech/the spit macro/shift_spits back out of pilot.actions so
+an immature Queen genuinely can't use them, not just that their buttons
+are hidden. Re-arms the real age-up timer afterward so she still matures
+naturally after XENO_QUEEN_AGE_TIME, same as any hatched-immature Queen.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/force_immature"><aside class="declaration">proc </aside>force_immature<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/castes/Queen.dm#L525">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;castes&#x2F;Queen.dm 525"/></a></aside>
+        </h3>
+        <p>Reverses make_combat_effective() for admin &quot;spawn as Immature&quot; testing -
+meant to be called immediately after construction, before she's acted.
+A freshly-spawned Queen is normally combat-effective right away (Initialize()
+only defers to the age timer when hive.dynamic_evolution is on), so this
+undoes that: give_combat_abilities()'s own hide_from() pass only hides the
+action button, it doesn't actually revoke the ability - remove_action() is
+what takes Screech/the spit macro/shift_spits back out of pilot.actions so
+an immature Queen genuinely can't use them, not just that their buttons
+are hidden. Re-arms the real age-up timer afterward so she still matures
+naturally after XENO_QUEEN_AGE_TIME, same as any hatched-immature Queen.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

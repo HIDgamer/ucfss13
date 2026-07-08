@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;praetorian - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/praetorian.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/praetorian.html">praetorian</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/praetorian.dm#L11">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;praetorian.dm 11"/></a></h1>
+
+<p>Praetorian AI - a melee-primary hybrid &quot;warleader&quot;: closes with Dash like
+Crusher/Ravager's own dashes, throws Acid Ball as a heavy periodic hit in
+between plain swings, then deliberately breaks off - &quot;hop into action,
+use its abilities, slash marines, and hop back into safety, and repeat.&quot;
+Per the user's explicit design (&quot;use retreating in combat instead of low
+health = retreat&quot;), this is a proactive hit-and-run rotation, not
+should_flee()'s health-threshold panic button - see the shared
+start_tactical_retreat()/is_tactical_retreating() helpers.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/praetorian.html#proc/attempt_dash">attempt_dash</a></th><td>Fires Dash at target if it's off cooldown and within its reach; returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/pathfinding chain.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/praetorian.html#proc/process_movement">process_movement</a></th><td>Same duplication tradeoff as crusher.dm/ravager.dm/runner.dm/warrior.dm -
+attempting the dash before falling through to the inherited approach
+chain differs enough from the base melee policy to warrant a full
+override.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/praetorian.html#proc/use_caste_ability">use_caste_ability</a></th><td>&quot;Slash marines and hop back into safety&quot; - Acid Ball is the &quot;use its abilities&quot; hit that ends the engagement window; without it, a chance per plain swing still eventually breaks off the fight.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_dash"><aside class="declaration">proc </aside>attempt_dash<aside>(/<a href="atom.html">atom</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/praetorian.dm#L51">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;praetorian.dm 51"/></a></aside>
+        </h3>
+        <p>Fires Dash at target if it's off cooldown and within its reach; returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/pathfinding chain.</p><h3 id="proc/process_movement"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/process_movement">&uarr;</a></aside>process_movement<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/praetorian.dm#L19">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;praetorian.dm 19"/></a></aside>
+        </h3>
+        <p>Same duplication tradeoff as crusher.dm/ravager.dm/runner.dm/warrior.dm -
+attempting the dash before falling through to the inherited approach
+chain differs enough from the base melee policy to warrant a full
+override.</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">&uarr;</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/praetorian.dm#L63">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;praetorian.dm 63"/></a></aside>
+        </h3>
+        <p>&quot;Slash marines and hop back into safety&quot; - Acid Ball is the &quot;use its abilities&quot; hit that ends the engagement window; without it, a chance per plain swing still eventually breaks off the fight.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

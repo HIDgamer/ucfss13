@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;queen - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/queen.html#var">Var Details</a> - <a href="datum/xeno_ai_controller/queen.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/queen.html">queen</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L70">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 70"/></a></h1>
+
+<p>Queen AI - fundamentally different from every other caste's controller:
+her default loop is hive economy and command (build the hive, sit her
+throne, direct the hive toward threats), not chase-and-attack. She only
+drops into the shared combat loop (via ..() -&gt; the base tick()'s normal
+state machine) when a threat is actually visible or the hive needs her,
+matching the user's design: &quot;if the hive is under heavy attack she would
+assist if all other conditions such as the hive not needing eggs or
+anything else check out.&quot;</p>
+<p>There is only ever one living Queen per hive at a time, so unlike every
+other controller in this file, her AI is deliberately NOT budgeted for
+population scale - she gets a wider awareness radius
+(AI_QUEEN_ATTACK_DISTANCE/RETURN_DISTANCE) and does real per-tick
+hive-wide reasoning (scanning GLOB.ai_xeno_list for a siege - see
+check_lz_siege()) that would be inappropriate to give every Drone.</p>
+<p>Capabilities:</p>
+<ul>
+<li>Throne: once the Hive Core is up and nothing's actively threatening her,
+she mounts the ovipositor for real - &quot;she can ovi for roleplay.&quot; Staying
+mounted keeps laying eggs (Life()'s own passive accumulation, unchanged)
+and, since Screech/the spit macro/shift_spits get force-granted to her
+the instant she mounts regardless of maturity (mount_ovipositor(),
+Queen.dm), she's never actually defenseless while sitting there even if
+she hasn't aged up naturally. She isn't idle on the throne either:
+she keeps issuing scouting orders and periodically uses expand_weeds (an
+ovi-exclusive remote-targeted ability) to grow the hive's territory
+without needing to physically move - &quot;build and scout... in weeded
+areas&quot; while staying on ovi. (&quot;Queen Eye&quot; itself - the player-facing
+remote-camera ability - only relocates a <em>client's</em> screen view
+(client.eye); an AI pilot has no client and already isn't limited by
+camera range in the first place (every scan here works off direct
+object/turf references), so literally invoking it would be a pure
+no-op dressed up as behavior. The scouting/building she already does
+from the throne below delivers the same intent - stay put, stay aware,
+stay useful - without pretending to use an ability that wouldn't do
+anything for her.) Dismounting is always instant and unthrottled - a
+real threat is a reflex, not a decision - but re-mounting afterward
+waits out AI_QUEEN_REMOUNT_COOLDOWN so a borderline threat-check can't
+thrash her in and out of ovi tick after tick.</li>
+<li>Economy: builds the Hive Core and expands weed coverage, on the ground
+before she's earned her throne and remotely once she has it.</li>
+<li>Command: broadcasts a hive-wide alert (hive_status.dm's
+queen_alert_turf/queen_alert_time) whenever she has a live target -
+every other same-hive AI xeno checks this during idle patrol
+(xeno_ai_controller.dm's respond_to_hive_alert()) and heads there
+instead of wandering. This is how she &quot;commands&quot; the hive without a
+hard command hierarchy.</li>
+<li>LZ siege response: if enough same-hive AI xenos are actively fighting
+near the marine LZ at once (AI_QUEEN_LZ_SIEGE_THRESHOLD within
+AI_QUEEN_LZ_SIEGE_RADIUS), she personally dismounts/stops patrolling
+and joins the assault, per the user's explicit direction that she
+should join her children once the hive is heavily attacking the LZ.</li>
+<li>Group Screech: &quot;Screech is her most powerful ability&quot; - when a target
+isn't alone (AI_QUEEN_GROUP_SCREECH_THRESHOLD or more hostiles clustered
+within AI_QUEEN_GROUP_SCREECH_RADIUS of it), she opens with Screech
+before closing the distance instead of only ever using it reactively
+once she's already adjacent and swinging.</li>
+<li>Last stand: overrides should_flee() so that when the base logic says
+she'd retreat (critically wounded/on fire) but she's the hive's only
+living member, she stands and fights instead - retreating would only
+delay the inevitable while abandoning the fight for nothing.</li>
+</ul>
+<p>Known interim simplification: threat assessment is still just &quot;is there a
+visible target,&quot; not a weighted evaluation of multiple simultaneous
+threats, and there's no persistent &quot;under sustained siege at home&quot; memory
+distinct from the momentary LZ-siege check - reasonable follow-ups once
+this is proven in a real round.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#var/initial_builds_done">initial_builds_done</a></th><td>Successful plant_weeds actions committed since spawning - see AI_QUEEN_MIN_INITIAL_BUILDS/tick()'s build-before-ovi gate.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#var/next_expand_weeds_attempt">next_expand_weeds_attempt</a></th><td>world.time she can next use expand_weeds from the throne - throttles attempt_expand_weeds() the same way next_scout_order throttles scouting orders.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#var/next_mount_attempt">next_mount_attempt</a></th><td>world.time she's next willing to mount the ovipositor - set on dismount, see AI_QUEEN_REMOUNT_COOLDOWN.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#var/next_scout_order">next_scout_order</a></th><td>world.time she can next issue a scout order - throttles broadcast_scout_order() to a slow cadence instead of re-picking a point every idle tick.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#var/scout_radius">scout_radius</a></th><td>Current half-width of the area broadcast_scout_order() picks a point within, centered on her anchor - grows over time (up to AI_QUEEN_SCOUT_RADIUS_MAX) while nothing's been found yet, &quot;slowly expanding the search.&quot;</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/attempt_build_hive_core">attempt_build_hive_core</a></th><td>&quot;She is unable to finish building the hive core once its construction
+node is built (you have to keep filling it with plasma as you regenerate
+plasma, don't spam it either just wait long enough)&quot; - place_construction
+can never re-place the Hive Core once the empty node exists
+(check_alien_construction(), XenoProcs.dm, treats the node itself as an
+obstacle and refuses), so retrying it forever was a dead end: the plasma
+cost she was banking for a re-placement was never the real requirement.
+The node's actual 1000-plasma build cost (construction_template_xenomorph.dm -
+a completely separate number from the 400-plasma placement fee below) is
+meant to be fed
+incrementally by attacking the standing node with something other than
+harm intent (construction_node.dm's attack_alien() -&gt; add_crystal(),
+which drains her current plasma into it and makes her stand still for
+its own 4-second windup) - exactly the real &quot;wait for plasma, feed again,
+don't spam&quot; mechanic. Locates the node once it exists and feeds it
+instead of endlessly retrying the placement ability against it.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/attempt_expand_weeds">attempt_expand_weeds</a></th><td>Ovi-exclusive remote-targeted build ability (mount_ovipositor()'s
+immobile_abilities list, Queen.dm) - lets her keep growing the hive's
+weed footprint from the throne instead of that work stopping dead the
+moment she mounts. Picks a plain nearby candidate rather than a careful
+frontier search - expand_weeds' own use_ability() already validates
+weedability/area eligibility and just silently no-ops on a bad tile, so a
+wasted attempt here and there costs nothing.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/attempt_group_screech">attempt_group_screech</a></th><td>&quot;Screech is her most powerful ability&quot; - opens with it against a real
+cluster instead of only ever using it reactively once she's already
+adjacent and swinging (see use_caste_ability()'s own attempt_screech()
+call, unchanged, for that reactive case). attempt_screech() itself is
+cooldown/plasma-safe to call speculatively, so the only extra gate needed
+here is &quot;is this actually a group&quot; - a lone marine doesn't justify
+announcing her position from range for a single-target AoE.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/attempt_screech">attempt_screech</a></th><td>AoE fear/disorient - &quot;she should use her special ability Screech too.&quot; Opportunistic, no real downside to firing it the moment it's off cooldown while cornered into melee.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/broadcast_scout_order">broadcast_scout_order</a></th><td>Issues a fresh &quot;scout toward here&quot; order on a slow cadence while idle,
+expanding the search radius each time (up to AI_QUEEN_SCOUT_RADIUS_MAX)</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/check_home_siege">check_home_siege</a></th><td>Same scan as check_lz_siege(), centered on her own anchor_turf instead of
+the marine LZ - &quot;a persistent under-sustained-siege-at-home read, distinct
+from the momentary LZ-siege check.&quot; Previously she had no notion of a raid
+reaching the hive itself unless a marine wandered directly into her own
+personal scan radius - several daughters already fighting for their lives
+right next to her patrol area went completely unnoticed if she personally
+hadn't spotted anyone yet.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/check_lz_siege">check_lz_siege</a></th><td>Counts same-hive AI xenos actively fighting (AI_STATE_APPROACHING/ATTACKING)
+near the marine LZ - if enough are engaged at once, this counts as a heavy
+siege worth the Queen personally joining, per explicit design direction.
+Cheap only because there's a single Queen instance doing this scan, not
+something every caste's controller could afford.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/get_flee_threshold">get_flee_threshold</a></th><td>Higher than the population default - &quot;she is big and slow and easy to kill,&quot; a huge investment that's hard to save if she overcommits, so she breaks off earlier than a disposable population-scale caste would.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/patrol">patrol</a></th><td>She has plant_weeds in her own base_actions same as a Drone (see
+Queen.dm) but the base controller never called it for her - same
+build-duty pattern as drone_worker.dm, just her own (higher, since
+she's one unit rather than a population) chance. Also issues a fresh
+scout order every so often while idle - &quot;constantly order her hive to
+focus on specific areas... slowly expand their scouting area&quot; - see
+broadcast_scout_order().</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/process_attack">process_attack</a></th><td>&quot;Modify the sentinel and queen AI to only use ranged, and to use melee if
+unable to escape or enemies are too close&quot; - overrides process_attack()
+so melee is only ever the cornered case, and delegates positioning to the
+shared maintain_kiting_distance() helper (xeno_ai_movement.dm) the same
+way Boiler/Sentinel do, instead of the old &quot;close to melee, only back off
+once already hurt&quot; policy.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/select_spit_type">select_spit_type</a></th><td>&quot;Spitting is her main ability in combat, make sure she switches between
+neuro spit and acid spit on demand, not at random&quot; - shift_spits is a
+plain toggle (cycles to whichever ammo type comes next in
+caste.spit_types), so with exactly two entries &quot;on demand&quot; just means
+comparing her current ammo against the one the situation calls for and
+toggling only when they differ, instead of never touching it at all
+(leaving her stuck on whichever type she happened to spawn with for the
+whole round). Acid Spatter up close for the bigger single hit, Neurotoxin
+at range for the harassing DoT/slow while she's still closing or holding
+distance.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/should_flee">should_flee</a></th><td>Only flees if the base logic would AND she isn't the hive's last living
+member - if she's alone, retreating accomplishes nothing but delaying the
+inevitable while abandoning the fight, so she makes her stand instead.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/should_mount_ovipositor">should_mount_ovipositor</a></th><td>Gates mounting the ovipositor: the hive needs its Core already (the
+throne is earned, not a shortcut around unfinished building), she needs
+to actually be standing on her own hive's weeds (mount_ovipositor() has no
+location requirement of its own, but a Queen anchoring herself in a
+random hallway would be a strange place to hold court), the remount
+cooldown from her last dismount needs to have passed, and grow_ovipositor
+needs to still be off cooldown (it's the same action a player mounts
+with, and use_ability() already no-ops safely if it isn't ready).</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/queen.html#proc/use_caste_ability">use_caste_ability</a></th><td>Only offensive melee special she has worth reaching for as an AI: an
+8-second, fully-interruptible windup that instantly gibs whatever's
+adjacent when it completes (queen_gut() in Queen.dm). &quot;Queen should only
+gib if the enemy that just attacked is dead and not moving, otherwise she
+should stop trying to gib mid battle&quot; - the old gate only checked whether
+anything ELSE nearby could interrupt her, not whether the target itself
+was actually helpless, so she'd still commit the whole windup against a
+live, mobile opponent that could just walk or hit her out of it. Now only
+used to finish something already down (dead or floored/incapacitated),
+never as a mid-fight opener against something still fighting back.</td></tr></table>
+    <h2 id="var">Var Details</h2><h3 id="var/initial_builds_done"><aside class="declaration">var </aside>initial_builds_done
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L76">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 76"/></a></h3>
+        <p>Successful plant_weeds actions committed since spawning - see AI_QUEEN_MIN_INITIAL_BUILDS/tick()'s build-before-ovi gate.</p><h3 id="var/next_expand_weeds_attempt"><aside class="declaration">var </aside>next_expand_weeds_attempt
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L80">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 80"/></a></h3>
+        <p>world.time she can next use expand_weeds from the throne - throttles attempt_expand_weeds() the same way next_scout_order throttles scouting orders.</p><h3 id="var/next_mount_attempt"><aside class="declaration">var </aside>next_mount_attempt
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L78">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 78"/></a></h3>
+        <p>world.time she's next willing to mount the ovipositor - set on dismount, see AI_QUEEN_REMOUNT_COOLDOWN.</p><h3 id="var/next_scout_order"><aside class="declaration">var </aside>next_scout_order
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L74">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 74"/></a></h3>
+        <p>world.time she can next issue a scout order - throttles broadcast_scout_order() to a slow cadence instead of re-picking a point every idle tick.</p><h3 id="var/scout_radius"><aside class="declaration">var </aside>scout_radius
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L72">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 72"/></a></h3>
+        <p>Current half-width of the area broadcast_scout_order() picks a point within, centered on her anchor - grows over time (up to AI_QUEEN_SCOUT_RADIUS_MAX) while nothing's been found yet, &quot;slowly expanding the search.&quot;</p><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_build_hive_core"><aside class="declaration">proc </aside>attempt_build_hive_core<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/<a href="mob/living/carbon/xenomorph/queen.html">queen</a>/queen_pilot) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L271">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 271"/></a></aside>
+        </h3>
+        <p>&quot;She is unable to finish building the hive core once its construction
+node is built (you have to keep filling it with plasma as you regenerate
+plasma, don't spam it either just wait long enough)&quot; - place_construction
+can never re-place the Hive Core once the empty node exists
+(check_alien_construction(), XenoProcs.dm, treats the node itself as an
+obstacle and refuses), so retrying it forever was a dead end: the plasma
+cost she was banking for a re-placement was never the real requirement.
+The node's actual 1000-plasma build cost (construction_template_xenomorph.dm -
+a completely separate number from the 400-plasma placement fee below) is
+meant to be fed
+incrementally by attacking the standing node with something other than
+harm intent (construction_node.dm's attack_alien() -&gt; add_crystal(),
+which drains her current plasma into it and makes her stand still for
+its own 4-second windup) - exactly the real &quot;wait for plasma, feed again,
+don't spam&quot; mechanic. Locates the node once it exists and feeds it
+instead of endlessly retrying the placement ability against it.</p><h3 id="proc/attempt_expand_weeds"><aside class="declaration">proc </aside>attempt_expand_weeds<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/<a href="mob/living/carbon/xenomorph/queen.html">queen</a>/queen_pilot) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L234">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 234"/></a></aside>
+        </h3>
+        <p>Ovi-exclusive remote-targeted build ability (mount_ovipositor()'s
+immobile_abilities list, Queen.dm) - lets her keep growing the hive's
+weed footprint from the throne instead of that work stopping dead the
+moment she mounts. Picks a plain nearby candidate rather than a careful
+frontier search - expand_weeds' own use_ability() already validates
+weedability/area eligibility and just silently no-ops on a bad tile, so a
+wasted attempt here and there costs nothing.</p><h3 id="proc/attempt_group_screech"><aside class="declaration">proc </aside>attempt_group_screech<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L390">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 390"/></a></aside>
+        </h3>
+        <p>&quot;Screech is her most powerful ability&quot; - opens with it against a real
+cluster instead of only ever using it reactively once she's already
+adjacent and swinging (see use_caste_ability()'s own attempt_screech()
+call, unchanged, for that reactive case). attempt_screech() itself is
+cooldown/plasma-safe to call speculatively, so the only extra gate needed
+here is &quot;is this actually a group&quot; - a lone marine doesn't justify
+announcing her position from range for a single-target AoE.</p><h3 id="proc/attempt_screech"><aside class="declaration">proc </aside>attempt_screech<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L441">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 441"/></a></aside>
+        </h3>
+        <p>AoE fear/disorient - &quot;she should use her special ability Screech too.&quot; Opportunistic, no real downside to firing it the moment it's off cooldown while cornered into melee.</p><h3 id="proc/broadcast_scout_order"><aside class="declaration">proc </aside>broadcast_scout_order<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/<a href="mob/living/carbon/xenomorph/queen.html">queen</a>/queen_pilot) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L497">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 497"/></a></aside>
+        </h3>
+        <p>Issues a fresh &quot;scout toward here&quot; order on a slow cadence while idle,
+expanding the search radius each time (up to AI_QUEEN_SCOUT_RADIUS_MAX)</p>
+<ul>
+<li>&quot;constantly order her hive to focus on specific areas of the colony...
+slowly expand their scouting area.&quot; Deliberately doesn't check whether
+marines have actually been spotted anywhere in the round (that state
+lives on the gamemode, not the hive/controller) - it only fires while
+she herself is idle with nothing to fight, which is a reasonable proxy
+for &quot;nothing's happened near me yet.&quot;</li>
+</ul><h3 id="proc/check_home_siege"><aside class="declaration">proc </aside>check_home_siege<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/<a href="mob/living/carbon/xenomorph/queen.html">queen</a>/queen_pilot) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L549">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 549"/></a></aside>
+        </h3>
+        <p>Same scan as check_lz_siege(), centered on her own anchor_turf instead of
+the marine LZ - &quot;a persistent under-sustained-siege-at-home read, distinct
+from the momentary LZ-siege check.&quot; Previously she had no notion of a raid
+reaching the hive itself unless a marine wandered directly into her own
+personal scan radius - several daughters already fighting for their lives
+right next to her patrol area went completely unnoticed if she personally
+hadn't spotted anyone yet.</p><h3 id="proc/check_lz_siege"><aside class="declaration">proc </aside>check_lz_siege<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/<a href="mob/living/carbon/xenomorph/queen.html">queen</a>/queen_pilot) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L522">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 522"/></a></aside>
+        </h3>
+        <p>Counts same-hive AI xenos actively fighting (AI_STATE_APPROACHING/ATTACKING)
+near the marine LZ - if enough are engaged at once, this counts as a heavy
+siege worth the Queen personally joining, per explicit design direction.
+Cheap only because there's a single Queen instance doing this scan, not
+something every caste's controller could afford.</p><h3 id="proc/get_flee_threshold"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/get_flee_threshold">&uarr;</a></aside>get_flee_threshold<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L328">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 328"/></a></aside>
+        </h3>
+        <p>Higher than the population default - &quot;she is big and slow and easy to kill,&quot; a huge investment that's hard to save if she overcommits, so she breaks off earlier than a disposable population-scale caste would.</p><h3 id="proc/patrol"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/patrol">&uarr;</a></aside>patrol<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L309">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 309"/></a></aside>
+        </h3>
+        <p>She has plant_weeds in her own base_actions same as a Drone (see
+Queen.dm) but the base controller never called it for her - same
+build-duty pattern as drone_worker.dm, just her own (higher, since
+she's one unit rather than a population) chance. Also issues a fresh
+scout order every so often while idle - &quot;constantly order her hive to
+focus on specific areas... slowly expand their scouting area&quot; - see
+broadcast_scout_order().</p><h3 id="proc/process_attack"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/process_attack">&uarr;</a></aside>process_attack<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L363">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 363"/></a></aside>
+        </h3>
+        <p>&quot;Modify the sentinel and queen AI to only use ranged, and to use melee if
+unable to escape or enemies are too close&quot; - overrides process_attack()
+so melee is only ever the cornered case, and delegates positioning to the
+shared maintain_kiting_distance() helper (xeno_ai_movement.dm) the same
+way Boiler/Sentinel do, instead of the old &quot;close to melee, only back off
+once already hurt&quot; policy.</p><h3 id="proc/select_spit_type"><aside class="declaration">proc </aside>select_spit_type<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L422">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 422"/></a></aside>
+        </h3>
+        <p>&quot;Spitting is her main ability in combat, make sure she switches between
+neuro spit and acid spit on demand, not at random&quot; - shift_spits is a
+plain toggle (cycles to whichever ammo type comes next in
+caste.spit_types), so with exactly two entries &quot;on demand&quot; just means
+comparing her current ammo against the one the situation calls for and
+toggling only when they differ, instead of never touching it at all
+(leaving her stuck on whichever type she happened to spawn with for the
+whole round). Acid Spatter up close for the bigger single hit, Neurotoxin
+at range for the harassing DoT/slow while she's still closing or holding
+distance.</p><h3 id="proc/should_flee"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/should_flee">&uarr;</a></aside>should_flee<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L336">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 336"/></a></aside>
+        </h3>
+        <p>Only flees if the base logic would AND she isn't the hive's last living
+member - if she's alone, retreating accomplishes nothing but delaying the
+inevitable while abandoning the fight, so she makes her stand instead.</p><h3 id="proc/should_mount_ovipositor"><aside class="declaration">proc </aside>should_mount_ovipositor<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/<a href="mob/living/carbon/xenomorph/queen.html">queen</a>/queen_pilot) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L214">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 214"/></a></aside>
+        </h3>
+        <p>Gates mounting the ovipositor: the hive needs its Core already (the
+throne is earned, not a shortcut around unfinished building), she needs
+to actually be standing on her own hive's weeds (mount_ovipositor() has no
+location requirement of its own, but a Queen anchoring herself in a
+random hallway would be a strange place to hold court), the remount
+cooldown from her last dismount needs to have passed, and grow_ovipositor
+needs to still be off cooldown (it's the same action a player mounts
+with, and use_ability() already no-ops safely if it isn't ready).</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">&uarr;</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/queen.dm#L460">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;queen.dm 460"/></a></aside>
+        </h3>
+        <p>Only offensive melee special she has worth reaching for as an AI: an
+8-second, fully-interruptible windup that instantly gibs whatever's
+adjacent when it completes (queen_gut() in Queen.dm). &quot;Queen should only
+gib if the enemy that just attacked is dead and not moving, otherwise she
+should stop trying to gib mid battle&quot; - the old gate only checked whether
+anything ELSE nearby could interrupt her, not whether the target itself
+was actually helpless, so she'd still commit the whole windup against a
+live, mobile opponent that could just walk or hit her out of it. Now only
+used to finish something already down (dead or floored/incapacitated),
+never as a mid-fight opener against something still fighting back.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

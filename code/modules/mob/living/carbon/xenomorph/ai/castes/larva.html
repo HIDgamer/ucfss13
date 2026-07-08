@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../../../../../../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;larva.dm - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+</header>
+<main>
+<h1>code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm 
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;larva.dm"/></a></h1>
+
+<table class="summary" cellspacing="0">
+        <tr><th><a href="datum&#x2F;xeno_ai_controller&#x2F;larva.html">&#x2F;datum&#x2F;xeno_ai_controller&#x2F;larva</a></th><td>Larva AI - &quot;larva needs to hide, and just in general be scared since they
+are fragile.&quot; Unlike every other caste's controller, spotting a living
+hostile at all is the flee trigger here, not taking damage - a larva has
+no attack worth using and dies in one or two hits, so the generic
+approach-and-attack default (inherited from the base controller before
+this file existed) was actively suicidal. should_flee() is completely
+overridden rather than just tuning get_flee_threshold() higher, since the
+base version's health/ally-count/target-condition reasoning (&quot;finish it
+off,&quot; &quot;not fighting alone&quot;) all assume a xeno that can actually win a
+fight - none of that applies to her. She never enters AI_STATE_ATTACKING
+at all: the base tick()'s flee-check runs before movement/attack logic
+every tick, so an unconditional should_flee() intercepts her before she'd
+ever close distance on a target.</td></tr></table></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

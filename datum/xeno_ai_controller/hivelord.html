@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;hivelord - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/hivelord.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/hivelord.html">hivelord</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/hivelord.dm#L17">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;hivelord.dm 17"/></a></h1>
+
+<p>Hivelord AI - a dedicated fast/cheap builder (build_time_mult = 0.5x per
+Hivelord.dm), same build-duty pattern as Drone (see drone_worker.dm) just
+at her own higher build chance to match how much more efficient she is
+at it. Combat/searching/returning is entirely inherited from the base
+controller, same reasoning as Drone - &quot;aid and assist in attacking&quot;, not
+a builder that ignores threats.</p>
+<p>Toggles Resin Walker (a continuous plasma-draining speed buff) on while
+standing on her own hive's weeds and off the moment she isn't - the
+ability's own life_tick() already auto-disables it outright the instant
+plasma actually runs dry (xeno_action.dm's active_toggle/life_tick()), so
+there was never really a &quot;stranded out of plasma&quot; risk to manage here;
+left on during an approach once a target's spotted is a feature, not a
+risk - getting into the fight faster.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/hivelord.html#proc/manage_resin_walker">manage_resin_walker</a></th><td>Keeps Resin Walker on precisely while standing on own-hive weeds, off otherwise - see the caste doc comment above for why this doesn't need to worry about stranding her out of plasma.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/hivelord.html#proc/use_caste_ability">use_caste_ability</a></th><td>A builder first, but &quot;aid and assist in attacking&quot; means an actual hit when it comes to that, not a bare claw.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/manage_resin_walker"><aside class="declaration">proc </aside>manage_resin_walker<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/hivelord.dm#L36">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;hivelord.dm 36"/></a></aside>
+        </h3>
+        <p>Keeps Resin Walker on precisely while standing on own-hive weeds, off otherwise - see the caste doc comment above for why this doesn't need to worry about stranding her out of plasma.</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">&uarr;</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/hivelord.dm#L48">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;hivelord.dm 48"/></a></aside>
+        </h3>
+        <p>A builder first, but &quot;aid and assist in attacking&quot; means an actual hit when it comes to that, not a bare claw.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

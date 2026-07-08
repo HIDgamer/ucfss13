@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../../../../../../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;sentinel.dm - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+</header>
+<main>
+<h1>code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm 
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;sentinel.dm"/></a></h1>
+
+<table class="summary" cellspacing="0">
+        <tr><th>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/ranged.html">ranged</a>/sentinel</th><td>Sentinel AI - &quot;modify the sentinel and queen AI to only use ranged, and
+to use melee if unable to escape or enemies are too close.&quot; Overrides
+process_attack() so melee is only ever the explicit cornered case, never
+incidental, and delegates actual positioning to the shared
+maintain_kiting_distance() helper (xeno_ai_movement.dm) so she actually
+keeps her distance instead of holding still once in range. Still arms
+Paralyzing Slash (primes the next melee swing to knock down) whenever
+it's off cooldown, for whenever that cornered case actually happens.</td></tr></table></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

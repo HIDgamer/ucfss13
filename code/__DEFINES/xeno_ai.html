@@ -1,0 +1,494 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>code&#x2F;__DEFINES&#x2F;xeno_ai.dm - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="code/__DEFINES/xeno_ai.html#define">Define Details</a></header>
+<main>
+<h1>code/__DEFINES/xeno_ai.dm 
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm"/></a></h1>
+
+<table class="summary" cellspacing="0">
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_STATE_IDLE">AI_STATE_IDLE</a></th><td>Idle, no target, scanning at the slow idle heartbeat.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/IDLE_ACTIVITY_NONE">IDLE_ACTIVITY_NONE</a></th><td>Named sub-states of AI_STATE_IDLE - &quot;Idle&quot; alone used to cover wandering, building, following, hiding, and patrolling all as one flat label with no memory between ticks. See patrol()/xeno_ai_controller.dm's idle_activity var.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_STATE_APPROACHING">AI_STATE_APPROACHING</a></th><td>Target acquired, closing distance.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_STATE_ATTACKING">AI_STATE_ATTACKING</a></th><td>Adjacent to target, actively attacking.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_STATE_RETURNING">AI_STATE_RETURNING</a></th><td>Disengaging, walking back to anchor_turf.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_STATE_SEARCHING">AI_STATE_SEARCHING</a></th><td>Chasing down the last known position of a target that escaped rather than died (may involve a ladder to cross z-levels).</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_DEFAULT_ATTACK_DISTANCE">AI_XENO_DEFAULT_ATTACK_DISTANCE</a></th><td>Default scan radius (tiles) used for both target acquisition and re-acquisition.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_DEFAULT_RETURN_DISTANCE">AI_XENO_DEFAULT_RETURN_DISTANCE</a></th><td>Default leash radius (tiles) from anchor_turf before an AI xeno disengages and returns.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_TARGET_SCAN_REFRESH_DISTANCE">AI_XENO_TARGET_SCAN_REFRESH_DISTANCE</a></th><td>How far the pilot can drift from where process_target()'s scan rectangle was last centered before it's considered stale and recomputed - keeps the scan following her as she patrols/wanders instead of staying pinned to wherever she happened to be during her last unsuccessful scan.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/XENO_MELEE_ATTACK_DELAY">XENO_MELEE_ATTACK_DELAY</a></th><td>Per-swing cooldown the AI's plain melee is held to (execute_attack()'s plain-melee branch, xeno_ai_attack.dm) - attack_alien() itself never sets this, only click_adjacent()'s own <code>next_move += 4</code> does, and only for a real player's click. 4 is the bare code-permitted floor though (2.5 attacks/sec sustained), far faster than a real player's actual click cadence in practice (aiming, reacting, missing a click here and there) - &quot;no click delay... can melt a player to death with just slashing&quot; was this AI attacking at that literal floor nonstop, which no human sustains. Set higher to read as a real melee pace instead of the theoretical maximum.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_DISARM_CHANCE">AI_XENO_DISARM_CHANCE</a></th><td>Percent chance a plain melee swing against a human uses INTENT_DISARM (a real tackle attempt, can knock down) instead of INTENT_HARM (plain claw damage).</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_DEFAULT_HEARTBEAT">AI_XENO_DEFAULT_HEARTBEAT</a></th><td>Ticks slept between ai_loop() iterations while actively engaged with a target. Deliberately as low as
+BYOND's sleep() grants (1 tick) - actual movement/attack pacing is already gated for free by the pilot's
+own next_move (same movement_delay()/attack cooldown a real player is bound by via step()/attack_alien()),
+so there's no reason to lay a second, slower artificial cadence on top of it. At 5 this was the real
+bottleneck behind &quot;pathfinding far too slow&quot; and &quot;never walks and acts in the same window&quot; - a fast
+caste's true move_delay could be well under 5 ticks, but tick() (and therefore any new step or attack)
+couldn't run again until the full 5 had passed regardless.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_DEFAULT_IDLE_HEARTBEAT">AI_XENO_DEFAULT_IDLE_HEARTBEAT</a></th><td>Ticks slept between ai_loop() iterations while idle/no target (cheaper than the engaged heartbeat).</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_FLEE_HEALTH_PERCENT">AI_XENO_FLEE_HEALTH_PERCENT</a></th><td>Health fraction (0-1) below which an AI xeno even considers disengaging - see should_flee() for the rest of the decision (target's own health, nearby backup). Raised from 0.25 - &quot;normal casts should really use fleeing better&quot; - combined with the old ally threshold of 1, most fights had an excuse not to disengage until nearly dead.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_FLEE_HEALTH_PERCENT">AI_QUEEN_FLEE_HEALTH_PERCENT</a></th><td>Queen-specific flee threshold, higher than the population default - &quot;she is big and slow and easy to kill,&quot; a huge investment worth breaking off with sooner rather than overcommitting.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_FLEE_ALLY_RADIUS">AI_XENO_FLEE_ALLY_RADIUS</a></th><td>Tiles within which a living same-hive AI xeno counts as &quot;backup&quot; for should_flee()'s decision.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_FLEE_ALLY_THRESHOLD">AI_XENO_FLEE_ALLY_THRESHOLD</a></th><td>Nearby same-hive allies (see count_nearby_hive_allies()) at/above which a hurt xeno keeps fighting instead of disengaging - not fighting alone, so the hive's numbers carry it instead. Raised from 1 - a single other daughter happening to be nearby isn't real backup, it was just cancelling the flee decision almost every time.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_DESPERATE_HEALTH_PERCENT">AI_XENO_DESPERATE_HEALTH_PERCENT</a></th><td>Health fraction (0-1) below which a fleeing xeno gives up on running and turns to fight instead - &quot;unless they are very desperate and want to live.&quot; Well below the flee threshold: by this point a parting hit while her back's turned is just as likely to kill her as standing and swinging, so running only pays off if she can actually reach safety, not just because she's hurt. Only relevant while already fleeing (return_to_anchor()) and only when there's still a real target adjacent to turn on.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_DRONE_FLEE_HEALTH_PERCENT">AI_DRONE_FLEE_HEALTH_PERCENT</a></th><td>Drone-specific flee threshold, higher than the population default - &quot;many casts like... drones... dive to their deaths.&quot; She's a builder pressed into a fight, not a frontline unit, so she should break off sooner than a caste actually built to brawl.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_DEFENSIBLE_SEARCH_RADIUS">AI_XENO_DEFENSIBLE_SEARCH_RADIUS</a></th><td>Radius (tiles) find_defensible_turf() searches for a corner/wall position with limited approach angles - &quot;they should also consider corners and walls as defensive positions&quot; for fleeing/kiting castes instead of always retreating across open ground.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_DEFENSIBLE_MIN_DENSE_SIDES">AI_XENO_DEFENSIBLE_MIN_DENSE_SIDES</a></th><td>Cardinally-adjacent dense tiles a candidate turf needs before find_defensible_turf() considers it &quot;defensible&quot; (fewer open approach directions).</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_SEARCH_TIMEOUT">AI_XENO_SEARCH_TIMEOUT</a></th><td>How long an AI xeno will keep investigating a lost target's last known position before giving up.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/XENO_PATHFIND_MAX_CELLS">XENO_PATHFIND_MAX_CELLS</a></th><td>Largest local grid (width*height tiles) handed to the native pathfinder. Beyond this the old greedy step_towards() chase handles it fine - this is for routing around nearby obstacles, not long-range travel.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/PATH_GOAL_REPLAN_TOLERANCE">PATH_GOAL_REPLAN_TOLERANCE</a></th><td>Tiles a live target can drift from where a cached path was computed for before advance_along_path() throws it out and replans - keeps a moving target from forcing a fresh plan (and a fresh solver tie-break near corners) every single tick.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_SKIRT_DURATION">AI_XENO_SKIRT_DURATION</a></th><td>How long a committed obstacle-skirt (navigate_around()/attempt_skirt_obstacle()) keeps walking one direction before it's willing to re-aim at the goal - &quot;long pathfinding to go around a building is not possible&quot; needed enough distance in one direction to actually clear a building's corner, not just one sidestep.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_PATROL_RADIUS">AI_XENO_PATROL_RADIUS</a></th><td>How far an idle xeno will wander from its anchor while patrolling.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_OPPORTUNISTIC_REST_CHANCE">AI_XENO_OPPORTUNISTIC_REST_CHANCE</a></th><td>Percent chance per idle tick that a hurt xeno standing on healing-eligible weeds opportunistically rests to heal up, rather than only ever resting once critically hurt and already back at anchor_turf.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_MAX_REST_DURATION">AI_XENO_MAX_REST_DURATION</a></th><td>Hard cap on how long wander() lets her rest before standing back up regardless of health - see rest_timeout.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_PATROL_CHANCE">AI_XENO_PATROL_CHANCE</a></th><td>Percent chance per idle tick that a patrolling xeno takes a wander step, so it doesn't move every single idle tick.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_WANDER_COMMIT_TIME">AI_XENO_WANDER_COMMIT_TIME</a></th><td>How long wander() commits to a single heading before picking a new one - see wander()'s doc comment for why this exists.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_LONG_PATROL_CHANCE">AI_XENO_LONG_PATROL_CHANCE</a></th><td>Percent chance per idle tick (once no higher-priority order applies) that a xeno starts a long patrol leg instead of short-range wander() - see start_long_patrol().</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_LONG_PATROL_LZ_CHANCE">AI_XENO_LONG_PATROL_LZ_CHANCE</a></th><td>Percent chance a long patrol leg specifically targets the marine LZ (once one's been chosen) instead of a random distant point.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_LONG_PATROL_RADIUS_GROWTH_PER_MINUTE">AI_XENO_LONG_PATROL_RADIUS_GROWTH_PER_MINUTE</a></th><td>How many tiles current_patrol_radius() grows per minute of round time.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_LONG_PATROL_RADIUS_MAX">AI_XENO_LONG_PATROL_RADIUS_MAX</a></th><td>Cap on how far current_patrol_radius() can grow.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_DRONE_BUILD_CHANCE">AI_DRONE_BUILD_CHANCE</a></th><td>Percent chance per idle tick that an AI Drone attempts a build action (plant weeds) instead of wandering. Kept low - every Drone in the hive rolls this independently on its own idle heartbeat, so even a modest chance adds up fast across a full population (&quot;weeding everywhere&quot;).</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_DEFENSE_BUILD_CHANCE">AI_DEFENSE_BUILD_CHANCE</a></th><td>Percent chance per idle tick that an eligible builder caste (Drone/Hivelord/Burrower) attempts a defensive resin wall at the hive perimeter instead of just weeding - see attempt_build_defense().</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_DEFENSE_PERIMETER_MIN_RADIUS">AI_XENO_DEFENSE_PERIMETER_MIN_RADIUS</a></th><td>Nearest a defensive perimeter wall is allowed to anchor_turf - keeps walls from boxing in the hive core itself.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_DEFENSE_PERIMETER_MAX_RADIUS">AI_XENO_DEFENSE_PERIMETER_MAX_RADIUS</a></th><td>Farthest a defensive perimeter wall is allowed from anchor_turf.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_BURROWER_AMBUSH_CHANCE">AI_BURROWER_AMBUSH_CHANCE</a></th><td>Percent chance per idle tick that a Burrower actually burrows to ambush instead of wandering - kept low, same reasoning as AI_VENT_AMBUSH_CHANCE.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_BURROWER_AMBUSH_ENGAGE_CHANCE">AI_BURROWER_AMBUSH_ENGAGE_CHANCE</a></th><td>Percent chance per movement tick, while chasing a target still out of melee range, that a Burrower burrows in place to set up a tunnel-ambush instead of just walking the rest of the way over.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_BURROWER_CAUTIOUS_HEALTH_PERCENT">AI_BURROWER_CAUTIOUS_HEALTH_PERCENT</a></th><td>Health fraction below which a Burrower starts actually weighing whether to retreat mid-fight, once the target's back up and still a real threat - &quot;they should consider slashing until the enemy is up, and then they get to decide to flee or keep fighting,&quot; not a flat dice roll after every swing regardless of how the fight's going.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_BURROWER_RETREAT_DURATION">AI_BURROWER_RETREAT_DURATION</a></th><td>How long a Burrower's tactical retreat lasts once triggered - long enough to actually put distance on the target before reconsidering.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_BURROWER_RETREAT_SAFE_DISTANCE">AI_BURROWER_RETREAT_SAFE_DISTANCE</a></th><td>Distance from the target a retreating Burrower wants before she ducks back underground to wait out the rest of the retreat safely, rather than just standing in the open.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_BUILD_CHANCE">AI_QUEEN_BUILD_CHANCE</a></th><td>Percent chance per idle tick that the Queen attempts a build action - she's a single unit, not a population, so this can run a bit higher than a Drone's without the same compounding effect.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_RANGED_PREFERRED_DISTANCE">AI_XENO_RANGED_PREFERRED_DISTANCE</a></th><td>Tiles an AI ranged xeno tries to stay from its target - closer than this and it backs off instead of closing to melee.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_RANGED_MIN_DISTANCE">AI_XENO_RANGED_MIN_DISTANCE</a></th><td>If the target closes to within this distance, a ranged xeno actively backs away instead of just holding position.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_HIVE_ALERT_WINDOW">AI_XENO_HIVE_ALERT_WINDOW</a></th><td>How long other hive members will respond to the Queen's last hive-alert broadcast before it goes stale (see hive_status.dm's queen_alert_turf).</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_HIVE_ALERT_RESPONSE_RANGE">AI_XENO_HIVE_ALERT_RESPONSE_RANGE</a></th><td>How far away a hive-alert will actually pull an idle builder off what she's doing - a fight on the far side of the map shouldn't empty out every drone's weeding queue.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_PHEROMONE_COST">AI_XENO_PHEROMONE_COST</a></th><td>Plasma cost for an AI xeno's own opportunistic combat pheromone burst - matches emit_pheromones()'s own default cost (general_powers.dm) rather than inventing a separate balance number.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_ATTACK_DISTANCE">AI_QUEEN_ATTACK_DISTANCE</a></th><td>There's only ever one Queen at a time, so she can afford a much wider awareness radius than population-scale castes.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_KING_ATTACK_DISTANCE">AI_KING_ATTACK_DISTANCE</a></th><td>King is the same kind of solo boss unit as Queen (one per round, not a population-budgeted caste) - &quot;should be as deadly if not more deadly than the Queen,&quot; but had no override at all and was stuck on the flat population-default radius, noticing threats far later and giving up chases far sooner than she does.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_ESCORT_RADIUS">AI_QUEEN_ESCORT_RADIUS</a></th><td>Radius around the Queen used to count how many same-hive daughters already count as her escort.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_ESCORT_MAX">AI_QUEEN_ESCORT_MAX</a></th><td>Stops calling for more escorts once this many are already nearby - &quot;up to 10 daughters.&quot;</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_ESCORT_HOLD_DISTANCE">AI_QUEEN_ESCORT_HOLD_DISTANCE</a></th><td>Tiles from the Queen an escorting daughter holds at instead of stacking directly on her tile.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_SCOUT_INTERVAL">AI_QUEEN_SCOUT_INTERVAL</a></th><td>How often the Queen issues a fresh scouting order while idle.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_SCOUT_ORDER_WINDOW">AI_QUEEN_SCOUT_ORDER_WINDOW</a></th><td>How long other hive members will respond to the Queen's last scouting order before it goes stale.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_SCOUT_RADIUS_MIN">AI_QUEEN_SCOUT_RADIUS_MIN</a></th><td>Starting half-width of the Queen's scouting search area, in tiles.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_SCOUT_RADIUS_GROWTH">AI_QUEEN_SCOUT_RADIUS_GROWTH</a></th><td>How much the scouting search radius grows each time a new order is issued.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_SCOUT_RADIUS_MAX">AI_QUEEN_SCOUT_RADIUS_MAX</a></th><td>Cap on how far the scouting search radius can expand to.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_MIN_INITIAL_BUILDS">AI_QUEEN_MIN_INITIAL_BUILDS</a></th><td>Successful plant_weeds actions the Queen commits to before considering her build duties satisfied - &quot;build her hive&quot; as a real, ongoing priority.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_LZ_SIEGE_RADIUS">AI_QUEEN_LZ_SIEGE_RADIUS</a></th><td>Radius around the marine LZ used to judge whether the hive's attack on it counts as a &quot;heavy&quot; siege worth the Queen personally joining.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_LZ_SIEGE_THRESHOLD">AI_QUEEN_LZ_SIEGE_THRESHOLD</a></th><td>Number of same-hive AI xenos actively fighting near the LZ before the Queen considers it a heavy siege and moves to join.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_REMOUNT_COOLDOWN">AI_QUEEN_REMOUNT_COOLDOWN</a></th><td>Minimum time the Queen waits after dismounting before she's willing to mount the ovipositor again - dismounting itself is always instant/unthrottled (a threat is a reflex), only settling back down is a considered decision worth a cooldown so a borderline threat-check doesn't thrash her in and out of ovi every tick.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_EXPAND_WEEDS_INTERVAL">AI_QUEEN_EXPAND_WEEDS_INTERVAL</a></th><td>How often a mounted Queen uses expand_weeds to grow the hive's territory from her throne - &quot;build... in weeded areas&quot; while staying productive on ovi instead of only ever laying eggs.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_EXPAND_WEEDS_RADIUS">AI_QUEEN_EXPAND_WEEDS_RADIUS</a></th><td>Radius expand_weeds' frontier-tile search covers from the Queen's own position.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_GROUP_SCREECH_RADIUS">AI_QUEEN_GROUP_SCREECH_RADIUS</a></th><td>Living hostiles clustered within this radius of a target before the Queen leads with Screech instead of just closing to melee/spitting range - &quot;Screech is her most powerful ability,&quot; worth opening with against a group instead of only using it reactively once already swinging.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_QUEEN_GROUP_SCREECH_THRESHOLD">AI_QUEEN_GROUP_SCREECH_THRESHOLD</a></th><td>Minimum clustered hostiles (the primary target plus this many more) before a pre-emptive Screech opener is worth it - a single marine doesn't justify announcing her position before she's even in range.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_CRUSHER_FLEE_HEALTH_PERCENT">AI_CRUSHER_FLEE_HEALTH_PERCENT</a></th><td>Health fraction below which a Crusher disengages - lower than the population-wide default since it's meant to be the hive's tank, not a caste that breaks off early, but not so low she has no margin left to actually reach safety - &quot;crusher... dive to their deaths.&quot;</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_RAVAGER_REPOSITION_CHANCE">AI_RAVAGER_REPOSITION_CHANCE</a></th><td>Percent chance after a Ravager's attack that it sidesteps to a flanking tile instead of standing still - the behavioral stand-in for its &quot;nimble/evasive&quot; identity (there's no actual dodge/evasion stat on the caste).</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_RAVAGER_SCISSOR_MIN_TARGETS">AI_RAVAGER_SCISSOR_MIN_TARGETS</a></th><td>Minimum nearby hostiles before a Ravager uses Scissor Cut instead of a plain melee swing.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_RAVAGER_EMPOWER_MIN_TARGETS">AI_RAVAGER_EMPOWER_MIN_TARGETS</a></th><td>Minimum nearby hostiles before a Ravager arms Empower - matches the ability's own super-empower payoff threshold, so it's only used in a real group fight where the buff is worth it.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_PRAETORIAN_RETREAT_DURATION">AI_PRAETORIAN_RETREAT_DURATION</a></th><td>How long a Praetorian/Ravager's tactical retreat lasts once triggered (see start_tactical_retreat()) - &quot;hop into action, slash marines, and hop back into safety, and repeat.&quot;</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_PRAETORIAN_RETREAT_CHANCE">AI_PRAETORIAN_RETREAT_CHANCE</a></th><td>Percent chance per plain melee swing (Acid Ball not currently up) that a Praetorian decides she's landed enough hits and retreats anyway.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_RAVAGER_RETREAT_DURATION">AI_RAVAGER_RETREAT_DURATION</a></th><td>Same shape as AI_PRAETORIAN_RETREAT_DURATION - Ravager is meant to behave the same way once she's landed a hit.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_RAVAGER_RETREAT_CHANCE">AI_RAVAGER_RETREAT_CHANCE</a></th><td>Percent chance per plain melee swing (Scissor Cut not currently up) that a Ravager retreats anyway, same reasoning as AI_PRAETORIAN_RETREAT_CHANCE.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_LURKER_RETREAT_DURATION">AI_LURKER_RETREAT_DURATION</a></th><td>How long a Lurker's tactical retreat lasts once triggered - &quot;make retreating a strategic part of their attack plan too, as they attack and die.&quot;</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_LURKER_RETREAT_CHANCE">AI_LURKER_RETREAT_CHANCE</a></th><td>Percent chance per plain melee swing (Assassinate not currently up) that a Lurker retreats to re-cloak instead of continuing to trade blows in the open.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_RUNNER_FLEE_HEALTH_PERCENT">AI_RUNNER_FLEE_HEALTH_PERCENT</a></th><td>Health fraction below which a Runner flees - higher than the population default since she's the hive's glass cannon (lowest HP, no armor), meant to hit and run rather than trade hits.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_DEFENDER_SWEEP_MIN_TARGETS">AI_DEFENDER_SWEEP_MIN_TARGETS</a></th><td>Minimum valid targets already adjacent before a Defender uses Tail Sweep instead of a plain melee swing.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_BOILER_ATTACK_DISTANCE">AI_BOILER_ATTACK_DISTANCE</a></th><td>Boiler's own scan/leash radius - wider than the population default so she notices and starts bombarding from well outside melee range instead of needing a target to wander close first.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_BOILER_FLEE_HEALTH_PERCENT">AI_BOILER_FLEE_HEALTH_PERCENT</a></th><td>Health fraction below which a Boiler flees - higher than the population default since she's fire-vulnerable and low on melee damage, and getting run down is close to a worst case for this caste.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_BOILER_HIDE_DISTANCE">AI_BOILER_HIDE_DISTANCE</a></th><td>Distance a Boiler retreats to while both her ranged abilities are on cooldown (&quot;attack ranged, hide, then come out again once recharged&quot;) - wider than the plain ranged kiting band so she's actually out of easy melee reach while waiting, not just standing at the edge of it.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_HIVELORD_BUILD_CHANCE">AI_HIVELORD_BUILD_CHANCE</a></th><td>Percent chance per idle tick that a Hivelord attempts a build action - higher than a Drone's own AI_DRONE_BUILD_CHANCE since her build_time_mult (0.5x) makes her genuinely more efficient at it, not just eager.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_CARRIER_FLEE_HEALTH_PERCENT">AI_CARRIER_FLEE_HEALTH_PERCENT</a></th><td>Health fraction below which a Carrier disengages - higher than the population default since she has no offensive tools to actually win a fight she's already losing.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_VENT_AMBUSH_CHANCE">AI_VENT_AMBUSH_CHANCE</a></th><td>Percent chance per idle tick that an eligible xeno (can_ventcrawl()) ducks into a nearby vent instead of wandering normally. Only rolled once hive-alert/escort/long-patrol-continuation have all already passed (see tick()'s idle chain), so the real-world frequency is well below this number by itself - raised from 5 since that compounded rarity read as &quot;never happens&quot; in practice.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_PACK_COHESION_CHANCE">AI_PACK_COHESION_CHANCE</a></th><td>Percent chance per idle tick that a xeno with no better order gravitates toward a nearby idle ally instead of wandering solo - &quot;stick together sometimes in a group.&quot;</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_PACK_COHESION_HOLD_DISTANCE">AI_PACK_COHESION_HOLD_DISTANCE</a></th><td>How close counts as &quot;already sticking together&quot; for pack cohesion - stops short of stacking exactly on the buddy's tile.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_AMBUSH_CHANCE">AI_XENO_AMBUSH_CHANCE</a></th><td>Percent chance per idle tick that a xeno instead treks out toward the marine LZ to hide and wait - &quot;hiding to ambush&quot; instead of only ever patrolling near the hive.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_AMBUSH_LZ_RADIUS">AI_XENO_AMBUSH_LZ_RADIUS</a></th><td>Half-width of the area around the LZ attempt_ambush_hide() picks a hiding tile within.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_XENO_AMBUSH_HIDE_DURATION">AI_XENO_AMBUSH_HIDE_DURATION</a></th><td>How long an ambush hide holds before giving up and resuming normal patrol if nothing shows up.</td></tr>
+        <tr><th><a href="code/__DEFINES/xeno_ai.html#define/AI_VENT_MIN_HOPS">AI_VENT_MIN_HOPS</a></th><td>Minimum/maximum hops through the connected pipe graph before popping back out - see vent_travel() in xeno_ai_vents.dm.</td></tr></table><h2 id="define">Define Details</h2>
+<h3 id="define/AI_BOILER_ATTACK_DISTANCE"><aside class="declaration">#define </aside>AI_BOILER_ATTACK_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L182">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 182"/></a>
+    </h3>
+    <p>Boiler's own scan/leash radius - wider than the population default so she notices and starts bombarding from well outside melee range instead of needing a target to wander close first.</p><h3 id="define/AI_BOILER_FLEE_HEALTH_PERCENT"><aside class="declaration">#define </aside>AI_BOILER_FLEE_HEALTH_PERCENT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L184">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 184"/></a>
+    </h3>
+    <p>Health fraction below which a Boiler flees - higher than the population default since she's fire-vulnerable and low on melee damage, and getting run down is close to a worst case for this caste.</p><h3 id="define/AI_BOILER_HIDE_DISTANCE"><aside class="declaration">#define </aside>AI_BOILER_HIDE_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L186">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 186"/></a>
+    </h3>
+    <p>Distance a Boiler retreats to while both her ranged abilities are on cooldown (&quot;attack ranged, hide, then come out again once recharged&quot;) - wider than the plain ranged kiting band so she's actually out of easy melee reach while waiting, not just standing at the edge of it.</p><h3 id="define/AI_BURROWER_AMBUSH_CHANCE"><aside class="declaration">#define </aside>AI_BURROWER_AMBUSH_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L98">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 98"/></a>
+    </h3>
+    <p>Percent chance per idle tick that a Burrower actually burrows to ambush instead of wandering - kept low, same reasoning as AI_VENT_AMBUSH_CHANCE.</p><h3 id="define/AI_BURROWER_AMBUSH_ENGAGE_CHANCE"><aside class="declaration">#define </aside>AI_BURROWER_AMBUSH_ENGAGE_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L100">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 100"/></a>
+    </h3>
+    <p>Percent chance per movement tick, while chasing a target still out of melee range, that a Burrower burrows in place to set up a tunnel-ambush instead of just walking the rest of the way over.</p><h3 id="define/AI_BURROWER_CAUTIOUS_HEALTH_PERCENT"><aside class="declaration">#define </aside>AI_BURROWER_CAUTIOUS_HEALTH_PERCENT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L102">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 102"/></a>
+    </h3>
+    <p>Health fraction below which a Burrower starts actually weighing whether to retreat mid-fight, once the target's back up and still a real threat - &quot;they should consider slashing until the enemy is up, and then they get to decide to flee or keep fighting,&quot; not a flat dice roll after every swing regardless of how the fight's going.</p><h3 id="define/AI_BURROWER_RETREAT_DURATION"><aside class="declaration">#define </aside>AI_BURROWER_RETREAT_DURATION
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L104">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 104"/></a>
+    </h3>
+    <p>How long a Burrower's tactical retreat lasts once triggered - long enough to actually put distance on the target before reconsidering.</p><h3 id="define/AI_BURROWER_RETREAT_SAFE_DISTANCE"><aside class="declaration">#define </aside>AI_BURROWER_RETREAT_SAFE_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L106">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 106"/></a>
+    </h3>
+    <p>Distance from the target a retreating Burrower wants before she ducks back underground to wait out the rest of the retreat safely, rather than just standing in the open.</p><h3 id="define/AI_CARRIER_FLEE_HEALTH_PERCENT"><aside class="declaration">#define </aside>AI_CARRIER_FLEE_HEALTH_PERCENT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L190">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 190"/></a>
+    </h3>
+    <p>Health fraction below which a Carrier disengages - higher than the population default since she has no offensive tools to actually win a fight she's already losing.</p><h3 id="define/AI_CRUSHER_FLEE_HEALTH_PERCENT"><aside class="declaration">#define </aside>AI_CRUSHER_FLEE_HEALTH_PERCENT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L158">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 158"/></a>
+    </h3>
+    <p>Health fraction below which a Crusher disengages - lower than the population-wide default since it's meant to be the hive's tank, not a caste that breaks off early, but not so low she has no margin left to actually reach safety - &quot;crusher... dive to their deaths.&quot;</p><h3 id="define/AI_DEFENDER_SWEEP_MIN_TARGETS"><aside class="declaration">#define </aside>AI_DEFENDER_SWEEP_MIN_TARGETS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L180">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 180"/></a>
+    </h3>
+    <p>Minimum valid targets already adjacent before a Defender uses Tail Sweep instead of a plain melee swing.</p><h3 id="define/AI_DEFENSE_BUILD_CHANCE"><aside class="declaration">#define </aside>AI_DEFENSE_BUILD_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L92">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 92"/></a>
+    </h3>
+    <p>Percent chance per idle tick that an eligible builder caste (Drone/Hivelord/Burrower) attempts a defensive resin wall at the hive perimeter instead of just weeding - see attempt_build_defense().</p><h3 id="define/AI_DRONE_BUILD_CHANCE"><aside class="declaration">#define </aside>AI_DRONE_BUILD_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L90">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 90"/></a>
+    </h3>
+    <p>Percent chance per idle tick that an AI Drone attempts a build action (plant weeds) instead of wandering. Kept low - every Drone in the hive rolls this independently on its own idle heartbeat, so even a modest chance adds up fast across a full population (&quot;weeding everywhere&quot;).</p><h3 id="define/AI_DRONE_FLEE_HEALTH_PERCENT"><aside class="declaration">#define </aside>AI_DRONE_FLEE_HEALTH_PERCENT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L58">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 58"/></a>
+    </h3>
+    <p>Drone-specific flee threshold, higher than the population default - &quot;many casts like... drones... dive to their deaths.&quot; She's a builder pressed into a fight, not a frontline unit, so she should break off sooner than a caste actually built to brawl.</p><h3 id="define/AI_HIVELORD_BUILD_CHANCE"><aside class="declaration">#define </aside>AI_HIVELORD_BUILD_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L188">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 188"/></a>
+    </h3>
+    <p>Percent chance per idle tick that a Hivelord attempts a build action - higher than a Drone's own AI_DRONE_BUILD_CHANCE since her build_time_mult (0.5x) makes her genuinely more efficient at it, not just eager.</p><h3 id="define/AI_KING_ATTACK_DISTANCE"><aside class="declaration">#define </aside>AI_KING_ATTACK_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L123">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 123"/></a>
+    </h3>
+    <p>King is the same kind of solo boss unit as Queen (one per round, not a population-budgeted caste) - &quot;should be as deadly if not more deadly than the Queen,&quot; but had no override at all and was stuck on the flat population-default radius, noticing threats far later and giving up chases far sooner than she does.</p><h3 id="define/AI_LURKER_RETREAT_CHANCE"><aside class="declaration">#define </aside>AI_LURKER_RETREAT_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L176">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 176"/></a>
+    </h3>
+    <p>Percent chance per plain melee swing (Assassinate not currently up) that a Lurker retreats to re-cloak instead of continuing to trade blows in the open.</p><h3 id="define/AI_LURKER_RETREAT_DURATION"><aside class="declaration">#define </aside>AI_LURKER_RETREAT_DURATION
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L174">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 174"/></a>
+    </h3>
+    <p>How long a Lurker's tactical retreat lasts once triggered - &quot;make retreating a strategic part of their attack plan too, as they attack and die.&quot;</p><h3 id="define/AI_PACK_COHESION_CHANCE"><aside class="declaration">#define </aside>AI_PACK_COHESION_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L194">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 194"/></a>
+    </h3>
+    <p>Percent chance per idle tick that a xeno with no better order gravitates toward a nearby idle ally instead of wandering solo - &quot;stick together sometimes in a group.&quot;</p><h3 id="define/AI_PACK_COHESION_HOLD_DISTANCE"><aside class="declaration">#define </aside>AI_PACK_COHESION_HOLD_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L196">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 196"/></a>
+    </h3>
+    <p>How close counts as &quot;already sticking together&quot; for pack cohesion - stops short of stacking exactly on the buddy's tile.</p><h3 id="define/AI_PRAETORIAN_RETREAT_CHANCE"><aside class="declaration">#define </aside>AI_PRAETORIAN_RETREAT_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L168">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 168"/></a>
+    </h3>
+    <p>Percent chance per plain melee swing (Acid Ball not currently up) that a Praetorian decides she's landed enough hits and retreats anyway.</p><h3 id="define/AI_PRAETORIAN_RETREAT_DURATION"><aside class="declaration">#define </aside>AI_PRAETORIAN_RETREAT_DURATION
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L166">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 166"/></a>
+    </h3>
+    <p>How long a Praetorian/Ravager's tactical retreat lasts once triggered (see start_tactical_retreat()) - &quot;hop into action, slash marines, and hop back into safety, and repeat.&quot;</p><h3 id="define/AI_QUEEN_ATTACK_DISTANCE"><aside class="declaration">#define </aside>AI_QUEEN_ATTACK_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L120">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 120"/></a>
+    </h3>
+    <p>There's only ever one Queen at a time, so she can afford a much wider awareness radius than population-scale castes.</p><h3 id="define/AI_QUEEN_BUILD_CHANCE"><aside class="declaration">#define </aside>AI_QUEEN_BUILD_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L108">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 108"/></a>
+    </h3>
+    <p>Percent chance per idle tick that the Queen attempts a build action - she's a single unit, not a population, so this can run a bit higher than a Drone's without the same compounding effect.</p><h3 id="define/AI_QUEEN_ESCORT_HOLD_DISTANCE"><aside class="declaration">#define </aside>AI_QUEEN_ESCORT_HOLD_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L130">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 130"/></a>
+    </h3>
+    <p>Tiles from the Queen an escorting daughter holds at instead of stacking directly on her tile.</p><h3 id="define/AI_QUEEN_ESCORT_MAX"><aside class="declaration">#define </aside>AI_QUEEN_ESCORT_MAX
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L128">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 128"/></a>
+    </h3>
+    <p>Stops calling for more escorts once this many are already nearby - &quot;up to 10 daughters.&quot;</p><h3 id="define/AI_QUEEN_ESCORT_RADIUS"><aside class="declaration">#define </aside>AI_QUEEN_ESCORT_RADIUS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L126">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 126"/></a>
+    </h3>
+    <p>Radius around the Queen used to count how many same-hive daughters already count as her escort.</p><h3 id="define/AI_QUEEN_EXPAND_WEEDS_INTERVAL"><aside class="declaration">#define </aside>AI_QUEEN_EXPAND_WEEDS_INTERVAL
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L150">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 150"/></a>
+    </h3>
+    <p>How often a mounted Queen uses expand_weeds to grow the hive's territory from her throne - &quot;build... in weeded areas&quot; while staying productive on ovi instead of only ever laying eggs.</p><h3 id="define/AI_QUEEN_EXPAND_WEEDS_RADIUS"><aside class="declaration">#define </aside>AI_QUEEN_EXPAND_WEEDS_RADIUS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L152">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 152"/></a>
+    </h3>
+    <p>Radius expand_weeds' frontier-tile search covers from the Queen's own position.</p><h3 id="define/AI_QUEEN_FLEE_HEALTH_PERCENT"><aside class="declaration">#define </aside>AI_QUEEN_FLEE_HEALTH_PERCENT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L50">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 50"/></a>
+    </h3>
+    <p>Queen-specific flee threshold, higher than the population default - &quot;she is big and slow and easy to kill,&quot; a huge investment worth breaking off with sooner rather than overcommitting.</p><h3 id="define/AI_QUEEN_GROUP_SCREECH_RADIUS"><aside class="declaration">#define </aside>AI_QUEEN_GROUP_SCREECH_RADIUS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L154">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 154"/></a>
+    </h3>
+    <p>Living hostiles clustered within this radius of a target before the Queen leads with Screech instead of just closing to melee/spitting range - &quot;Screech is her most powerful ability,&quot; worth opening with against a group instead of only using it reactively once already swinging.</p><h3 id="define/AI_QUEEN_GROUP_SCREECH_THRESHOLD"><aside class="declaration">#define </aside>AI_QUEEN_GROUP_SCREECH_THRESHOLD
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L156">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 156"/></a>
+    </h3>
+    <p>Minimum clustered hostiles (the primary target plus this many more) before a pre-emptive Screech opener is worth it - a single marine doesn't justify announcing her position before she's even in range.</p><h3 id="define/AI_QUEEN_LZ_SIEGE_RADIUS"><aside class="declaration">#define </aside>AI_QUEEN_LZ_SIEGE_RADIUS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L144">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 144"/></a>
+    </h3>
+    <p>Radius around the marine LZ used to judge whether the hive's attack on it counts as a &quot;heavy&quot; siege worth the Queen personally joining.</p><h3 id="define/AI_QUEEN_LZ_SIEGE_THRESHOLD"><aside class="declaration">#define </aside>AI_QUEEN_LZ_SIEGE_THRESHOLD
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L146">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 146"/></a>
+    </h3>
+    <p>Number of same-hive AI xenos actively fighting near the LZ before the Queen considers it a heavy siege and moves to join.</p><h3 id="define/AI_QUEEN_MIN_INITIAL_BUILDS"><aside class="declaration">#define </aside>AI_QUEEN_MIN_INITIAL_BUILDS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L142">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 142"/></a>
+    </h3>
+    <p>Successful plant_weeds actions the Queen commits to before considering her build duties satisfied - &quot;build her hive&quot; as a real, ongoing priority.</p><h3 id="define/AI_QUEEN_REMOUNT_COOLDOWN"><aside class="declaration">#define </aside>AI_QUEEN_REMOUNT_COOLDOWN
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L148">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 148"/></a>
+    </h3>
+    <p>Minimum time the Queen waits after dismounting before she's willing to mount the ovipositor again - dismounting itself is always instant/unthrottled (a threat is a reflex), only settling back down is a considered decision worth a cooldown so a borderline threat-check doesn't thrash her in and out of ovi every tick.</p><h3 id="define/AI_QUEEN_SCOUT_INTERVAL"><aside class="declaration">#define </aside>AI_QUEEN_SCOUT_INTERVAL
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L132">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 132"/></a>
+    </h3>
+    <p>How often the Queen issues a fresh scouting order while idle.</p><h3 id="define/AI_QUEEN_SCOUT_ORDER_WINDOW"><aside class="declaration">#define </aside>AI_QUEEN_SCOUT_ORDER_WINDOW
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L134">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 134"/></a>
+    </h3>
+    <p>How long other hive members will respond to the Queen's last scouting order before it goes stale.</p><h3 id="define/AI_QUEEN_SCOUT_RADIUS_GROWTH"><aside class="declaration">#define </aside>AI_QUEEN_SCOUT_RADIUS_GROWTH
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L138">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 138"/></a>
+    </h3>
+    <p>How much the scouting search radius grows each time a new order is issued.</p><h3 id="define/AI_QUEEN_SCOUT_RADIUS_MAX"><aside class="declaration">#define </aside>AI_QUEEN_SCOUT_RADIUS_MAX
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L140">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 140"/></a>
+    </h3>
+    <p>Cap on how far the scouting search radius can expand to.</p><h3 id="define/AI_QUEEN_SCOUT_RADIUS_MIN"><aside class="declaration">#define </aside>AI_QUEEN_SCOUT_RADIUS_MIN
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L136">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 136"/></a>
+    </h3>
+    <p>Starting half-width of the Queen's scouting search area, in tiles.</p><h3 id="define/AI_RAVAGER_EMPOWER_MIN_TARGETS"><aside class="declaration">#define </aside>AI_RAVAGER_EMPOWER_MIN_TARGETS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L164">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 164"/></a>
+    </h3>
+    <p>Minimum nearby hostiles before a Ravager arms Empower - matches the ability's own super-empower payoff threshold, so it's only used in a real group fight where the buff is worth it.</p><h3 id="define/AI_RAVAGER_REPOSITION_CHANCE"><aside class="declaration">#define </aside>AI_RAVAGER_REPOSITION_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L160">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 160"/></a>
+    </h3>
+    <p>Percent chance after a Ravager's attack that it sidesteps to a flanking tile instead of standing still - the behavioral stand-in for its &quot;nimble/evasive&quot; identity (there's no actual dodge/evasion stat on the caste).</p><h3 id="define/AI_RAVAGER_RETREAT_CHANCE"><aside class="declaration">#define </aside>AI_RAVAGER_RETREAT_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L172">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 172"/></a>
+    </h3>
+    <p>Percent chance per plain melee swing (Scissor Cut not currently up) that a Ravager retreats anyway, same reasoning as AI_PRAETORIAN_RETREAT_CHANCE.</p><h3 id="define/AI_RAVAGER_RETREAT_DURATION"><aside class="declaration">#define </aside>AI_RAVAGER_RETREAT_DURATION
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L170">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 170"/></a>
+    </h3>
+    <p>Same shape as AI_PRAETORIAN_RETREAT_DURATION - Ravager is meant to behave the same way once she's landed a hit.</p><h3 id="define/AI_RAVAGER_SCISSOR_MIN_TARGETS"><aside class="declaration">#define </aside>AI_RAVAGER_SCISSOR_MIN_TARGETS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L162">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 162"/></a>
+    </h3>
+    <p>Minimum nearby hostiles before a Ravager uses Scissor Cut instead of a plain melee swing.</p><h3 id="define/AI_RUNNER_FLEE_HEALTH_PERCENT"><aside class="declaration">#define </aside>AI_RUNNER_FLEE_HEALTH_PERCENT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L178">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 178"/></a>
+    </h3>
+    <p>Health fraction below which a Runner flees - higher than the population default since she's the hive's glass cannon (lowest HP, no armor), meant to hit and run rather than trade hits.</p><h3 id="define/AI_STATE_APPROACHING"><aside class="declaration">#define </aside>AI_STATE_APPROACHING
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L19">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 19"/></a>
+    </h3>
+    <p>Target acquired, closing distance.</p><h3 id="define/AI_STATE_ATTACKING"><aside class="declaration">#define </aside>AI_STATE_ATTACKING
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L21">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 21"/></a>
+    </h3>
+    <p>Adjacent to target, actively attacking.</p><h3 id="define/AI_STATE_IDLE"><aside class="declaration">#define </aside>AI_STATE_IDLE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L5">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 5"/></a>
+    </h3>
+    <p>Idle, no target, scanning at the slow idle heartbeat.</p><h3 id="define/AI_STATE_RETURNING"><aside class="declaration">#define </aside>AI_STATE_RETURNING
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L23">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 23"/></a>
+    </h3>
+    <p>Disengaging, walking back to anchor_turf.</p><h3 id="define/AI_STATE_SEARCHING"><aside class="declaration">#define </aside>AI_STATE_SEARCHING
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L25">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 25"/></a>
+    </h3>
+    <p>Chasing down the last known position of a target that escaped rather than died (may involve a ladder to cross z-levels).</p><h3 id="define/AI_VENT_AMBUSH_CHANCE"><aside class="declaration">#define </aside>AI_VENT_AMBUSH_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L192">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 192"/></a>
+    </h3>
+    <p>Percent chance per idle tick that an eligible xeno (can_ventcrawl()) ducks into a nearby vent instead of wandering normally. Only rolled once hive-alert/escort/long-patrol-continuation have all already passed (see tick()'s idle chain), so the real-world frequency is well below this number by itself - raised from 5 since that compounded rarity read as &quot;never happens&quot; in practice.</p><h3 id="define/AI_VENT_MIN_HOPS"><aside class="declaration">#define </aside>AI_VENT_MIN_HOPS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L204">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 204"/></a>
+    </h3>
+    <p>Minimum/maximum hops through the connected pipe graph before popping back out - see vent_travel() in xeno_ai_vents.dm.</p><h3 id="define/AI_XENO_AMBUSH_CHANCE"><aside class="declaration">#define </aside>AI_XENO_AMBUSH_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L198">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 198"/></a>
+    </h3>
+    <p>Percent chance per idle tick that a xeno instead treks out toward the marine LZ to hide and wait - &quot;hiding to ambush&quot; instead of only ever patrolling near the hive.</p><h3 id="define/AI_XENO_AMBUSH_HIDE_DURATION"><aside class="declaration">#define </aside>AI_XENO_AMBUSH_HIDE_DURATION
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L202">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 202"/></a>
+    </h3>
+    <p>How long an ambush hide holds before giving up and resuming normal patrol if nothing shows up.</p><h3 id="define/AI_XENO_AMBUSH_LZ_RADIUS"><aside class="declaration">#define </aside>AI_XENO_AMBUSH_LZ_RADIUS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L200">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 200"/></a>
+    </h3>
+    <p>Half-width of the area around the LZ attempt_ambush_hide() picks a hiding tile within.</p><h3 id="define/AI_XENO_DEFAULT_ATTACK_DISTANCE"><aside class="declaration">#define </aside>AI_XENO_DEFAULT_ATTACK_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L28">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 28"/></a>
+    </h3>
+    <p>Default scan radius (tiles) used for both target acquisition and re-acquisition.</p><h3 id="define/AI_XENO_DEFAULT_HEARTBEAT"><aside class="declaration">#define </aside>AI_XENO_DEFAULT_HEARTBEAT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L44">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 44"/></a>
+    </h3>
+    <p>Ticks slept between ai_loop() iterations while actively engaged with a target. Deliberately as low as
+BYOND's sleep() grants (1 tick) - actual movement/attack pacing is already gated for free by the pilot's
+own next_move (same movement_delay()/attack cooldown a real player is bound by via step()/attack_alien()),
+so there's no reason to lay a second, slower artificial cadence on top of it. At 5 this was the real
+bottleneck behind &quot;pathfinding far too slow&quot; and &quot;never walks and acts in the same window&quot; - a fast
+caste's true move_delay could be well under 5 ticks, but tick() (and therefore any new step or attack)
+couldn't run again until the full 5 had passed regardless.</p><h3 id="define/AI_XENO_DEFAULT_IDLE_HEARTBEAT"><aside class="declaration">#define </aside>AI_XENO_DEFAULT_IDLE_HEARTBEAT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L46">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 46"/></a>
+    </h3>
+    <p>Ticks slept between ai_loop() iterations while idle/no target (cheaper than the engaged heartbeat).</p><h3 id="define/AI_XENO_DEFAULT_RETURN_DISTANCE"><aside class="declaration">#define </aside>AI_XENO_DEFAULT_RETURN_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L30">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 30"/></a>
+    </h3>
+    <p>Default leash radius (tiles) from anchor_turf before an AI xeno disengages and returns.</p><h3 id="define/AI_XENO_DEFENSE_PERIMETER_MAX_RADIUS"><aside class="declaration">#define </aside>AI_XENO_DEFENSE_PERIMETER_MAX_RADIUS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L96">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 96"/></a>
+    </h3>
+    <p>Farthest a defensive perimeter wall is allowed from anchor_turf.</p><h3 id="define/AI_XENO_DEFENSE_PERIMETER_MIN_RADIUS"><aside class="declaration">#define </aside>AI_XENO_DEFENSE_PERIMETER_MIN_RADIUS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L94">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 94"/></a>
+    </h3>
+    <p>Nearest a defensive perimeter wall is allowed to anchor_turf - keeps walls from boxing in the hive core itself.</p><h3 id="define/AI_XENO_DEFENSIBLE_MIN_DENSE_SIDES"><aside class="declaration">#define </aside>AI_XENO_DEFENSIBLE_MIN_DENSE_SIDES
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L62">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 62"/></a>
+    </h3>
+    <p>Cardinally-adjacent dense tiles a candidate turf needs before find_defensible_turf() considers it &quot;defensible&quot; (fewer open approach directions).</p><h3 id="define/AI_XENO_DEFENSIBLE_SEARCH_RADIUS"><aside class="declaration">#define </aside>AI_XENO_DEFENSIBLE_SEARCH_RADIUS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L60">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 60"/></a>
+    </h3>
+    <p>Radius (tiles) find_defensible_turf() searches for a corner/wall position with limited approach angles - &quot;they should also consider corners and walls as defensive positions&quot; for fleeing/kiting castes instead of always retreating across open ground.</p><h3 id="define/AI_XENO_DESPERATE_HEALTH_PERCENT"><aside class="declaration">#define </aside>AI_XENO_DESPERATE_HEALTH_PERCENT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L56">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 56"/></a>
+    </h3>
+    <p>Health fraction (0-1) below which a fleeing xeno gives up on running and turns to fight instead - &quot;unless they are very desperate and want to live.&quot; Well below the flee threshold: by this point a parting hit while her back's turned is just as likely to kill her as standing and swinging, so running only pays off if she can actually reach safety, not just because she's hurt. Only relevant while already fleeing (return_to_anchor()) and only when there's still a real target adjacent to turn on.</p><h3 id="define/AI_XENO_DISARM_CHANCE"><aside class="declaration">#define </aside>AI_XENO_DISARM_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L36">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 36"/></a>
+    </h3>
+    <p>Percent chance a plain melee swing against a human uses INTENT_DISARM (a real tackle attempt, can knock down) instead of INTENT_HARM (plain claw damage).</p><h3 id="define/AI_XENO_FLEE_ALLY_RADIUS"><aside class="declaration">#define </aside>AI_XENO_FLEE_ALLY_RADIUS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L52">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 52"/></a>
+    </h3>
+    <p>Tiles within which a living same-hive AI xeno counts as &quot;backup&quot; for should_flee()'s decision.</p><h3 id="define/AI_XENO_FLEE_ALLY_THRESHOLD"><aside class="declaration">#define </aside>AI_XENO_FLEE_ALLY_THRESHOLD
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L54">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 54"/></a>
+    </h3>
+    <p>Nearby same-hive allies (see count_nearby_hive_allies()) at/above which a hurt xeno keeps fighting instead of disengaging - not fighting alone, so the hive's numbers carry it instead. Raised from 1 - a single other daughter happening to be nearby isn't real backup, it was just cancelling the flee decision almost every time.</p><h3 id="define/AI_XENO_FLEE_HEALTH_PERCENT"><aside class="declaration">#define </aside>AI_XENO_FLEE_HEALTH_PERCENT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L48">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 48"/></a>
+    </h3>
+    <p>Health fraction (0-1) below which an AI xeno even considers disengaging - see should_flee() for the rest of the decision (target's own health, nearby backup). Raised from 0.25 - &quot;normal casts should really use fleeing better&quot; - combined with the old ally threshold of 1, most fights had an excuse not to disengage until nearly dead.</p><h3 id="define/AI_XENO_HIVE_ALERT_RESPONSE_RANGE"><aside class="declaration">#define </aside>AI_XENO_HIVE_ALERT_RESPONSE_RANGE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L116">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 116"/></a>
+    </h3>
+    <p>How far away a hive-alert will actually pull an idle builder off what she's doing - a fight on the far side of the map shouldn't empty out every drone's weeding queue.</p><h3 id="define/AI_XENO_HIVE_ALERT_WINDOW"><aside class="declaration">#define </aside>AI_XENO_HIVE_ALERT_WINDOW
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L114">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 114"/></a>
+    </h3>
+    <p>How long other hive members will respond to the Queen's last hive-alert broadcast before it goes stale (see hive_status.dm's queen_alert_turf).</p><h3 id="define/AI_XENO_LONG_PATROL_CHANCE"><aside class="declaration">#define </aside>AI_XENO_LONG_PATROL_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L82">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 82"/></a>
+    </h3>
+    <p>Percent chance per idle tick (once no higher-priority order applies) that a xeno starts a long patrol leg instead of short-range wander() - see start_long_patrol().</p><h3 id="define/AI_XENO_LONG_PATROL_LZ_CHANCE"><aside class="declaration">#define </aside>AI_XENO_LONG_PATROL_LZ_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L84">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 84"/></a>
+    </h3>
+    <p>Percent chance a long patrol leg specifically targets the marine LZ (once one's been chosen) instead of a random distant point.</p><h3 id="define/AI_XENO_LONG_PATROL_RADIUS_GROWTH_PER_MINUTE"><aside class="declaration">#define </aside>AI_XENO_LONG_PATROL_RADIUS_GROWTH_PER_MINUTE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L86">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 86"/></a>
+    </h3>
+    <p>How many tiles current_patrol_radius() grows per minute of round time.</p><h3 id="define/AI_XENO_LONG_PATROL_RADIUS_MAX"><aside class="declaration">#define </aside>AI_XENO_LONG_PATROL_RADIUS_MAX
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L88">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 88"/></a>
+    </h3>
+    <p>Cap on how far current_patrol_radius() can grow.</p><h3 id="define/AI_XENO_MAX_REST_DURATION"><aside class="declaration">#define </aside>AI_XENO_MAX_REST_DURATION
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L76">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 76"/></a>
+    </h3>
+    <p>Hard cap on how long wander() lets her rest before standing back up regardless of health - see rest_timeout.</p><h3 id="define/AI_XENO_OPPORTUNISTIC_REST_CHANCE"><aside class="declaration">#define </aside>AI_XENO_OPPORTUNISTIC_REST_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L74">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 74"/></a>
+    </h3>
+    <p>Percent chance per idle tick that a hurt xeno standing on healing-eligible weeds opportunistically rests to heal up, rather than only ever resting once critically hurt and already back at anchor_turf.</p><h3 id="define/AI_XENO_PATROL_CHANCE"><aside class="declaration">#define </aside>AI_XENO_PATROL_CHANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L78">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 78"/></a>
+    </h3>
+    <p>Percent chance per idle tick that a patrolling xeno takes a wander step, so it doesn't move every single idle tick.</p><h3 id="define/AI_XENO_PATROL_RADIUS"><aside class="declaration">#define </aside>AI_XENO_PATROL_RADIUS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L72">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 72"/></a>
+    </h3>
+    <p>How far an idle xeno will wander from its anchor while patrolling.</p><h3 id="define/AI_XENO_PHEROMONE_COST"><aside class="declaration">#define </aside>AI_XENO_PHEROMONE_COST
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L118">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 118"/></a>
+    </h3>
+    <p>Plasma cost for an AI xeno's own opportunistic combat pheromone burst - matches emit_pheromones()'s own default cost (general_powers.dm) rather than inventing a separate balance number.</p><h3 id="define/AI_XENO_RANGED_MIN_DISTANCE"><aside class="declaration">#define </aside>AI_XENO_RANGED_MIN_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L112">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 112"/></a>
+    </h3>
+    <p>If the target closes to within this distance, a ranged xeno actively backs away instead of just holding position.</p><h3 id="define/AI_XENO_RANGED_PREFERRED_DISTANCE"><aside class="declaration">#define </aside>AI_XENO_RANGED_PREFERRED_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L110">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 110"/></a>
+    </h3>
+    <p>Tiles an AI ranged xeno tries to stay from its target - closer than this and it backs off instead of closing to melee.</p><h3 id="define/AI_XENO_SEARCH_TIMEOUT"><aside class="declaration">#define </aside>AI_XENO_SEARCH_TIMEOUT
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L64">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 64"/></a>
+    </h3>
+    <p>How long an AI xeno will keep investigating a lost target's last known position before giving up.</p><h3 id="define/AI_XENO_SKIRT_DURATION"><aside class="declaration">#define </aside>AI_XENO_SKIRT_DURATION
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L70">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 70"/></a>
+    </h3>
+    <p>How long a committed obstacle-skirt (navigate_around()/attempt_skirt_obstacle()) keeps walking one direction before it's willing to re-aim at the goal - &quot;long pathfinding to go around a building is not possible&quot; needed enough distance in one direction to actually clear a building's corner, not just one sidestep.</p><h3 id="define/AI_XENO_TARGET_SCAN_REFRESH_DISTANCE"><aside class="declaration">#define </aside>AI_XENO_TARGET_SCAN_REFRESH_DISTANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L32">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 32"/></a>
+    </h3>
+    <p>How far the pilot can drift from where process_target()'s scan rectangle was last centered before it's considered stale and recomputed - keeps the scan following her as she patrols/wanders instead of staying pinned to wherever she happened to be during her last unsuccessful scan.</p><h3 id="define/AI_XENO_WANDER_COMMIT_TIME"><aside class="declaration">#define </aside>AI_XENO_WANDER_COMMIT_TIME
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L80">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 80"/></a>
+    </h3>
+    <p>How long wander() commits to a single heading before picking a new one - see wander()'s doc comment for why this exists.</p><h3 id="define/IDLE_ACTIVITY_NONE"><aside class="declaration">#define </aside>IDLE_ACTIVITY_NONE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L7">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 7"/></a>
+    </h3>
+    <p>Named sub-states of AI_STATE_IDLE - &quot;Idle&quot; alone used to cover wandering, building, following, hiding, and patrolling all as one flat label with no memory between ticks. See patrol()/xeno_ai_controller.dm's idle_activity var.</p><h3 id="define/PATH_GOAL_REPLAN_TOLERANCE"><aside class="declaration">#define </aside>PATH_GOAL_REPLAN_TOLERANCE
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L68">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 68"/></a>
+    </h3>
+    <p>Tiles a live target can drift from where a cached path was computed for before advance_along_path() throws it out and replans - keeps a moving target from forcing a fresh plan (and a fresh solver tie-break near corners) every single tick.</p><h3 id="define/XENO_MELEE_ATTACK_DELAY"><aside class="declaration">#define </aside>XENO_MELEE_ATTACK_DELAY
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L34">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 34"/></a>
+    </h3>
+    <p>Per-swing cooldown the AI's plain melee is held to (execute_attack()'s plain-melee branch, xeno_ai_attack.dm) - attack_alien() itself never sets this, only click_adjacent()'s own <code>next_move += 4</code> does, and only for a real player's click. 4 is the bare code-permitted floor though (2.5 attacks/sec sustained), far faster than a real player's actual click cadence in practice (aiming, reacting, missing a click here and there) - &quot;no click delay... can melt a player to death with just slashing&quot; was this AI attacking at that literal floor nonstop, which no human sustains. Set higher to read as a real melee pace instead of the theoretical maximum.</p><h3 id="define/XENO_PATHFIND_MAX_CELLS"><aside class="declaration">#define </aside>XENO_PATHFIND_MAX_CELLS
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/__DEFINES/xeno_ai.dm#L66">
+        <img src="git.png" width="16" height="16" title="code&#x2F;__DEFINES&#x2F;xeno_ai.dm 66"/></a>
+    </h3>
+    <p>Largest local grid (width*height tiles) handed to the native pathfinder. Beyond this the old greedy step_towards() chase handles it fine - this is for routing around nearby obstacles, not long-range travel.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

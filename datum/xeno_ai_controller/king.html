@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;king - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/king.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/king.html">king</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/king.dm#L33">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;king.dm 33"/></a></h1>
+
+<p>King AI - the Yautja-hive counterpart to Queen: a solo tier-4 boss, not a
+population-scale caste, so (like Queen) he gets real per-tick reasoning
+instead of the simpler population-budget logic every other caste uses.</p>
+<ul>
+<li>Rend is cheap and short-cooldown (2.5s) - used as the default option
+over a plain claw whenever it's off cooldown, not gated on anything.</li>
+<li>Doom (AoE daze/blind/slow, 45s CD) and Destroy (huge-damage AoE slam,
+60s CD) used to be reserved for 2+ nearby targets on the theory that
+either would &quot;waste most of their value&quot; on a lone target - false for
+both (Destroy's damage number doesn't care how many mobs it hit, and
+dazing/slowing even one marine solo is a big setup for the follow-up),
+and since most engagements are actually 1v1, that gate meant &quot;does not
+use its abilities well at all&quot; - he'd sit on Rend alone almost every
+fight. Now used on cooldown against any live target. Destroy is
+preferred over Doom when both are available, since it's the bigger
+payoff.</li>
+</ul>
+<p>Proactively pops King Shield (a party-wide damage-cap buff) once he's
+actually taking a beating - see attempt_shield() - rather than only ever
+using his offensive kit and going down without ever bolstering himself or
+nearby daughters.</p>
+<p>&quot;Coordination with other AI xenos is very poor&quot; - King never broadcast a
+hive alert or escort call the way Queen does, so other AI xenos never
+rallied to a fight he was personally in. broadcast_hive_alert()/
+broadcast_escort_call() are shared base-controller procs (promoted off
+Queen's controller, xeno_ai_controller.dm) - process_target()/
+process_attack() below call them the same way Queen's own tick() does,
+just without needing King to override the whole state machine the way
+she does (he has no economy/command loop of his own to layer on top of).</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/king.html#proc/New">New</a></th><td>&quot;King needs a face lift as well in the combat department and pathfinding&quot; - he's the same kind of one-per-round solo boss as Queen but had no New() override at all, leaving him on the flat population-default attack/return radius instead of a boss-scale one.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/king.html#proc/attempt_shield">attempt_shield</a></th><td>Pops King Shield once he's actually taking a beating (below half health) - the same &quot;is the fight bad enough&quot; bar crusher.dm's own attempt_shield() uses, not just whenever it happens to be off cooldown.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/king.html#proc/process_attack">process_attack</a></th><td>Keeps refreshing both broadcasts every attack tick, same as Queen's tick() does every tick she has a live target - so the alert/escort call stay fresh for as long as he's actually fighting.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/king.html#proc/process_target">process_target</a></th><td>Broadcasts the instant he acquires a target, same as Queen's own tick() does for her - other AI xenos don't have to wait for him to already be swinging before they hear about it.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/New">New<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/new_pilot) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/king.dm#L36">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;king.dm 36"/></a></aside>
+        </h3>
+        <p>&quot;King needs a face lift as well in the combat department and pathfinding&quot; - he's the same kind of one-per-round solo boss as Queen but had no New() override at all, leaving him on the flat population-default attack/return radius instead of a boss-scale one.</p><h3 id="proc/attempt_shield"><aside class="declaration">proc </aside>attempt_shield<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/king.dm#L79">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;king.dm 79"/></a></aside>
+        </h3>
+        <p>Pops King Shield once he's actually taking a beating (below half health) - the same &quot;is the fight bad enough&quot; bar crusher.dm's own attempt_shield() uses, not just whenever it happens to be off cooldown.</p><h3 id="proc/process_attack"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/process_attack">&uarr;</a></aside>process_attack<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/king.dm#L49">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;king.dm 49"/></a></aside>
+        </h3>
+        <p>Keeps refreshing both broadcasts every attack tick, same as Queen's tick() does every tick she has a live target - so the alert/escort call stay fresh for as long as he's actually fighting.</p><h3 id="proc/process_target"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/process_target">&uarr;</a></aside>process_target<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/king.dm#L42">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;king.dm 42"/></a></aside>
+        </h3>
+        <p>Broadcasts the instant he acquires a target, same as Queen's own tick() does for her - other AI xenos don't have to wait for him to already be swinging before they hear about it.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

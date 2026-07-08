@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../../../../../../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;ranged.dm - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+</header>
+<main>
+<h1>code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm 
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;ranged.dm"/></a></h1>
+
+<table class="summary" cellspacing="0">
+        <tr><th><a href="datum&#x2F;xeno_ai_controller&#x2F;ranged.html">&#x2F;datum&#x2F;xeno_ai_controller&#x2F;ranged</a></th><td>Base controller for castes that fight from range instead of melee
+(Spitter now; Boiler/Praetorian/Lurker are natural next additions - see
+the plan's 2.6 section). Confirmed zero ranged AI existed anywhere to
+port technique from, so this is new design: maintain distance instead of
+closing to melee, back off if the target gets too close, and fire the
+caste's ranged ability instead of attack_alien() once in range.</td></tr>
+        <tr><th>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/ranged.html">ranged</a>/spitter</th><td>Spitter - &quot;doesn't have an AI fight preset, they just death charge&quot; was a
+real bug, not a design gap: this queried /xeno_spit/spitter, a cosmetic
+subtype Spitter.dm's own base_actions never actually grants (it grants
+the plain /xeno_spit base type instead) - get_ability()'s locate() only
+matches a held instance that IS the queried type or a stricter subtype of
+it, never the other way around, so this always returned null and every
+Spitter fell straight into ranged.dm's melee fallback, permanently. Fixed
+to query the type actually granted. That ability still has a genuine 60s
+cooldown though (general_abilities.dm), so on its own she'd still spend
+most of a fight in the melee fallback - falls back to Spray Acid (8s
+cooldown, a real ranged line attack) instead of closing to melee whenever
+the big spit isn't up, so she stays a ranged threat continuously rather
+than only once a minute.</td></tr></table></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

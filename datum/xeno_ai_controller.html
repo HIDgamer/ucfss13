@@ -1,0 +1,1634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller.html#var">Var Details</a> - <a href="datum/xeno_ai_controller.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L11">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 11"/></a></h1>
+
+<p>Core decision-making datum for an NPC-piloted Xenomorph.</p>
+<p>One instance is composed onto a real xenomorph mob (see xeno_ai_lifecycle.dm's
+attach_xeno_ai()) that has no client. It drives itself via its own INVOKE_ASYNC
+coroutine (ai_loop()) rather than a shared subsystem tick, so idle mobs cost almost
+nothing and busy mobs never stall the tick budget for player-piloted xenos on
+SSxeno. The pilot's normal Life() ticking (health/plasma/status) is untouched -
+this datum only adds a decision layer on top.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/ai_heartbeat">ai_heartbeat</a></th><td>Ticks slept between loop iterations while actively engaged (chasing/attacking).</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/ai_idle_heartbeat">ai_idle_heartbeat</a></th><td>Ticks slept between loop iterations while idle and scanning - deliberately longer than ai_heartbeat.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/ambush_hide_until">ambush_hide_until</a></th><td>world.time attempt_ambush_hide() gives up the hide and resumes normal patrol.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/ambush_hiding">ambush_hiding</a></th><td>TRUE once actually settled and xenohidden at ambush_turf, as opposed to still walking there - see attempt_ambush_hide().</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/ambush_turf">ambush_turf</a></th><td>Turf this xeno is traveling to (or already holding) for attempt_ambush_hide()'s &quot;hide near the LZ&quot; idle behavior - null whenever not mid-ambush.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/anchor_turf">anchor_turf</a></th><td>Turf the pilot leashes to; wandering more than return_distance from this turf aborts the chase.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/attack_distance">attack_distance</a></th><td>Radius (tiles) of the bounded target scan.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/blocked_attempts">blocked_attempts</a></th><td>Consecutive failed movement attempts against the current target; used to give up rather than loop forever against an unreachable target (this AI does not pathfind).</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/codename">codename</a></th><td>Random flavor callsign, drawn from a pool matching the pilot's caste role (see get_codename_pool()) - assigned once at attach. Lets the hive status roster (event_tab.dm's admin panel) tell a screen full of same-caste xenos apart at a glance instead of just listing &quot;Drone&quot; over and over, and gives a boss-tier xeno a suitably grander name than a builder gets.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/current_target">current_target</a></th><td>Current target being pursued/attacked, if any - either a living hostile or an attackable structure (e.g. a sentry turret).</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/damage_dealt">damage_dealt</a></th><td>Cumulative damage dealt to living targets since attach - see record_damage_dealt() in xeno_ai_attack.dm.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/detached">detached</a></th><td>Set TRUE the instant the pilot should stop being AI-driven (client attached, death, deletion). The coroutine checks this at the top of every loop and exits cleanly - no forced kill of an in-flight sleep().</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/flee_turf">flee_turf</a></th><td>A nearer, defensible turf (find_defensible_turf()) picked when this flee started, if one was actually closer than anchor_turf - null means &quot;just go to anchor_turf as normal.&quot; Cleared on arrival/give-up same as anchor_turf's own resolution.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/idle_activity">idle_activity</a></th><td>Named sub-state of AI_STATE_IDLE (see the IDLE_ACTIVITY_* defines) - what patrol() actually decided to do this tick, since &quot;Idle&quot; alone doesn't distinguish standing still from wandering/building/regrouping/patrolling. Purely observational (hive status roster) - doesn't drive any logic itself.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/last_ability_time">last_ability_time</a></th><td>world.time a caste ability last actually fired (use_caste_ability() returning TRUE, xeno_ai_attack.dm) - 0 if never. Purely observational (hive status roster).</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/last_retaliation_data">last_retaliation_data</a></th><td>The pilot's own last_damage_data (mob_defines.dm) as of the last check_retaliation() call - a fresh cause_data instance is created for every single hit, so comparing by reference tells &quot;already reacted to this one&quot; from &quot;something new just hit her&quot; without needing a separate signal.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/last_seen_turf">last_seen_turf</a></th><td>Last known turf of a target that escaped rather than died - drives AI_STATE_SEARCHING instead of instantly forgetting about it.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/last_sidestep_dir">last_sidestep_dir</a></th><td>Absolute direction of the last successful navigate_around() sidestep - tried again first next time, so the pilot commits to going around one side of an obstacle instead of flip-flopping as target_dir shifts tick to tick.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/next_step_time">next_step_time</a></th><td>world.time this controller can next actually move a tile - see ai_step() in xeno_ai_movement.dm.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/next_wander_reroll">next_wander_reroll</a></th><td>world.time wander() will pick a new heading even if the current one hasn't failed yet.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/path_goal">path_goal</a></th><td>The turf path_queue was computed to reach; a route is only reused while the goal hasn't moved to a different tile.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/path_queue">path_queue</a></th><td>Cached native-pathfinder route (remaining waypoint turfs, nearest first). Null whenever there's no live plan - the old greedy step_towards() handles movement whenever this is empty, so a host without the native pathfinding library behaves exactly as before.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/patrol_turf">patrol_turf</a></th><td>Destination of an in-progress long patrol leg (start_long_patrol()/continue_long_patrol()) - null whenever not mid-trip.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/pilot">pilot</a></th><td>The xenomorph mob this controller pilots. Never changes for the lifetime of the datum.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/rest_timeout">rest_timeout</a></th><td>world.time wander() forces her back up from resting regardless of health - a safety net so a heal that stalls short of full (permanent limb damage, etc.) doesn't leave her resting forever.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/return_distance">return_distance</a></th><td>Leash radius (tiles) from anchor_turf before the pilot disengages and returns.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/search_started_at">search_started_at</a></th><td>world.time the current search began, to bound how long SEARCHING lasts.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/skirt_dir">skirt_dir</a></th><td>Direction a long obstacle-skirt (see attempt_skirt_obstacle()) is currently committed to, or null if not skirting - &quot;long pathfinding around a building is not possible&quot; fix: a single sidestep isn't enough distance to clear a whole building, so this keeps walking one direction for a while instead of re-aiming at the goal (and potentially flip-flopping) every tick.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/skirt_until">skirt_until</a></th><td>world.time the current skirt commitment ends.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/spawned_at">spawned_at</a></th><td>world.time this controller was attached - backs the hive status roster's &quot;time lived&quot; column (see event_tab.dm's admin panel).</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/tactical_retreat_until">tactical_retreat_until</a></th><td>world.time a hit-and-run caste stops actively retreating and resumes closing on current_target - see start_tactical_retreat()/is_tactical_retreating().</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/turf_block">turf_block</a></th><td>Cached bounded turf list from the last scan; reused across idle ticks until a target is found or the pilot moves on.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/turf_block_origin">turf_block_origin</a></th><td>Turf the pilot was standing on when turf_block was last computed - see process_target()'s staleness check.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#var/wander_dir">wander_dir</a></th><td>Heading wander() is currently committed to - see wander()'s doc comment for why this exists instead of picking fresh every roll.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/acquire_target">acquire_target</a></th><td>Shared &quot;found something worth fighting&quot; tail - used by process_target()'s own scan and check_retaliation() alike, so noticing a target the normal way and getting jumped by one it wouldn't otherwise have scanned both settle into the exact same state.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/advance_along_path">advance_along_path</a></th><td>Consumes one step of a cached native-pathfinder route toward goal,
+(re)computing it first if needed. Returns FALSE - meaning &quot;fall through to
+the old greedy behavior for this tick&quot; - if the native library isn't
+available, no path exists, the goal is out of local-grid range, or the
+planned next tile turned out to be blocked when we actually tried to move
+(something wandered into the way, a door shut) - in that last case the
+stale plan is dropped and a fresh one gets computed next tick.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/ai_loop">ai_loop</a></th><td>Outer loop is intentionally just error containment + sleep timing - all
+actual decision-making lives in tick(). A runtime error anywhere in that
+call chain (movement, pathfinding, attack resolution, etc.) would otherwise
+unwind all the way up through this proc and permanently kill the coroutine,
+leaving the mob standing frozen forever with nothing further to fix it -
+this is why &quot;AI gets stuck for no reason&quot; happened. Catching here means one
+bad tick just gets logged and skipped; the mob keeps trying next tick.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/ai_step">ai_step</a></th><td>Single-tile sidestep around one obstacle. Not real pathfinding - if this
+fails too the caller gives up on the target. Prefers whichever side
+worked last time before trying the other - target_dir shifts by a notch
+almost every tick a mob is near a corner, and always re-deriving &quot;left or
+right&quot; fresh from it made the pilot flip-flop between both sides of the
+corner instead of committing to going around one way, which is what the
+reported &quot;walks in a triangle near walls&quot; turned out to be for hosts
+without the native pathfinder available (or wherever it falls through to
+this greedy tail).</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attack_blocking_obstacle">attack_blocking_obstacle</a></th><td>&quot;No click delay when smashing stuff, they spam walls until smashed,
+barricades, windows too&quot; - same root cause as plain melee's own next_move
+gap (xeno_ai_attack.dm's execute_attack()): attack_alien() never sets
+next_move itself for a basic hit, only click.dm's do_click() dispatch
+does, which this AI bypasses by calling attack_alien() directly. This is
+called fresh every tick process_movement() is still blocked, with nothing
+previously pacing it at all - unlimited-rate smashing, exactly like the
+melee spam bug before it was gated the same way.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attempt_ambush_hide">attempt_ambush_hide</a></th><td>&quot;Gather intel on positions in the map for ambush or defense building&quot; /
+&quot;hiding to ambush&quot; - a low-probability idle detour that walks out toward
+the marine LZ (get_lz_turf(), shared with queen.dm's own siege-response
+use of it) and actually hides there via xenohide for a while, instead of
+only ever aimlessly wandering near the hive. Interrupted for free the
+moment a real target shows up - process_target() unhides and clears this
+state as soon as she has something better to do (see the check there).</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attempt_build_defense">attempt_build_defense</a></th><td>Shared by drone_worker.dm/hivelord.dm/burrower.dm - &quot;resin wall/door
+fortress pattern at hive perimeter&quot; instead of only ever plant_weeds().
+Bypasses the click/tgui resin-picker layer entirely (choose_resin.dm) the
+same way every other AI ability call in this file does: sets selected_resin
+directly to a plain wall type from the pilot's own resin_build_order, then
+calls build_resin() (Powers.dm) directly - the same proc a player's
+secrete_resin click ultimately reaches. can_build_here() is checked first
+so this can be rolled speculatively same as attempt_plant_weeds() - a bad
+tile (no owned weeds, already something built there, an unweedable area)
+just silently no-ops instead of spamming a doomed build attempt.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attempt_climb_obstacle">attempt_climb_obstacle</a></th><td>Vaults over a climbable obstacle the same way a real player's do_climb() interaction would, instead of only ever sidestepping around it or standing there unable to proceed. do_climb()'s own do_after() windup blocks this controller's tick() the same safe way Queen's Gut/Burrower's burrow already do.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attempt_combat_pheromones">attempt_combat_pheromones</a></th><td>&quot;Drones, hivelords, and queens should use pheromones to assist in combat&quot; -
+fires once on first contact with a target (see process_target() above),
+not every tick, since emit_pheromones() is a toggle (current_aura already
+blocks re-triggering the same one). Passing the pheromone string directly
+skips the whole tgui/radial menu prompt inside emit_pheromones() - that
+branch only runs when called with none, so this is safe for a clientless
+AI mob the same way the other direct ability calls in this file are.
+Frenzy (run speed/damage) over Warding/Recovery - she's picking a fight,
+not stabilizing one already going badly. Requires actual nearby support to
+bother - alone, an aura buffing nobody but herself isn't worth the plasma.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attempt_help_burning_ally">attempt_help_burning_ally</a></th><td>&quot;They don't try patting their allies who are on fire&quot; - a xeno clawing
+another xeno with INTENT_HELP while it's burning pats the fire out
+(attack_alien() on the xenomorph-vs-xenomorph path, XenoAttacks.dm) -
+this AI never triggered that interaction at all. Checked near the top of
+patrol() (an ally on fire is an emergency, same priority tier as a hive
+alert) - walks to the nearest burning same-hive ally and pats them out
+once adjacent.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attempt_help_queen_build_core">attempt_help_queen_build_core</a></th><td>&quot;They don't even help the queen build her core&quot; - travels to and weeds
+the Queen's own tile whenever the hive has no Hive Core yet, instead of
+every builder independently weeding/building wherever it happens to be
+standing with no regard for what she actually needs ground for right now.
+Shared by drone_worker.dm/hivelord.dm/burrower.dm, checked before their
+own independent build rolls.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attempt_plant_weeds">attempt_plant_weeds</a></th><td>Shared by drone_worker.dm and queen.dm - calls the real plant_weeds ability directly. Its own internal checks (weedable ground, not already weeded enough, hive ownership) handle rejection silently if the current tile isn't suitable, same as a player clicking it somewhere bad, so this is safe to roll speculatively.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attempt_skirt_obstacle">attempt_skirt_obstacle</a></th><td>Continues an already-committed skirt (see navigate_around() above) for as
+long as skirt_until hasn't lapsed, instead of re-deriving &quot;which way is
+the goal&quot; fresh every tick while stuck. Returns FALSE (nothing to do,
+caller falls through to the normal approach/obstacle chain) once there's
+no active skirt, it's expired, or the committed direction itself becomes
+blocked (a corner of the obstacle, or something wandered into the way) -
+in the last case the commitment ends immediately rather than standing
+there retrying the same blocked direction until the timer runs out.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attempt_tail_stab">attempt_tail_stab</a></th><td>Shared melee fallback for any caste with Tail Stab in its kit (Warrior,
+Sentinel, King, Ravager, Hivelord, Queen, Predalien, Drone, Praetorian,
+Lesser Drone, Lurker, Crusher, Defender, Carrier, Burrower - most of the
+roster) - &quot;all casts really do not use all their special abilities&quot; was
+true of this one universally: nothing in the AI ever called it despite
+how widely it's granted. get_ability() queries the plain base type here
+deliberately, not any specific caste subtype (tail_stab/slam, /spitter,
+/tail_seize, /tail_fountain, /boiler) - locate(type) in list matches a
+held instance of that type OR any stricter subtype of it, so this finds
+whichever variant a given caste actually has without needing to know
+which one ahead of time.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/attempt_vent_ambush">attempt_vent_ambush</a></th><td>Vent-crawl ambush support for xeno_ai_controller. Reuses the existing
+pipe network (/obj/structure/pipes/vents, relaymove()'s connected_to
+graph) rather than building a parallel travel system, but bypasses the
+two player-facing entry points (handle_ventcrawl()/start_ventcrawl() in
+ventcrawl.dm) entirely - both are built around an interactive
+tgui_input_list vent picker and a do_after windup whose completion check
+includes <code>!client</code>, a disconnect guard that makes no sense for a mob
+that was never connected to begin with and would silently cancel every
+AI attempt. relaymove() itself (the actual movement between connected
+pipe segments once inside, and the exit path) only needed one small
+patch elsewhere (pipes.dm) - <code>user.client.eye = next_pipe</code> would
+null-reference for a clientless caller, guarded the same way every
+other client-touching line in that file already is.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/broadcast_escort_call">broadcast_escort_call</a></th><td>Calls nearby daughters to physically rally on boss_pilot, distinct from
+broadcast_hive_alert() (which points at the threat, not at her/him) -
+&quot;the Queen must be escorted when in combat by no less than 5 and up to
+10 daughters,&quot; same standing-call-for-backup reasoning applied to King.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/broadcast_hive_alert">broadcast_hive_alert</a></th><td>&quot;Coordination with other AI xenos is very poor&quot; / King never called
+anything analogous to Queen's own alert/escort broadcasts, so other AI
+xenos never rallied to a fight he was personally in. Promoted off the
+Queen controller onto the base one - nothing in either proc actually used
+anything Queen-specific (just generic hive/mob access), it was just typed
+to her subtype - so both Queen (via her own tick() override, unchanged)
+and King (see king.dm) can call the same two procs.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/can_act_while_immobilized">can_act_while_immobilized</a></th><td>TRUE if this xeno can still act (attack/use abilities) despite TRAIT_IMMOBILIZED - the exception for a caste that voluntarily immobilized itself but is still meant to fight from where it's planted (see defender.dm's Fortify override). FALSE by default: an ordinary stun/knockdown should freeze tick() entirely, same as it always has.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/cardinal_step_towards">cardinal_step_towards</a></th><td>Cardinal-only replacement for BYOND's step_towards() - this AI never
+moves diagonally by design (the native pathfinder's own DIRECTIONS list
+is cardinal-only), but step_towards() doesn't know that and will happily
+cut a diagonal corner whenever the goal is both north/south AND east/west
+of the pilot. Every direct chase/return/search step in this AI goes
+through here instead of calling step_towards() itself, so a diagonal goal
+always resolves into exactly one cardinal step - along whichever axis has
+the larger remaining distance first, falling back to the other axis if
+that step is blocked (mirrors navigate_around()'s two-option fallback).</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/check_retaliation">check_retaliation</a></th><td>&quot;Anything that attacks the AI should become an enemy too.&quot; last_damage_data
+(mob_defines.dm) is set generically by every attack path in the game
+(melee, ranged, thrown, etc. - see the many create_cause_data() call sites
+across combat code) regardless of whether the attacker is a type
+is_valid_target()'s own scan would ever pick up on its own (a predator, a
+synthetic, wildlife, anything outside the plain human/sentry/vehicle set).
+Polled here each tick rather than hooked off a signal - COMSIG_XENO_TAKE_
+DAMAGE fires from inside apply_damage(), before some callers have actually
+updated last_damage_data yet, so reading it synchronously off the signal
+risks seeing the previous hit's attacker, not this one. Comparing the
+cause_data reference itself (a fresh instance every single hit) tells
+&quot;new attacker since last check&quot; cheaply, without needing to track a
+separate timestamp. Only kicks in with no live current_target already -
+doesn't rip focus off a fight already in progress onto every incidental
+hit from a third party.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/compute_path">compute_path</a></th><td>Builds a bounded local grid around the pilot and goal (only turf density
+counts as &quot;blocked&quot; - doors/windows/tables are left for the existing
+per-step obstacle-forcing and native climb-over handling, not modeled in
+the grid) and asks the native solver for a route. Returns null (meaning
+&quot;no plan, use the old behavior&quot;) if the library isn't present, the hop is
+too large for local grid pathing, or no path exists - long-range chases
+are already handled fine by the greedy approach, this is specifically for
+routing around nearby walls/dead-ends.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/continue_long_patrol">continue_long_patrol</a></th><td>Walks one step of an already-started long patrol leg; drops it once arrived or genuinely stuck, letting the next idle tick's rolls decide what to do next.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/count_engaged_allies">count_engaged_allies</a></th><td>Same-hive AI xenos already actively approaching/attacking this exact target - see get_flanking_position()/process_movement()'s flanking check.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/count_nearby_escorts">count_nearby_escorts</a></th><td>Living same-hive AI xenos within radius tiles of boss_pilot - backs broadcast_escort_call()'s decision on whether it already has enough of a bodyguard.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/count_nearby_hive_allies">count_nearby_hive_allies</a></th><td>Living, non-fleeing same-hive AI xenos within radius tiles - used by should_flee() to judge whether backup is close enough that disengaging isn't necessary.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/current_patrol_radius">current_patrol_radius</a></th><td>Current long-patrol radius from anchor_turf - grows with round time up to a cap, approximating &quot;as the hive radius expands.&quot; Also used by start_long_patrol() as the minimum distance worth calling a &quot;long&quot; trip at all.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/drop_target">drop_target</a></th><td>Drops the current target. If should_search is set and we have a last-known
+position, transitions to AI_STATE_SEARCHING to go investigate it instead of
+instantly forgetting the target ever existed - used when a chase is broken off
+by an obstacle (door/ladder/etc.) rather than the target actually dying or
+becoming invalid, where there's nothing worth investigating.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/end_ambush_hide">end_ambush_hide</a></th><td>Un-hides (if actually hidden) and clears ambush state - shared by attempt_ambush_hide()'s timeout and process_target()'s interrupt-on-contact.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/execute_attack">execute_attack</a></th><td>Orientation is only touched here, at the moment of the strike - never polled
+every tick - per the reference implementation's own performance approach.
+Branches on target type: living targets go through the full
+ability/facehugger/melee chain below, while structures (sentry turrets)
+skip straight to attack_alien() - abilities and facehugger logic don't
+apply to attacking machinery.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/execute_facehugger_hug">execute_facehugger_hug</a></th><td>Mirrors the validity checks and windup in Facehugger.dm's UnarmedAttack()/
+handle_hug() (can only hug a target that's lying down), but skips the
+click-driven visible_message flavor since nobody needs to read it for an
+NPC. Calls the same handle_hug() so the actual infection logic is identical
+to a player-controlled hugger. No-ops (waits adjacent) against a standing
+target rather than doing anything else - a real hugger has no other attack.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/find_defensible_turf">find_defensible_turf</a></th><td>&quot;They should also consider corners and walls as defensive positions&quot; -
+a nearby turf with at least AI_XENO_DEFENSIBLE_MIN_DENSE_SIDES
+cardinally-adjacent dense tiles (a wall, a corner, tucked against a
+structure), meaning fewer directions something can actually approach it
+from. Used by a fleeing/kiting xeno as a nearer, defensible fallback
+instead of always crossing open ground back to anchor_turf. Returns null
+if nothing suitable exists within radius - callers just fall back to
+their normal destination.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/find_ladder_towards">find_ladder_towards</a></th><td>Nearest ladder on the pilot's current z-level that actually connects toward target_z, or null if none does.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/find_nearest_hive_weed_turf">find_nearest_hive_weed_turf</a></th><td>Nearest turf with a same-hive weed within a bounded radius of anchor_turf - shared by wander()'s weed-seeking and (formerly) larva.dm's own copy of this. Cheap bounded scan, not something every population-scale caste calling it occasionally can't afford.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/find_pack_buddy">find_pack_buddy</a></th><td>Nearest other idle/patrolling same-hive xeno within pack range - see respond_to_pack_cohesion().</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_ability">get_ability</a></th><td>Finds a specific ability instance on the pilot's action bar, for
+per-caste controller subtypes that call a caste ability's use_ability()
+body directly (bypassing the click/mouse layer) rather than the generic
+melee attack_alien() chain - see the per-caste ability audit in the plan
+(section 2.6). Returns null if the pilot doesn't have that ability at all.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_blocking_obstacle">get_blocking_obstacle</a></th><td>&quot;Pathfinding is very messed up when it comes to none blocking, blocking
+tiles like tables, vehicles, and fences&quot; - a climbable structure (table,
+some fences/crates) directly ahead of a raw step() from ordinary floor is
+NOT actually passable for free the way an earlier version of this comment
+assumed: tables_racks.dm's own BlockedPassDirs() only waives the block
+when the mover is already standing on some other climbable structure
+(hopping furniture to furniture), not from plain ground. A real player
+instead climbs over it directly (do_climb(), a MouseDrop/verb
+interaction) - see get_climbable_obstacle()/attempt_climb_obstacle()
+below for the AI equivalent, checked before this proc in
+process_movement(). This proc is left for what genuinely does need
+force: locked airlocks, windows, girders, and walls a strong-enough
+caste can actually melt through - xenos can't badge through
+access-locked doors, can't walk through glass, and can't walk through
+walls unless their claws are strong enough, so they attack instead, same
+as a player would.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_climbable_obstacle">get_climbable_obstacle</a></th><td>A climbable structure (table, some fences/crates) directly ahead on the way to goal - see get_blocking_obstacle()'s doc comment above for why this needs separate handling instead of being treated as freely passable.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_codename_pool">get_codename_pool</a></th><td>Picks which flavor-callsign pool this xeno draws from, based on its caste's actual combat role - see the GLOB.ai_codenames_* lists just above.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_defense_wall_type">get_defense_wall_type</a></th><td>Wall or door option this pilot's caste can build, picked randomly between the two when both exist - &quot;walls and doors,&quot; not only ever walls.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_desperate_threshold">get_desperate_threshold</a></th><td>Health fraction (0-1) below which a fleeing xeno gives up on running and fights instead - see return_to_anchor()'s desperate-stand check. Overridden to 0 (never) by castes with nothing worth fighting with, e.g. larva.dm.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_flanking_position">get_flanking_position</a></th><td>&quot;Flanking logic to flank humans&quot; - once at least one same-hive ally is
+already closing on/fighting the same target, a fresh approacher heads for
+an unoccupied side of it instead of the same tile everyone else is
+beelining for, so a group actually surrounds a marine from different
+angles rather than stacking into a single-file queue on one side. Returns
+null (meaning &quot;just approach the target directly, same as before&quot;) if
+every side is already taken or blocked - flanking only matters when there's
+actually a free side left to take.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_flee_threshold">get_flee_threshold</a></th><td>Health fraction (0-1) below which this caste even considers fleeing - overridden per-caste (see crusher.dm) instead of duplicating should_flee()'s decision logic for a different constant.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_lz_turf">get_lz_turf</a></th><td>Turf of the active marine LZ, if any - shared by queen.dm's LZ-siege response and attempt_ambush_hide().</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_pathfind_cell_budget">get_pathfind_cell_budget</a></th><td>&quot;I want better pathfinding as it's still too much, varied by the caste's
+size/tier T1 vs T2 vs T3.&quot; Three knobs scaled by pilot.tier instead of one
+flat setting for every caste regardless of size: a disposable, numerous
+Tier 1 gives up on a blocked target sooner and gets a smaller local
+pathfinding grid (not worth the compute or the exposure time for a caste
+that's cheap to lose), while a Tier 2/3 - fewer of them, each one a much
+bigger investment - gets a wider grid budget and commits longer to a
+skirt, worth spending more to actually solve a real detour instead of
+falling back to the greedy walk early.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_pathfind_giveup_attempts">get_pathfind_giveup_attempts</a></th><td>See get_pathfind_cell_budget()'s doc comment - same tier scaling applied to how many consecutive blocked ticks the chase path tolerates before giving up on the target entirely.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/get_skirt_duration">get_skirt_duration</a></th><td>See get_pathfind_cell_budget()'s doc comment - same tier scaling applied to how long a committed obstacle-skirt lasts.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/has_line_of_sight">has_line_of_sight</a></th><td>Plain turf-density line check between pilot and target, reusing the
+existing get_line() helper rather than a real raycast library - good
+enough to tell &quot;clean shot&quot; from &quot;there's a wall in the way&quot; for ranged
+castes (see ranged.dm's process_attack()) without adding a new dependency.
+Ignores the two endpoint tiles themselves (the pilot's and target's own
+turf) since a dense structure the target happens to be standing against
+shouldn't block a shot at the target on that same tile.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/is_valid_target">is_valid_target</a></th><td>Valid targets are living marines, active sentry turrets (xenos should
+fight back against defenses shooting at them, not just claw through one
+incidentally blocking a path to a marine), - for Tier 2+ castes only -
+vehicles (&quot;vehicles or multitile entities should be attacked by larger T2
+and T3 aliens&quot;; Tier 1 is left out since a Runner/Drone-scale caste has
+nothing to gain from picking a fight with one on purpose, only something
+to lose, same reasoning melee_vehicle_damage's own per-caste scaling
+already applies in vehicle.dm's attack_alien()), and any living
+xenomorph from a hive that isn't hers or explicitly allied to hers
+(&quot;different hive factions should be considered hostile... unless the
+hive status is allied&quot; - hive_status.dm's is_ally()/faction_is_ally()
+already model this correctly; this proc just never consulted it for a
+xeno candidate before). Broadening further to other hostile
+factions/synths/etc. is future work.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/maintain_kiting_distance">maintain_kiting_distance</a></th><td>Shared continuous-kiting movement decision for every ranged caste
+(Spitter/Boiler/Sentinel/Queen) - &quot;approach, spit, and die in place&quot; /
+&quot;spitter and all other ranged variants are really bad and die instantly.&quot;
+The bug was the old binary min/preferred band each of them duplicated:
+hold completely still anywhere inside the &quot;preferred&quot; distance, only
+retreat once the target was already almost on top of her
+(AI_XENO_RANGED_MIN_DISTANCE). A marine walking straight at her crossed
+that whole multi-tile band completely unopposed - she just stood there
+spitting - and by the time the emergency-floor retreat finally triggered,
+one more step already closed it to melee. Now retreats the moment the
+target is closer than preferred (not just inside a tight emergency
+floor), holds only at/near the ideal ring, and advances only when
+meaningfully farther - real continuous kiting instead of a static hold.
+Prefers falling back toward a nearby defensible corner/wall
+(find_defensible_turf()) over open ground when one's actually closer.
+Sets ai_state directly (ATTACKING once holding in band) so callers are
+just this one call from their own process_movement() override.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/navigate_around">navigate_around</a></th><td>goal defaults to current_target so every existing chase-path call site is
+unaffected - passed explicitly by return_to_anchor() (xeno_ai_controller.dm),
+which has no current_target at all (drop_target() cleared it on entering
+AI_STATE_RETURNING) and would otherwise have this bail out immediately
+every time it's called while fleeing.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/patrol">patrol</a></th><td>Idle xenos check for a live hive-wide alert from the Queen first (see
+respond_to_hive_alert()) - &quot;command&quot; without a hard hierarchy - then
+whether she's specifically calling for an escort (respond_to_queen_escort()),
+then a small chance to duck into a nearby vent for a surprise relocation
+(see xeno_ai_vents.dm's attempt_vent_ambush() - a no-op for castes too
+big or otherwise ineligible to vent-crawl, so nothing extra is needed to
+exclude them here), then a live scouting order (respond_to_scout_order(),
+lowest priority - &quot;something better to do than aimless wander,&quot; not
+urgent), and only fall back to aimless wander() if none apply. Concrete
+subtypes that override patrol() (e.g. drone_worker, to roll build
+attempts) should check respond_to_hive_alert() first too, before their
+own idle behavior, so a Queen's call takes priority over routine tasks.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/pick_defense_perimeter_turf">pick_defense_perimeter_turf</a></th><td>A turf in the perimeter band around anchor_turf that's actually already
+weeded and owned by the hive - can_build_here() hard-requires existing
+owned weeds on the target tile, so picking a blind random turf in the
+band (the old behavior) almost never actually landed on buildable ground,
+which is why walls/doors essentially never got built at all. Falls back
+to any owned weed tile regardless of distance band if nothing qualifies
+in the ideal band, rather than giving up outright.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/process_attack">process_attack</a></th><td>Attack execution for xeno_ai_controller. Reuses the real, input-agnostic
+attack_alien() receiver chain (code/modules/mob/living/carbon/xenomorph/attack_alien.dm)
+instead of any player-facing UI/ability-click layer - attack_alien() already reads
+the attacker's a_intent and works identically regardless of whether a client set it.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/process_movement">process_movement</a></th><td>Movement for xeno_ai_controller. When the native xeno_pathfind library is
+present (see code/__DEFINES/__xeno_pathfind.dm), routes through a real A*
+plan over a small local grid via advance_along_path() - this is what fixes
+zigzagging and lets the AI route around walls properly. When it isn't
+present (or a planned step fails - a mob wandered into the way, a door
+closed), falls straight back to the original greedy step_towards() + one
+tile sidestep. Either way a host with no native library at all behaves
+exactly as before this was added.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/process_search">process_search</a></th><td>Travels toward the last place a lost target was seen, crossing z-levels via a
+connected ladder if needed (see code/game/objects/structures/ladders.dm's
+ai_use()). Keeps re-scanning for a fresh target en route so a different
+marine wandering past will interrupt the search. Gives up after
+AI_XENO_SEARCH_TIMEOUT or if there's simply no ladder connecting toward the
+target's z-level, rather than getting stuck forever.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/process_target">process_target</a></th><td>Bounded, cached target scan. Only recomputes the block() rectangle when there is
+no cached one to reuse, or the pilot has drifted far enough from where it was
+last centered - deliberately avoids re-scanning the map every idle tick.
+Picks the NEAREST valid candidate found in the block (marines or active
+sentry turrets - see is_valid_target()), not just the first one encountered
+in scan order, so targeting doesn't depend on incidental turf iteration
+order.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/record_damage_dealt">record_damage_dealt</a></th><td>Backs the hive status roster's &quot;damage done&quot; column (see event_tab.dm's
+admin panel) - measures the target's own health delta rather than trying
+to intercept every possible damage source (abilities, plain melee) with
+its own return value, which would mean touching every attack path
+individually. QDELETED-guarded since a caste ability can gib/delete the
+target outright (Queen's Gut) before returning here.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/respond_to_hive_alert">respond_to_hive_alert</a></th><td>Checks for a live hive-wide alert (see hive_status.dm's queen_alert_turf/
+queen_alert_time, set by the Queen controller) and heads there if one
+exists and hasn't gone stale. Returns FALSE (meaning &quot;nothing to respond
+to, fall back to normal idle behavior&quot;) if the pilot has no hive, no alert
+is active, the alert is too old, or the pilot is already close enough that
+normal target scanning should take over instead.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/respond_to_pack_cohesion">respond_to_pack_cohesion</a></th><td>&quot;Add in a group mechanic to allow xenos to stick together sometimes in a
+group&quot; - a loose, probabilistic pull toward a nearby same-hive ally who's
+also just idling/patrolling (not one already off fighting/dragging/vent-
+crawling - chasing a busy ally isn't cohesion, that's respond_to_hive_alert()'s
+job), rather than a hard formation system. Queen/King are excluded as
+buddies - they already have their own dedicated escort/command mechanics,
+this is specifically the rank-and-file loosely clumping up.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/respond_to_queen_escort">respond_to_queen_escort</a></th><td>Checks for a live &quot;come guard me&quot; call from the Queen (hive_status.dm's
+queen_escort_turf/queen_escort_time, set by queen.dm's
+broadcast_escort_call()) - distinct from respond_to_hive_alert() (which
+points at a threat, not at her), this points at her own position.
+Stops once close enough to already be functioning as an escort, rather
+than trying to stack directly on her tile.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/respond_to_scout_order">respond_to_scout_order</a></th><td>Checks for a live scouting order from the Queen (hive_status.dm's
+queen_scout_turf/queen_scout_time, set by queen.dm's
+broadcast_scout_order()) - lowest patrol priority, just &quot;somewhere
+purposeful to head instead of aimless wandering.&quot; Stops once close
+enough that normal target scanning should take over from here.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/return_to_anchor">return_to_anchor</a></th><td>&quot;Fleeing breaks their AI and makes them refuse to fight and get stuck in a
+limbo&quot; / &quot;they rest on normal turf instead of weed covered turf to heal&quot; -
+this used to be a bare cardinal_step_towards(anchor_turf) with none of the
+chase path's obstacle-handling (no navigate_around()/attempt_skirt_
+obstacle()/climb-or-smash, no blocked_attempts give-up), and blindly set
+pilot.resting = TRUE on arrival with no check that anchor_turf was
+actually owned weeds. Now shares the same movement toolkit
+process_movement() uses (an unreachable anchor is a real, reported
+failure mode, not a hypothetical), re-checks should_flee() each tick
+instead of treating fleeing as a one-way trip, and leaves the actual
+rest-on-weeds decision to wander() (reached the moment ai_state flips to
+IDLE below, via the normal patrol() fallthrough) instead of duplicating -
+and getting wrong - that logic here.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/should_flee">should_flee</a></th><td>&quot;They immediately try putting themselves out when on fire, making them a
+sitting duck&quot; - on_fire no longer forces a flee by itself. resist() sets
+next_move forward 2 seconds (living_verbs.dm), the same var this AI's own
+melee attack pacing depends on (see execute_attack()) - stopping to resist
+mid-fight cost a full attack window for nothing, and dropping the target
+to retreat over a status effect that doesn't stop her from fighting was
+worse than just tanking the damage. She now only resists opportunistically
+while not actively swinging (return_to_anchor()/wander() already call
+resist() for other reasons) - fire alone no longer overrides a fight
+that's still worth having; a real health-based flee call still applies.
+This is a real fight-or-flee decision, not a bare health check:
+being hurt enough to consider fleeing doesn't mean fleeing is actually
+the right call for a caste that's meant to be ruthless. Presses the
+advantage instead of disengaging when the target is nearly finished too
+(letting it go now just means fighting it, healthy again, later), or when
+nearby hive members mean this isn't really a fight being fought alone.
+Only actually flees when neither of those apply - hurt, alone, and the
+fight isn't about to end in our favor anyway.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/should_smash_instead_of_climb">should_smash_instead_of_climb</a></th><td>&quot;Add a decision where is it better to climb over something or just smash
+it.&quot; Climbing is the default - it's instant (a ~0.2-2s vault, no combat
+risk) and most climbable furniture (tables, crates) was never meant to be
+destroyed by a xeno at all. A barricade is the one climbable structure
+that's also genuinely built to be fought through (real health/maxhealth,
+its own attack_alien() destruction path) - worth actually smashing down
+instead of just hopping over it, but only when it pays off: either the
+pilot already melts real walls (wall_smash - a strong-melee caste tears
+through it fast) or enough same-hive allies are right behind her that
+clearing the chokepoint permanently helps the whole push, not just her
+own one-time crossing.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/start">start</a></th><td>Starts the coroutine. Safe to call more than once; only ever spawns one loop per start() since the loop exits immediately if detached is already set.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/start_long_patrol">start_long_patrol</a></th><td>&quot;Patrol should actually be a long path as the hive radius expands. It
+should also allow leaving the hive completely to look for targets, so
+xenomorphs can patrol as far as the Landing Zone&quot; - a deliberate long-
+range trek, distinct from wander()'s tight local drift around anchor_turf
+(which stays exactly as bounded as before - this is an additional, lower-
+priority idle option, not a replacement). Sometimes heads specifically
+for the marine LZ if one's been chosen (get_lz_turf() - shared with
+attempt_ambush_hide()/queen.dm's siege response), otherwise a random
+point out at the current long-patrol radius, which grows over the course
+of the round (current_patrol_radius()) rather than staying fixed - &quot;as
+the hive radius expands,&quot; approximated by round time the same way the
+Queen's own scout_radius already does, since a real live weed-coverage
+measurement isn't cheap to compute every roll.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/start_tactical_retreat">start_tactical_retreat</a></th><td>&quot;My idea is to use retreating in combat instead of low health = retreat&quot; -
+a hit-and-run caste (Praetorian/Ravager/Burrower/Lurker) doesn't just
+fight until should_flee()'s health/last-defender check finally trips; it
+deliberately disengages after landing a hit and comes back in once it's
+put some distance between itself and the target, same shape as a real
+player kiting with a pounce. tactical_retreat_until is a plain world.time
+deadline - concrete subtypes check is_tactical_retreating() from their own
+process_movement()/process_attack() override and back away instead of
+approaching/attacking while it's still in the future, then resume the
+normal chase once it lapses. Purely a movement-policy flag - it doesn't
+touch current_target or ai_state, so the moment it lapses she's still
+tracking the same fight, not searching for a new one.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/step_away_from_target">step_away_from_target</a></th><td>Shared movement helper for a hit-and-run caste's retreat phase - backs
+directly away from current_target, routing around obstacles same as any
+other forced step. Returns whether she actually moved - &quot;mid battle they
+don't attack or know what to do and just sit there taking damage&quot; was a
+real bug here: this used to always return TRUE regardless of whether the
+step succeeded, so a caste cornered against a wall/corner with nowhere to
+actually retreat to would just stand completely still for the whole
+retreat window (tactical_retreat_until forces AI_STATE_APPROACHING, which
+blocks attacking, while this reported success and did nothing to move
+her). Callers now check the return value and cancel the retreat outright
+when it fails, so being cornered falls through to fighting instead of
+freezing.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/stop">stop</a></th><td>Signals the coroutine to exit at its next check. Does not touch the pilot mob itself.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/travel_to_broadcast_turf">travel_to_broadcast_turf</a></th><td>&quot;Queen escort and commanding thing isn't working at all&quot; - shared by
+respond_to_hive_alert()/respond_to_queen_escort()/respond_to_scout_order()
+below, which all used to be a bare advance_along_path()/
+cardinal_step_towards() with none of the obstacle handling the main chase
+path (process_movement()) has - no skirt/climb-or-smash/navigate_around
+fallback at all, so a table, wall, or long detour between here and the
+broadcast point left her just walking at it and getting nowhere, same
+root cause return_to_anchor() had. No blocked_attempts give-up needed
+here the way the chase/flee paths need one - this only ever runs for one
+idle patrol tick at a time, so a genuinely stuck pilot just tries
+something else next tick instead of committing to one destination.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/update_movement_intent">update_movement_intent</a></th><td>Always MOVE_INTENT_RUN - the previous walk-while-idle/attacking,
+run-while-approaching split (&quot;stalk vs walk&quot;) is removed per explicit
+direction: every AI xeno moves at the same pace regardless of state now.
+Still its own proc (rather than just setting m_intent once at attach)
+since set_movement_intent() only does anything when the intent actually
+changes, and something else could in principle reset m_intent externally.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/use_caste_ability">use_caste_ability</a></th><td>Hook point for Stage 2+ caste-specific offensive abilities (see the plan's caste
+audit, section 2.6): a caste's controller subtype can override this to call a
+specific /datum/action/xeno_action's use_ability() body directly, bypassing the
+click/mouse input layer, and return TRUE to skip the plain-melee fallback below.
+Drone has no offensive ability worth AI-triggering, so this always falls through.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/vent_travel">vent_travel</a></th><td>Bounded random walk through the connected pipe graph, then exits - see
+attempt_vent_ambush()'s doc comment for why this isn't targeted routing.
+Runs as its own coroutine (started via INVOKE_ASYNC, same pattern as
+ai_loop() itself) since relaymove()'s exit branch does a real do_after
+wait - this must not block the main ai_loop() coroutine, which is kept
+from running a conflicting tick() concurrently by tick()'s own
+is_ventcrawling check instead.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller.html#proc/wander">wander</a></th><td>Idle xenos actively range around their anchor instead of standing
+perfectly still or jittering in place - makes an idle group look and
+behave alive, doubling as a real patrol rather than a tight tether.
+Bounded to AI_XENO_PATROL_RADIUS (well inside return_distance) so it
+never turns into an unbounded wander; a mob that's drifted to the edge
+heads back in instead of continuing outward.</td></tr></table>
+    <h2 id="var">Var Details</h2><h3 id="var/ai_heartbeat"><aside class="declaration">var </aside>ai_heartbeat
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L24">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 24"/></a></h3>
+        <p>Ticks slept between loop iterations while actively engaged (chasing/attacking).</p><h3 id="var/ai_idle_heartbeat"><aside class="declaration">var </aside>ai_idle_heartbeat
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L26">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 26"/></a></h3>
+        <p>Ticks slept between loop iterations while idle and scanning - deliberately longer than ai_heartbeat.</p><h3 id="var/ambush_hide_until"><aside class="declaration">var </aside>ambush_hide_until
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L62">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 62"/></a></h3>
+        <p>world.time attempt_ambush_hide() gives up the hide and resumes normal patrol.</p><h3 id="var/ambush_hiding"><aside class="declaration">var </aside>ambush_hiding
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L60">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 60"/></a></h3>
+        <p>TRUE once actually settled and xenohidden at ambush_turf, as opposed to still walking there - see attempt_ambush_hide().</p><h3 id="var/ambush_turf"><aside class="declaration">var </aside>ambush_turf
+            <aside>&ndash; /<a href="turf.html">turf</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L58">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 58"/></a></h3>
+        <p>Turf this xeno is traveling to (or already holding) for attempt_ambush_hide()'s &quot;hide near the LZ&quot; idle behavior - null whenever not mid-ambush.</p><h3 id="var/anchor_turf"><aside class="declaration">var </aside>anchor_turf
+            <aside>&ndash; /<a href="turf.html">turf</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L17">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 17"/></a></h3>
+        <p>Turf the pilot leashes to; wandering more than return_distance from this turf aborts the chase.</p><h3 id="var/attack_distance"><aside class="declaration">var </aside>attack_distance
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L28">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 28"/></a></h3>
+        <p>Radius (tiles) of the bounded target scan.</p><h3 id="var/blocked_attempts"><aside class="declaration">var </aside>blocked_attempts
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L34">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 34"/></a></h3>
+        <p>Consecutive failed movement attempts against the current target; used to give up rather than loop forever against an unreachable target (this AI does not pathfind).</p><h3 id="var/codename"><aside class="declaration">var </aside>codename
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L56">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 56"/></a></h3>
+        <p>Random flavor callsign, drawn from a pool matching the pilot's caste role (see get_codename_pool()) - assigned once at attach. Lets the hive status roster (event_tab.dm's admin panel) tell a screen full of same-caste xenos apart at a glance instead of just listing &quot;Drone&quot; over and over, and gives a boss-tier xeno a suitably grander name than a builder gets.</p><h3 id="var/current_target"><aside class="declaration">var </aside>current_target
+            <aside>&ndash; /<a href="atom.html">atom</a>/<a href="atom/movable.html">movable</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L15">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 15"/></a></h3>
+        <p>Current target being pursued/attacked, if any - either a living hostile or an attackable structure (e.g. a sentry turret).</p><h3 id="var/damage_dealt"><aside class="declaration">var </aside>damage_dealt
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L52">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 52"/></a></h3>
+        <p>Cumulative damage dealt to living targets since attach - see record_damage_dealt() in xeno_ai_attack.dm.</p><h3 id="var/detached"><aside class="declaration">var </aside>detached
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L32">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 32"/></a></h3>
+        <p>Set TRUE the instant the pilot should stop being AI-driven (client attached, death, deletion). The coroutine checks this at the top of every loop and exits cleanly - no forced kill of an in-flight sleep().</p><h3 id="var/flee_turf"><aside class="declaration">var </aside>flee_turf
+            <aside>&ndash; /<a href="turf.html">turf</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L82">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 82"/></a></h3>
+        <p>A nearer, defensible turf (find_defensible_turf()) picked when this flee started, if one was actually closer than anchor_turf - null means &quot;just go to anchor_turf as normal.&quot; Cleared on arrival/give-up same as anchor_turf's own resolution.</p><h3 id="var/idle_activity"><aside class="declaration">var </aside>idle_activity
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L74">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 74"/></a></h3>
+        <p>Named sub-state of AI_STATE_IDLE (see the IDLE_ACTIVITY_* defines) - what patrol() actually decided to do this tick, since &quot;Idle&quot; alone doesn't distinguish standing still from wandering/building/regrouping/patrolling. Purely observational (hive status roster) - doesn't drive any logic itself.</p><h3 id="var/last_ability_time"><aside class="declaration">var </aside>last_ability_time
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L54">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 54"/></a></h3>
+        <p>world.time a caste ability last actually fired (use_caste_ability() returning TRUE, xeno_ai_attack.dm) - 0 if never. Purely observational (hive status roster).</p><h3 id="var/last_retaliation_data"><aside class="declaration">var </aside>last_retaliation_data
+            <aside>&ndash; /<a href="datum.html">datum</a>/cause_data</aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L78">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 78"/></a></h3>
+        <p>The pilot's own last_damage_data (mob_defines.dm) as of the last check_retaliation() call - a fresh cause_data instance is created for every single hit, so comparing by reference tells &quot;already reacted to this one&quot; from &quot;something new just hit her&quot; without needing a separate signal.</p><h3 id="var/last_seen_turf"><aside class="declaration">var </aside>last_seen_turf
+            <aside>&ndash; /<a href="turf.html">turf</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L36">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 36"/></a></h3>
+        <p>Last known turf of a target that escaped rather than died - drives AI_STATE_SEARCHING instead of instantly forgetting about it.</p><h3 id="var/last_sidestep_dir"><aside class="declaration">var </aside>last_sidestep_dir
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L44">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 44"/></a></h3>
+        <p>Absolute direction of the last successful navigate_around() sidestep - tried again first next time, so the pilot commits to going around one side of an obstacle instead of flip-flopping as target_dir shifts tick to tick.</p><h3 id="var/next_step_time"><aside class="declaration">var </aside>next_step_time
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L68">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 68"/></a></h3>
+        <p>world.time this controller can next actually move a tile - see ai_step() in xeno_ai_movement.dm.</p><h3 id="var/next_wander_reroll"><aside class="declaration">var </aside>next_wander_reroll
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L66">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 66"/></a></h3>
+        <p>world.time wander() will pick a new heading even if the current one hasn't failed yet.</p><h3 id="var/path_goal"><aside class="declaration">var </aside>path_goal
+            <aside>&ndash; /<a href="turf.html">turf</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L42">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 42"/></a></h3>
+        <p>The turf path_queue was computed to reach; a route is only reused while the goal hasn't moved to a different tile.</p><h3 id="var/path_queue"><aside class="declaration">var </aside>path_queue
+            <aside>&ndash; /list</aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L40">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 40"/></a></h3>
+        <p>Cached native-pathfinder route (remaining waypoint turfs, nearest first). Null whenever there's no live plan - the old greedy step_towards() handles movement whenever this is empty, so a host without the native pathfinding library behaves exactly as before.</p><h3 id="var/patrol_turf"><aside class="declaration">var </aside>patrol_turf
+            <aside>&ndash; /<a href="turf.html">turf</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L70">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 70"/></a></h3>
+        <p>Destination of an in-progress long patrol leg (start_long_patrol()/continue_long_patrol()) - null whenever not mid-trip.</p><h3 id="var/pilot"><aside class="declaration">var </aside>pilot
+            <aside>&ndash; /<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L13">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 13"/></a></h3>
+        <p>The xenomorph mob this controller pilots. Never changes for the lifetime of the datum.</p><h3 id="var/rest_timeout"><aside class="declaration">var </aside>rest_timeout
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L72">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 72"/></a></h3>
+        <p>world.time wander() forces her back up from resting regardless of health - a safety net so a heal that stalls short of full (permanent limb damage, etc.) doesn't leave her resting forever.</p><h3 id="var/return_distance"><aside class="declaration">var </aside>return_distance
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L30">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 30"/></a></h3>
+        <p>Leash radius (tiles) from anchor_turf before the pilot disengages and returns.</p><h3 id="var/search_started_at"><aside class="declaration">var </aside>search_started_at
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L38">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 38"/></a></h3>
+        <p>world.time the current search began, to bound how long SEARCHING lasts.</p><h3 id="var/skirt_dir"><aside class="declaration">var </aside>skirt_dir
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L46">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 46"/></a></h3>
+        <p>Direction a long obstacle-skirt (see attempt_skirt_obstacle()) is currently committed to, or null if not skirting - &quot;long pathfinding around a building is not possible&quot; fix: a single sidestep isn't enough distance to clear a whole building, so this keeps walking one direction for a while instead of re-aiming at the goal (and potentially flip-flopping) every tick.</p><h3 id="var/skirt_until"><aside class="declaration">var </aside>skirt_until
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L48">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 48"/></a></h3>
+        <p>world.time the current skirt commitment ends.</p><h3 id="var/spawned_at"><aside class="declaration">var </aside>spawned_at
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L50">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 50"/></a></h3>
+        <p>world.time this controller was attached - backs the hive status roster's &quot;time lived&quot; column (see event_tab.dm's admin panel).</p><h3 id="var/tactical_retreat_until"><aside class="declaration">var </aside>tactical_retreat_until
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L76">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 76"/></a></h3>
+        <p>world.time a hit-and-run caste stops actively retreating and resumes closing on current_target - see start_tactical_retreat()/is_tactical_retreating().</p><h3 id="var/turf_block"><aside class="declaration">var </aside>turf_block
+            <aside>&ndash; /list</aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L19">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 19"/></a></h3>
+        <p>Cached bounded turf list from the last scan; reused across idle ticks until a target is found or the pilot moves on.</p><h3 id="var/turf_block_origin"><aside class="declaration">var </aside>turf_block_origin
+            <aside>&ndash; /<a href="turf.html">turf</a></aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L21">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 21"/></a></h3>
+        <p>Turf the pilot was standing on when turf_block was last computed - see process_target()'s staleness check.</p><h3 id="var/wander_dir"><aside class="declaration">var </aside>wander_dir
+            <aside>&ndash; </aside>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L64">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 64"/></a></h3>
+        <p>Heading wander() is currently committed to - see wander()'s doc comment for why this exists instead of picking fresh every roll.</p><h2 id="proc">Proc Details</h2><h3 id="proc/acquire_target"><aside class="declaration">proc </aside>acquire_target<aside>(/<a href="atom.html">atom</a>/<a href="atom/movable.html">movable</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L1036">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 1036"/></a></aside>
+        </h3>
+        <p>Shared &quot;found something worth fighting&quot; tail - used by process_target()'s own scan and check_retaliation() alike, so noticing a target the normal way and getting jumped by one it wouldn't otherwise have scanned both settle into the exact same state.</p><h3 id="proc/advance_along_path"><aside class="declaration">proc </aside>advance_along_path<aside>(/<a href="atom.html">atom</a>/goal) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L316">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 316"/></a></aside>
+        </h3>
+        <p>Consumes one step of a cached native-pathfinder route toward goal,
+(re)computing it first if needed. Returns FALSE - meaning &quot;fall through to
+the old greedy behavior for this tick&quot; - if the native library isn't
+available, no path exists, the goal is out of local-grid range, or the
+planned next tile turned out to be blocked when we actually tried to move
+(something wandered into the way, a door shut) - in that last case the
+stale plan is dropped and a fresh one gets computed next tick.</p>
+<p>The cached plan is reused as long as the goal hasn't moved far from where
+it was computed for (PATH_GOAL_REPLAN_TOLERANCE), not just whenever it
+isn't in the exact same tile - a live target shifts by a tile almost every
+heartbeat, and replanning from scratch every single tick near a corner let
+minor start/goal differences flip the solver's tie-breaking back and
+forth, which is what the reported &quot;walks in a triangle near walls&quot; turned
+out to be: a fresh plan every tick, not a bad plan.</p><h3 id="proc/ai_loop"><aside class="declaration">proc </aside>ai_loop<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L149">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 149"/></a></aside>
+        </h3>
+        <p>Outer loop is intentionally just error containment + sleep timing - all
+actual decision-making lives in tick(). A runtime error anywhere in that
+call chain (movement, pathfinding, attack resolution, etc.) would otherwise
+unwind all the way up through this proc and permanently kill the coroutine,
+leaving the mob standing frozen forever with nothing further to fix it -
+this is why &quot;AI gets stuck for no reason&quot; happened. Catching here means one
+bad tick just gets logged and skipped; the mob keeps trying next tick.</p><h3 id="proc/ai_step"><aside class="declaration">proc </aside>ai_step<aside>(direction) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L430">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 430"/></a></aside>
+        </h3>
+        <p>Single-tile sidestep around one obstacle. Not real pathfinding - if this
+fails too the caller gives up on the target. Prefers whichever side
+worked last time before trying the other - target_dir shifts by a notch
+almost every tick a mob is near a corner, and always re-deriving &quot;left or
+right&quot; fresh from it made the pilot flip-flop between both sides of the
+corner instead of committing to going around one way, which is what the
+reported &quot;walks in a triangle near walls&quot; turned out to be for hosts
+without the native pathfinder available (or wherever it falls through to
+this greedy tail).</p>
+<p>Single choke point every AI-driven step() call in this whole controller
+goes through - &quot;AI pathfinding is now too fast, need to nerf it so they
+move exactly at the same speed a normal player controlled mob would.&quot;
+Raw BYOND step() has no pacing of its own; a real player's movement rate
+is throttled by /client/Move()'s own next_movement var (mob_movement.dm),
+which only exists on a client and never applies to a clientless AI mob
+calling step() directly - nothing was gating AI movement speed at all.
+Recomputes and enforces the pilot's own movement_delay() (the same speed
+a player of this caste would actually move at) before allowing another
+step, independent of how often tick() itself runs.</p><h3 id="proc/attack_blocking_obstacle"><aside class="declaration">proc </aside>attack_blocking_obstacle<aside>(/<a href="atom.html">atom</a>/target_obstacle) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L665">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 665"/></a></aside>
+        </h3>
+        <p>&quot;No click delay when smashing stuff, they spam walls until smashed,
+barricades, windows too&quot; - same root cause as plain melee's own next_move
+gap (xeno_ai_attack.dm's execute_attack()): attack_alien() never sets
+next_move itself for a basic hit, only click.dm's do_click() dispatch
+does, which this AI bypasses by calling attack_alien() directly. This is
+called fresh every tick process_movement() is still blocked, with nothing
+previously pacing it at all - unlimited-rate smashing, exactly like the
+melee spam bug before it was gated the same way.</p><h3 id="proc/attempt_ambush_hide"><aside class="declaration">proc </aside>attempt_ambush_hide<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L405">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 405"/></a></aside>
+        </h3>
+        <p>&quot;Gather intel on positions in the map for ambush or defense building&quot; /
+&quot;hiding to ambush&quot; - a low-probability idle detour that walks out toward
+the marine LZ (get_lz_turf(), shared with queen.dm's own siege-response
+use of it) and actually hides there via xenohide for a while, instead of
+only ever aimlessly wandering near the hive. Interrupted for free the
+moment a real target shows up - process_target() unhides and clears this
+state as soon as she has something better to do (see the check there).</p><h3 id="proc/attempt_build_defense"><aside class="declaration">proc </aside>attempt_build_defense<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L627">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 627"/></a></aside>
+        </h3>
+        <p>Shared by drone_worker.dm/hivelord.dm/burrower.dm - &quot;resin wall/door
+fortress pattern at hive perimeter&quot; instead of only ever plant_weeds().
+Bypasses the click/tgui resin-picker layer entirely (choose_resin.dm) the
+same way every other AI ability call in this file does: sets selected_resin
+directly to a plain wall type from the pilot's own resin_build_order, then
+calls build_resin() (Powers.dm) directly - the same proc a player's
+secrete_resin click ultimately reaches. can_build_here() is checked first
+so this can be rolled speculatively same as attempt_plant_weeds() - a bad
+tile (no owned weeds, already something built there, an unweedable area)
+just silently no-ops instead of spamming a doomed build attempt.</p><h3 id="proc/attempt_climb_obstacle"><aside class="declaration">proc </aside>attempt_climb_obstacle<aside>(/<a href="obj.html">obj</a>/structure/obstacle) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L630">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 630"/></a></aside>
+        </h3>
+        <p>Vaults over a climbable obstacle the same way a real player's do_climb() interaction would, instead of only ever sidestepping around it or standing there unable to proceed. do_climb()'s own do_after() windup blocks this controller's tick() the same safe way Queen's Gut/Burrower's burrow already do.</p><h3 id="proc/attempt_combat_pheromones"><aside class="declaration">proc </aside>attempt_combat_pheromones<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L595">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 595"/></a></aside>
+        </h3>
+        <p>&quot;Drones, hivelords, and queens should use pheromones to assist in combat&quot; -
+fires once on first contact with a target (see process_target() above),
+not every tick, since emit_pheromones() is a toggle (current_aura already
+blocks re-triggering the same one). Passing the pheromone string directly
+skips the whole tgui/radial menu prompt inside emit_pheromones() - that
+branch only runs when called with none, so this is safe for a clientless
+AI mob the same way the other direct ability calls in this file are.
+Frenzy (run speed/damage) over Warding/Recovery - she's picking a fight,
+not stabilizing one already going badly. Requires actual nearby support to
+bother - alone, an aura buffing nobody but herself isn't worth the plasma.</p><h3 id="proc/attempt_help_burning_ally"><aside class="declaration">proc </aside>attempt_help_burning_ally<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L542">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 542"/></a></aside>
+        </h3>
+        <p>&quot;They don't try patting their allies who are on fire&quot; - a xeno clawing
+another xeno with INTENT_HELP while it's burning pats the fire out
+(attack_alien() on the xenomorph-vs-xenomorph path, XenoAttacks.dm) -
+this AI never triggered that interaction at all. Checked near the top of
+patrol() (an ally on fire is an emergency, same priority tier as a hive
+alert) - walks to the nearest burning same-hive ally and pats them out
+once adjacent.</p><h3 id="proc/attempt_help_queen_build_core"><aside class="declaration">proc </aside>attempt_help_queen_build_core<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L696">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 696"/></a></aside>
+        </h3>
+        <p>&quot;They don't even help the queen build her core&quot; - travels to and weeds
+the Queen's own tile whenever the hive has no Hive Core yet, instead of
+every builder independently weeding/building wherever it happens to be
+standing with no regard for what she actually needs ground for right now.
+Shared by drone_worker.dm/hivelord.dm/burrower.dm, checked before their
+own independent build rolls.</p><h3 id="proc/attempt_plant_weeds"><aside class="declaration">proc </aside>attempt_plant_weeds<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L608">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 608"/></a></aside>
+        </h3>
+        <p>Shared by drone_worker.dm and queen.dm - calls the real plant_weeds ability directly. Its own internal checks (weedable ground, not already weeded enough, hive ownership) handle rejection silently if the current tile isn't suitable, same as a player clicking it somewhere bad, so this is safe to roll speculatively.</p><h3 id="proc/attempt_skirt_obstacle"><aside class="declaration">proc </aside>attempt_skirt_obstacle<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L517">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 517"/></a></aside>
+        </h3>
+        <p>Continues an already-committed skirt (see navigate_around() above) for as
+long as skirt_until hasn't lapsed, instead of re-deriving &quot;which way is
+the goal&quot; fresh every tick while stuck. Returns FALSE (nothing to do,
+caller falls through to the normal approach/obstacle chain) once there's
+no active skirt, it's expired, or the committed direction itself becomes
+blocked (a corner of the obstacle, or something wandered into the way) -
+in the last case the commitment ends immediately rather than standing
+there retrying the same blocked direction until the timer runs out.</p><h3 id="proc/attempt_tail_stab"><aside class="declaration">proc </aside>attempt_tail_stab<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_attack.dm#L133">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_attack.dm 133"/></a></aside>
+        </h3>
+        <p>Shared melee fallback for any caste with Tail Stab in its kit (Warrior,
+Sentinel, King, Ravager, Hivelord, Queen, Predalien, Drone, Praetorian,
+Lesser Drone, Lurker, Crusher, Defender, Carrier, Burrower - most of the
+roster) - &quot;all casts really do not use all their special abilities&quot; was
+true of this one universally: nothing in the AI ever called it despite
+how widely it's granted. get_ability() queries the plain base type here
+deliberately, not any specific caste subtype (tail_stab/slam, /spitter,
+/tail_seize, /tail_fountain, /boiler) - locate(type) in list matches a
+held instance of that type OR any stricter subtype of it, so this finds
+whichever variant a given caste actually has without needing to know
+which one ahead of time.</p><h3 id="proc/attempt_vent_ambush"><aside class="declaration">proc </aside>attempt_vent_ambush<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_vents.dm#L25">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_vents.dm 25"/></a></aside>
+        </h3>
+        <p>Vent-crawl ambush support for xeno_ai_controller. Reuses the existing
+pipe network (/obj/structure/pipes/vents, relaymove()'s connected_to
+graph) rather than building a parallel travel system, but bypasses the
+two player-facing entry points (handle_ventcrawl()/start_ventcrawl() in
+ventcrawl.dm) entirely - both are built around an interactive
+tgui_input_list vent picker and a do_after windup whose completion check
+includes <code>!client</code>, a disconnect guard that makes no sense for a mob
+that was never connected to begin with and would silently cancel every
+AI attempt. relaymove() itself (the actual movement between connected
+pipe segments once inside, and the exit path) only needed one small
+patch elsewhere (pipes.dm) - <code>user.client.eye = next_pipe</code> would
+null-reference for a clientless caller, guarded the same way every
+other client-touching line in that file already is.</p>
+<p>Deliberately does not path toward a specific destination through the
+pipe network - that's a real graph-search problem distinct from the
+tile-based A* this AI already does elsewhere, and is a reasonable
+follow-up. Instead this is &quot;duck into the vents and pop out somewhere
+else nearby&quot;: a bounded random walk of the connected_to graph, then
+exit. Still delivers the actual ask (xenos disappearing into vents and
+resurfacing to surprise someone) without the added risk of a rushed
+pathing algorithm through shared player-facing pipe code.</p><h3 id="proc/broadcast_escort_call"><aside class="declaration">proc </aside>broadcast_escort_call<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/boss_pilot, heavy_siege) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L777">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 777"/></a></aside>
+        </h3>
+        <p>Calls nearby daughters to physically rally on boss_pilot, distinct from
+broadcast_hive_alert() (which points at the threat, not at her/him) -
+&quot;the Queen must be escorted when in combat by no less than 5 and up to
+10 daughters,&quot; same standing-call-for-backup reasoning applied to King.</p><h3 id="proc/broadcast_hive_alert"><aside class="declaration">proc </aside>broadcast_hive_alert<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/boss_pilot) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L755">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 755"/></a></aside>
+        </h3>
+        <p>&quot;Coordination with other AI xenos is very poor&quot; / King never called
+anything analogous to Queen's own alert/escort broadcasts, so other AI
+xenos never rallied to a fight he was personally in. Promoted off the
+Queen controller onto the base one - nothing in either proc actually used
+anything Queen-specific (just generic hive/mob access), it was just typed
+to her subtype - so both Queen (via her own tick() override, unchanged)
+and King (see king.dm) can call the same two procs.</p><h3 id="proc/can_act_while_immobilized"><aside class="declaration">proc </aside>can_act_while_immobilized<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L865">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 865"/></a></aside>
+        </h3>
+        <p>TRUE if this xeno can still act (attack/use abilities) despite TRAIT_IMMOBILIZED - the exception for a caste that voluntarily immobilized itself but is still meant to fight from where it's planted (see defender.dm's Fortify override). FALSE by default: an ordinary stun/knockdown should freeze tick() entirely, same as it always has.</p><h3 id="proc/cardinal_step_towards"><aside class="declaration">proc </aside>cardinal_step_towards<aside>(/<a href="atom.html">atom</a>/goal) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L540">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 540"/></a></aside>
+        </h3>
+        <p>Cardinal-only replacement for BYOND's step_towards() - this AI never
+moves diagonally by design (the native pathfinder's own DIRECTIONS list
+is cardinal-only), but step_towards() doesn't know that and will happily
+cut a diagonal corner whenever the goal is both north/south AND east/west
+of the pilot. Every direct chase/return/search step in this AI goes
+through here instead of calling step_towards() itself, so a diagonal goal
+always resolves into exactly one cardinal step - along whichever axis has
+the larger remaining distance first, falling back to the other axis if
+that step is blocked (mirrors navigate_around()'s two-option fallback).</p><h3 id="proc/check_retaliation"><aside class="declaration">proc </aside>check_retaliation<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L1066">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 1066"/></a></aside>
+        </h3>
+        <p>&quot;Anything that attacks the AI should become an enemy too.&quot; last_damage_data
+(mob_defines.dm) is set generically by every attack path in the game
+(melee, ranged, thrown, etc. - see the many create_cause_data() call sites
+across combat code) regardless of whether the attacker is a type
+is_valid_target()'s own scan would ever pick up on its own (a predator, a
+synthetic, wildlife, anything outside the plain human/sentry/vehicle set).
+Polled here each tick rather than hooked off a signal - COMSIG_XENO_TAKE_
+DAMAGE fires from inside apply_damage(), before some callers have actually
+updated last_damage_data yet, so reading it synchronously off the signal
+risks seeing the previous hit's attacker, not this one. Comparing the
+cause_data reference itself (a fresh instance every single hit) tells
+&quot;new attacker since last check&quot; cheaply, without needing to track a
+separate timestamp. Only kicks in with no live current_target already -
+doesn't rip focus off a fight already in progress onto every incidental
+hit from a third party.</p><h3 id="proc/compute_path"><aside class="declaration">proc </aside>compute_path<aside>(/<a href="turf.html">turf</a>/goal_turf) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L356">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 356"/></a></aside>
+        </h3>
+        <p>Builds a bounded local grid around the pilot and goal (only turf density
+counts as &quot;blocked&quot; - doors/windows/tables are left for the existing
+per-step obstacle-forcing and native climb-over handling, not modeled in
+the grid) and asks the native solver for a route. Returns null (meaning
+&quot;no plan, use the old behavior&quot;) if the library isn't present, the hop is
+too large for local grid pathing, or no path exists - long-range chases
+are already handled fine by the greedy approach, this is specifically for
+routing around nearby walls/dead-ends.</p><h3 id="proc/continue_long_patrol"><aside class="declaration">proc </aside>continue_long_patrol<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L339">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 339"/></a></aside>
+        </h3>
+        <p>Walks one step of an already-started long patrol leg; drops it once arrived or genuinely stuck, letting the next idle tick's rolls decide what to do next.</p><h3 id="proc/count_engaged_allies"><aside class="declaration">proc </aside>count_engaged_allies<aside>(/<a href="atom.html">atom</a>/<a href="atom/movable.html">movable</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L233">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 233"/></a></aside>
+        </h3>
+        <p>Same-hive AI xenos already actively approaching/attacking this exact target - see get_flanking_position()/process_movement()'s flanking check.</p><h3 id="proc/count_nearby_escorts"><aside class="declaration">proc </aside>count_nearby_escorts<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/<a href="mob/living/carbon.html">carbon</a>/<a href="mob/living/carbon/xenomorph.html">xenomorph</a>/boss_pilot, radius) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L762">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 762"/></a></aside>
+        </h3>
+        <p>Living same-hive AI xenos within radius tiles of boss_pilot - backs broadcast_escort_call()'s decision on whether it already has enough of a bodyguard.</p><h3 id="proc/count_nearby_hive_allies"><aside class="declaration">proc </aside>count_nearby_hive_allies<aside>(radius) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L951">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 951"/></a></aside>
+        </h3>
+        <p>Living, non-fleeing same-hive AI xenos within radius tiles - used by should_flee() to judge whether backup is close enough that disengaging isn't necessary.</p><h3 id="proc/current_patrol_radius"><aside class="declaration">proc </aside>current_patrol_radius<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L349">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 349"/></a></aside>
+        </h3>
+        <p>Current long-patrol radius from anchor_turf - grows with round time up to a cap, approximating &quot;as the hive radius expands.&quot; Also used by start_long_patrol() as the minimum distance worth calling a &quot;long&quot; trip at all.</p><h3 id="proc/drop_target"><aside class="declaration">proc </aside>drop_target<aside>(should_search) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L1146">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 1146"/></a></aside>
+        </h3>
+        <p>Drops the current target. If should_search is set and we have a last-known
+position, transitions to AI_STATE_SEARCHING to go investigate it instead of
+instantly forgetting the target ever existed - used when a chase is broken off
+by an obstacle (door/ladder/etc.) rather than the target actually dying or
+becoming invalid, where there's nothing worth investigating.</p><h3 id="proc/end_ambush_hide"><aside class="declaration">proc </aside>end_ambush_hide<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L445">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 445"/></a></aside>
+        </h3>
+        <p>Un-hides (if actually hidden) and clears ambush state - shared by attempt_ambush_hide()'s timeout and process_target()'s interrupt-on-contact.</p><h3 id="proc/execute_attack"><aside class="declaration">proc </aside>execute_attack<aside>(/<a href="atom.html">atom</a>/<a href="atom/movable.html">movable</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_attack.dm#L42">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_attack.dm 42"/></a></aside>
+        </h3>
+        <p>Orientation is only touched here, at the moment of the strike - never polled
+every tick - per the reference implementation's own performance approach.
+Branches on target type: living targets go through the full
+ability/facehugger/melee chain below, while structures (sentry turrets)
+skip straight to attack_alien() - abilities and facehugger logic don't
+apply to attacking machinery.</p><h3 id="proc/execute_facehugger_hug"><aside class="declaration">proc </aside>execute_facehugger_hug<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_attack.dm#L158">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_attack.dm 158"/></a></aside>
+        </h3>
+        <p>Mirrors the validity checks and windup in Facehugger.dm's UnarmedAttack()/
+handle_hug() (can only hug a target that's lying down), but skips the
+click-driven visible_message flavor since nobody needs to read it for an
+NPC. Calls the same handle_hug() so the actual infection logic is identical
+to a player-controlled hugger. No-ops (waits adjacent) against a standing
+target rather than doing anything else - a real hugger has no other attack.</p><h3 id="proc/find_defensible_turf"><aside class="declaration">proc </aside>find_defensible_turf<aside>(radius) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L477">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 477"/></a></aside>
+        </h3>
+        <p>&quot;They should also consider corners and walls as defensive positions&quot; -
+a nearby turf with at least AI_XENO_DEFENSIBLE_MIN_DENSE_SIDES
+cardinally-adjacent dense tiles (a wall, a corner, tucked against a
+structure), meaning fewer directions something can actually approach it
+from. Used by a fleeing/kiting xeno as a nearer, defensible fallback
+instead of always crossing open ground back to anchor_turf. Returns null
+if nothing suitable exists within radius - callers just fall back to
+their normal destination.</p><h3 id="proc/find_ladder_towards"><aside class="declaration">proc </aside>find_ladder_towards<aside>(target_z) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L1306">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 1306"/></a></aside>
+        </h3>
+        <p>Nearest ladder on the pilot's current z-level that actually connects toward target_z, or null if none does.</p><h3 id="proc/find_nearest_hive_weed_turf"><aside class="declaration">proc </aside>find_nearest_hive_weed_turf<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L569">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 569"/></a></aside>
+        </h3>
+        <p>Nearest turf with a same-hive weed within a bounded radius of anchor_turf - shared by wander()'s weed-seeking and (formerly) larva.dm's own copy of this. Cheap bounded scan, not something every population-scale caste calling it occasionally can't afford.</p><h3 id="proc/find_pack_buddy"><aside class="declaration">proc </aside>find_pack_buddy<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L377">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 377"/></a></aside>
+        </h3>
+        <p>Nearest other idle/patrolling same-hive xeno within pack range - see respond_to_pack_cohesion().</p><h3 id="proc/get_ability"><aside class="declaration">proc </aside>get_ability<aside>(action_type) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L1336">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 1336"/></a></aside>
+        </h3>
+        <p>Finds a specific ability instance on the pilot's action bar, for
+per-caste controller subtypes that call a caste ability's use_ability()
+body directly (bypassing the click/mouse layer) rather than the generic
+melee attack_alien() chain - see the per-caste ability audit in the plan
+(section 2.6). Returns null if the pilot doesn't have that ability at all.</p><h3 id="proc/get_blocking_obstacle"><aside class="declaration">proc </aside>get_blocking_obstacle<aside>(/<a href="atom.html">atom</a>/goal) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L582">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 582"/></a></aside>
+        </h3>
+        <p>&quot;Pathfinding is very messed up when it comes to none blocking, blocking
+tiles like tables, vehicles, and fences&quot; - a climbable structure (table,
+some fences/crates) directly ahead of a raw step() from ordinary floor is
+NOT actually passable for free the way an earlier version of this comment
+assumed: tables_racks.dm's own BlockedPassDirs() only waives the block
+when the mover is already standing on some other climbable structure
+(hopping furniture to furniture), not from plain ground. A real player
+instead climbs over it directly (do_climb(), a MouseDrop/verb
+interaction) - see get_climbable_obstacle()/attempt_climb_obstacle()
+below for the AI equivalent, checked before this proc in
+process_movement(). This proc is left for what genuinely does need
+force: locked airlocks, windows, girders, and walls a strong-enough
+caste can actually melt through - xenos can't badge through
+access-locked doors, can't walk through glass, and can't walk through
+walls unless their claws are strong enough, so they attack instead, same
+as a player would.</p><h3 id="proc/get_climbable_obstacle"><aside class="declaration">proc </aside>get_climbable_obstacle<aside>(/<a href="atom.html">atom</a>/goal) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L618">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 618"/></a></aside>
+        </h3>
+        <p>A climbable structure (table, some fences/crates) directly ahead on the way to goal - see get_blocking_obstacle()'s doc comment above for why this needs separate handling instead of being treated as freely passable.</p><h3 id="proc/get_codename_pool"><aside class="declaration">proc </aside>get_codename_pool<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L103">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 103"/></a></aside>
+        </h3>
+        <p>Picks which flavor-callsign pool this xeno draws from, based on its caste's actual combat role - see the GLOB.ai_codenames_* lists just above.</p><h3 id="proc/get_defense_wall_type"><aside class="declaration">proc </aside>get_defense_wall_type<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L647">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 647"/></a></aside>
+        </h3>
+        <p>Wall or door option this pilot's caste can build, picked randomly between the two when both exist - &quot;walls and doors,&quot; not only ever walls.</p><h3 id="proc/get_desperate_threshold"><aside class="declaration">proc </aside>get_desperate_threshold<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L861">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 861"/></a></aside>
+        </h3>
+        <p>Health fraction (0-1) below which a fleeing xeno gives up on running and fights instead - see return_to_anchor()'s desperate-stand check. Overridden to 0 (never) by castes with nothing worth fighting with, e.g. larva.dm.</p><h3 id="proc/get_flanking_position"><aside class="declaration">proc </aside>get_flanking_position<aside>(/<a href="atom.html">atom</a>/<a href="atom/movable.html">movable</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L258">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 258"/></a></aside>
+        </h3>
+        <p>&quot;Flanking logic to flank humans&quot; - once at least one same-hive ally is
+already closing on/fighting the same target, a fresh approacher heads for
+an unoccupied side of it instead of the same tile everyone else is
+beelining for, so a group actually surrounds a marine from different
+angles rather than stacking into a single-file queue on one side. Returns
+null (meaning &quot;just approach the target directly, same as before&quot;) if
+every side is already taken or blocked - flanking only matters when there's
+actually a free side left to take.</p><h3 id="proc/get_flee_threshold"><aside class="declaration">proc </aside>get_flee_threshold<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L857">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 857"/></a></aside>
+        </h3>
+        <p>Health fraction (0-1) below which this caste even considers fleeing - overridden per-caste (see crusher.dm) instead of duplicating should_flee()'s decision logic for a different constant.</p><h3 id="proc/get_lz_turf"><aside class="declaration">proc </aside>get_lz_turf<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L454">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 454"/></a></aside>
+        </h3>
+        <p>Turf of the active marine LZ, if any - shared by queen.dm's LZ-siege response and attempt_ambush_hide().</p><h3 id="proc/get_pathfind_cell_budget"><aside class="declaration">proc </aside>get_pathfind_cell_budget<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L167">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 167"/></a></aside>
+        </h3>
+        <p>&quot;I want better pathfinding as it's still too much, varied by the caste's
+size/tier T1 vs T2 vs T3.&quot; Three knobs scaled by pilot.tier instead of one
+flat setting for every caste regardless of size: a disposable, numerous
+Tier 1 gives up on a blocked target sooner and gets a smaller local
+pathfinding grid (not worth the compute or the exposure time for a caste
+that's cheap to lose), while a Tier 2/3 - fewer of them, each one a much
+bigger investment - gets a wider grid budget and commits longer to a
+skirt, worth spending more to actually solve a real detour instead of
+falling back to the greedy walk early.</p><h3 id="proc/get_pathfind_giveup_attempts"><aside class="declaration">proc </aside>get_pathfind_giveup_attempts<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L187">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 187"/></a></aside>
+        </h3>
+        <p>See get_pathfind_cell_budget()'s doc comment - same tier scaling applied to how many consecutive blocked ticks the chase path tolerates before giving up on the target entirely.</p><h3 id="proc/get_skirt_duration"><aside class="declaration">proc </aside>get_skirt_duration<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L177">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 177"/></a></aside>
+        </h3>
+        <p>See get_pathfind_cell_budget()'s doc comment - same tier scaling applied to how long a committed obstacle-skirt lasts.</p><h3 id="proc/has_line_of_sight"><aside class="declaration">proc </aside>has_line_of_sight<aside>(/<a href="atom.html">atom</a>/target, physical_path) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L215">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 215"/></a></aside>
+        </h3>
+        <p>Plain turf-density line check between pilot and target, reusing the
+existing get_line() helper rather than a real raycast library - good
+enough to tell &quot;clean shot&quot; from &quot;there's a wall in the way&quot; for ranged
+castes (see ranged.dm's process_attack()) without adding a new dependency.
+Ignores the two endpoint tiles themselves (the pilot's and target's own
+turf) since a dense structure the target happens to be standing against
+shouldn't block a shot at the target on that same tile.</p>
+<p>physical_path = TRUE also counts climbable obstacles (tables, some
+fences/barricades) as blocking - &quot;charge/pounce/lunge stuck on terrain...
+still a problem with tables, fences, barricades.&quot; A ranged shot can fly
+over a table just fine, which is why climbable structures are normally
+exempted here, but a charge/pounce is a physical dash, not a projectile -
+it collides with furniture the same way footstep movement climbing over
+it doesn't happen mid-dash. Callers doing a physical gap-closer (crusher/
+ravager charge, runner/lurker pounce) pass this TRUE; ranged spit/shot
+callers leave it FALSE.</p><h3 id="proc/is_valid_target"><aside class="declaration">proc </aside>is_valid_target<aside>(/<a href="atom.html">atom</a>/<a href="atom/movable.html">movable</a>/candidate) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L1098">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 1098"/></a></aside>
+        </h3>
+        <p>Valid targets are living marines, active sentry turrets (xenos should
+fight back against defenses shooting at them, not just claw through one
+incidentally blocking a path to a marine), - for Tier 2+ castes only -
+vehicles (&quot;vehicles or multitile entities should be attacked by larger T2
+and T3 aliens&quot;; Tier 1 is left out since a Runner/Drone-scale caste has
+nothing to gain from picking a fight with one on purpose, only something
+to lose, same reasoning melee_vehicle_damage's own per-caste scaling
+already applies in vehicle.dm's attack_alien()), and any living
+xenomorph from a hive that isn't hers or explicitly allied to hers
+(&quot;different hive factions should be considered hostile... unless the
+hive status is allied&quot; - hive_status.dm's is_ally()/faction_is_ally()
+already model this correctly; this proc just never consulted it for a
+xeno candidate before). Broadening further to other hostile
+factions/synths/etc. is future work.</p><h3 id="proc/maintain_kiting_distance"><aside class="declaration">proc </aside>maintain_kiting_distance<aside>(/<a href="atom.html">atom</a>/target, preferred_distance) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L105">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 105"/></a></aside>
+        </h3>
+        <p>Shared continuous-kiting movement decision for every ranged caste
+(Spitter/Boiler/Sentinel/Queen) - &quot;approach, spit, and die in place&quot; /
+&quot;spitter and all other ranged variants are really bad and die instantly.&quot;
+The bug was the old binary min/preferred band each of them duplicated:
+hold completely still anywhere inside the &quot;preferred&quot; distance, only
+retreat once the target was already almost on top of her
+(AI_XENO_RANGED_MIN_DISTANCE). A marine walking straight at her crossed
+that whole multi-tile band completely unopposed - she just stood there
+spitting - and by the time the emergency-floor retreat finally triggered,
+one more step already closed it to melee. Now retreats the moment the
+target is closer than preferred (not just inside a tight emergency
+floor), holds only at/near the ideal ring, and advances only when
+meaningfully farther - real continuous kiting instead of a static hold.
+Prefers falling back toward a nearby defensible corner/wall
+(find_defensible_turf()) over open ground when one's actually closer.
+Sets ai_state directly (ATTACKING once holding in band) so callers are
+just this one call from their own process_movement() override.</p><h3 id="proc/navigate_around"><aside class="declaration">proc </aside>navigate_around<aside>(/<a href="atom.html">atom</a>/goal) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L444">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 444"/></a></aside>
+        </h3>
+        <p>goal defaults to current_target so every existing chase-path call site is
+unaffected - passed explicitly by return_to_anchor() (xeno_ai_controller.dm),
+which has no current_target at all (drop_target() cleared it on entering
+AI_STATE_RETURNING) and would otherwise have this bail out immediately
+every time it's called while fleeing.</p><h3 id="proc/patrol"><aside class="declaration">proc </aside>patrol<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L265">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 265"/></a></aside>
+        </h3>
+        <p>Idle xenos check for a live hive-wide alert from the Queen first (see
+respond_to_hive_alert()) - &quot;command&quot; without a hard hierarchy - then
+whether she's specifically calling for an escort (respond_to_queen_escort()),
+then a small chance to duck into a nearby vent for a surprise relocation
+(see xeno_ai_vents.dm's attempt_vent_ambush() - a no-op for castes too
+big or otherwise ineligible to vent-crawl, so nothing extra is needed to
+exclude them here), then a live scouting order (respond_to_scout_order(),
+lowest priority - &quot;something better to do than aimless wander,&quot; not
+urgent), and only fall back to aimless wander() if none apply. Concrete
+subtypes that override patrol() (e.g. drone_worker, to roll build
+attempts) should check respond_to_hive_alert() first too, before their
+own idle behavior, so a Queen's call takes priority over routine tasks.</p><h3 id="proc/pick_defense_perimeter_turf"><aside class="declaration">proc </aside>pick_defense_perimeter_turf<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L667">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 667"/></a></aside>
+        </h3>
+        <p>A turf in the perimeter band around anchor_turf that's actually already
+weeded and owned by the hive - can_build_here() hard-requires existing
+owned weeds on the target tile, so picking a blind random turf in the
+band (the old behavior) almost never actually landed on buildable ground,
+which is why walls/doors essentially never got built at all. Falls back
+to any owned weed tile regardless of distance band if nothing qualifies
+in the ideal band, rather than giving up outright.</p><h3 id="proc/process_attack"><aside class="declaration">proc </aside>process_attack<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_attack.dm#L7">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_attack.dm 7"/></a></aside>
+        </h3>
+        <p>Attack execution for xeno_ai_controller. Reuses the real, input-agnostic
+attack_alien() receiver chain (code/modules/mob/living/carbon/xenomorph/attack_alien.dm)
+instead of any player-facing UI/ability-click layer - attack_alien() already reads
+the attacker's a_intent and works identically regardless of whether a client set it.</p><h3 id="proc/process_movement"><aside class="declaration">proc </aside>process_movement<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L27">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 27"/></a></aside>
+        </h3>
+        <p>Movement for xeno_ai_controller. When the native xeno_pathfind library is
+present (see code/__DEFINES/__xeno_pathfind.dm), routes through a real A*
+plan over a small local grid via advance_along_path() - this is what fixes
+zigzagging and lets the AI route around walls properly. When it isn't
+present (or a planned step fails - a mob wandered into the way, a door
+closed), falls straight back to the original greedy step_towards() + one
+tile sidestep. Either way a host with no native library at all behaves
+exactly as before this was added.</p>
+<p>&quot;Long pathfinding to go around a building or a wall is not possible, the
+aliens just walk back and forth unable to find a path if outside and the
+enemy is inside a big building.&quot; advance_along_path()'s real A* only ever
+solves within a small local grid around pilot/goal (compute_path()'s own
+margin, capped at XENO_PATHFIND_MAX_CELLS) - a detour around a whole
+building is routinely far outside that box, so it correctly finds no plan
+at all, and the greedy fallback below just walks straight at the wall
+every tick, sidesteps one tile, then walks straight at the wall again -
+that's the &quot;back and forth.&quot; attempt_skirt_obstacle() (checked first, and
+committed to by navigate_around() below) fixes this not by solving a real
+long-range path, but by refusing to re-aim at the goal every single tick
+while blocked: once a side is picked, she keeps walking that direction for
+several seconds so she actually travels far enough to clear the corner,
+instead of re-evaluating &quot;which way is the goal&quot; every tick and
+potentially flip-flopping before ever making real progress.</p><h3 id="proc/process_search"><aside class="declaration">proc </aside>process_search<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L1267">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 1267"/></a></aside>
+        </h3>
+        <p>Travels toward the last place a lost target was seen, crossing z-levels via a
+connected ladder if needed (see code/game/objects/structures/ladders.dm's
+ai_use()). Keeps re-scanning for a fresh target en route so a different
+marine wandering past will interrupt the search. Gives up after
+AI_XENO_SEARCH_TIMEOUT or if there's simply no ladder connecting toward the
+target's z-level, rather than getting stuck forever.</p><h3 id="proc/process_target"><aside class="declaration">proc </aside>process_target<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L983">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 983"/></a></aside>
+        </h3>
+        <p>Bounded, cached target scan. Only recomputes the block() rectangle when there is
+no cached one to reuse, or the pilot has drifted far enough from where it was
+last centered - deliberately avoids re-scanning the map every idle tick.
+Picks the NEAREST valid candidate found in the block (marines or active
+sentry turrets - see is_valid_target()), not just the first one encountered
+in scan order, so targeting doesn't depend on incidental turf iteration
+order.</p>
+<p>&quot;Many times the AI is just not locking onto enemies for no reason at all&quot; -
+the staleness check against turf_block_origin is what actually makes that
+&quot;or the pilot moves on&quot; true. Without it (the previous behavior), a scan
+that found nobody left turf_block sitting there forever, centered on
+wherever she happened to be at that one moment - as she patrolled/wandered
+off, every later process_target() call kept re-scanning that same stale,
+now-distant rectangle instead of the area she was actually standing in,
+so a marine right next to her could go completely unnoticed until she
+wandered back near the original scan point by coincidence.</p><h3 id="proc/record_damage_dealt"><aside class="declaration">proc </aside>record_damage_dealt<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target, health_before) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_attack.dm#L113">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_attack.dm 113"/></a></aside>
+        </h3>
+        <p>Backs the hive status roster's &quot;damage done&quot; column (see event_tab.dm's
+admin panel) - measures the target's own health delta rather than trying
+to intercept every possible damage source (abilities, plain melee) with
+its own return value, which would mean touching every attack path
+individually. QDELETED-guarded since a caste ability can gib/delete the
+target outright (Queen's Gut) before returning here.</p><h3 id="proc/respond_to_hive_alert"><aside class="declaration">proc </aside>respond_to_hive_alert<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L795">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 795"/></a></aside>
+        </h3>
+        <p>Checks for a live hive-wide alert (see hive_status.dm's queen_alert_turf/
+queen_alert_time, set by the Queen controller) and heads there if one
+exists and hasn't gone stale. Returns FALSE (meaning &quot;nothing to respond
+to, fall back to normal idle behavior&quot;) if the pilot has no hive, no alert
+is active, the alert is too old, or the pilot is already close enough that
+normal target scanning should take over instead.</p><h3 id="proc/respond_to_pack_cohesion"><aside class="declaration">proc </aside>respond_to_pack_cohesion<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L362">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 362"/></a></aside>
+        </h3>
+        <p>&quot;Add in a group mechanic to allow xenos to stick together sometimes in a
+group&quot; - a loose, probabilistic pull toward a nearby same-hive ally who's
+also just idling/patrolling (not one already off fighting/dragging/vent-
+crawling - chasing a busy ally isn't cohesion, that's respond_to_hive_alert()'s
+job), rather than a hard formation system. Queen/King are excluded as
+buddies - they already have their own dedicated escort/command mechanics,
+this is specifically the rank-and-file loosely clumping up.</p><h3 id="proc/respond_to_queen_escort"><aside class="declaration">proc </aside>respond_to_queen_escort<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L823">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 823"/></a></aside>
+        </h3>
+        <p>Checks for a live &quot;come guard me&quot; call from the Queen (hive_status.dm's
+queen_escort_turf/queen_escort_time, set by queen.dm's
+broadcast_escort_call()) - distinct from respond_to_hive_alert() (which
+points at a threat, not at her), this points at her own position.
+Stops once close enough to already be functioning as an escort, rather
+than trying to stack directly on her tile.</p><h3 id="proc/respond_to_scout_order"><aside class="declaration">proc </aside>respond_to_scout_order<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L843">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 843"/></a></aside>
+        </h3>
+        <p>Checks for a live scouting order from the Queen (hive_status.dm's
+queen_scout_turf/queen_scout_time, set by queen.dm's
+broadcast_scout_order()) - lowest patrol priority, just &quot;somewhere
+purposeful to head instead of aimless wandering.&quot; Stops once close
+enough that normal target scanning should take over from here.</p><h3 id="proc/return_to_anchor"><aside class="declaration">proc </aside>return_to_anchor<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L1182">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 1182"/></a></aside>
+        </h3>
+        <p>&quot;Fleeing breaks their AI and makes them refuse to fight and get stuck in a
+limbo&quot; / &quot;they rest on normal turf instead of weed covered turf to heal&quot; -
+this used to be a bare cardinal_step_towards(anchor_turf) with none of the
+chase path's obstacle-handling (no navigate_around()/attempt_skirt_
+obstacle()/climb-or-smash, no blocked_attempts give-up), and blindly set
+pilot.resting = TRUE on arrival with no check that anchor_turf was
+actually owned weeds. Now shares the same movement toolkit
+process_movement() uses (an unreachable anchor is a real, reported
+failure mode, not a hypothetical), re-checks should_flee() each tick
+instead of treating fleeing as a one-way trip, and leaves the actual
+rest-on-weeds decision to wander() (reached the moment ai_state flips to
+IDLE below, via the normal patrol() fallthrough) instead of duplicating -
+and getting wrong - that logic here.</p><h3 id="proc/should_flee"><aside class="declaration">proc </aside>should_flee<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L930">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 930"/></a></aside>
+        </h3>
+        <p>&quot;They immediately try putting themselves out when on fire, making them a
+sitting duck&quot; - on_fire no longer forces a flee by itself. resist() sets
+next_move forward 2 seconds (living_verbs.dm), the same var this AI's own
+melee attack pacing depends on (see execute_attack()) - stopping to resist
+mid-fight cost a full attack window for nothing, and dropping the target
+to retreat over a status effect that doesn't stop her from fighting was
+worse than just tanking the damage. She now only resists opportunistically
+while not actively swinging (return_to_anchor()/wander() already call
+resist() for other reasons) - fire alone no longer overrides a fight
+that's still worth having; a real health-based flee call still applies.
+This is a real fight-or-flee decision, not a bare health check:
+being hurt enough to consider fleeing doesn't mean fleeing is actually
+the right call for a caste that's meant to be ruthless. Presses the
+advantage instead of disengaging when the target is nearly finished too
+(letting it go now just means fighting it, healthy again, later), or when
+nearby hive members mean this isn't really a fight being fought alone.
+Only actually flees when neither of those apply - hurt, alone, and the
+fight isn't about to end in our favor anyway.</p><h3 id="proc/should_smash_instead_of_climb"><aside class="declaration">proc </aside>should_smash_instead_of_climb<aside>(/<a href="obj.html">obj</a>/structure/obstacle) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_movement.dm#L648">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_movement.dm 648"/></a></aside>
+        </h3>
+        <p>&quot;Add a decision where is it better to climb over something or just smash
+it.&quot; Climbing is the default - it's instant (a ~0.2-2s vault, no combat
+risk) and most climbable furniture (tables, crates) was never meant to be
+destroyed by a xeno at all. A barricade is the one climbable structure
+that's also genuinely built to be fought through (real health/maxhealth,
+its own attack_alien() destruction path) - worth actually smashing down
+instead of just hopping over it, but only when it pays off: either the
+pilot already melts real walls (wall_smash - a strong-melee caste tears
+through it fast) or enough same-hive allies are right behind her that
+clearing the chokepoint permanently helps the whole push, not just her
+own one-time crossing.</p><h3 id="proc/start"><aside class="declaration">proc </aside>start<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L130">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 130"/></a></aside>
+        </h3>
+        <p>Starts the coroutine. Safe to call more than once; only ever spawns one loop per start() since the loop exits immediately if detached is already set.</p><h3 id="proc/start_long_patrol"><aside class="declaration">proc </aside>start_long_patrol<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L319">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 319"/></a></aside>
+        </h3>
+        <p>&quot;Patrol should actually be a long path as the hive radius expands. It
+should also allow leaving the hive completely to look for targets, so
+xenomorphs can patrol as far as the Landing Zone&quot; - a deliberate long-
+range trek, distinct from wander()'s tight local drift around anchor_turf
+(which stays exactly as bounded as before - this is an additional, lower-
+priority idle option, not a replacement). Sometimes heads specifically
+for the marine LZ if one's been chosen (get_lz_turf() - shared with
+attempt_ambush_hide()/queen.dm's siege response), otherwise a random
+point out at the current long-patrol radius, which grows over the course
+of the round (current_patrol_radius()) rather than staying fixed - &quot;as
+the hive radius expands,&quot; approximated by round time the same way the
+Queen's own scout_radius already does, since a real live weed-coverage
+measurement isn't cheap to compute every roll.</p><h3 id="proc/start_tactical_retreat"><aside class="declaration">proc </aside>start_tactical_retreat<aside>(duration) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L882">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 882"/></a></aside>
+        </h3>
+        <p>&quot;My idea is to use retreating in combat instead of low health = retreat&quot; -
+a hit-and-run caste (Praetorian/Ravager/Burrower/Lurker) doesn't just
+fight until should_flee()'s health/last-defender check finally trips; it
+deliberately disengages after landing a hit and comes back in once it's
+put some distance between itself and the target, same shape as a real
+player kiting with a pounce. tactical_retreat_until is a plain world.time
+deadline - concrete subtypes check is_tactical_retreating() from their own
+process_movement()/process_attack() override and back away instead of
+approaching/attacking while it's still in the future, then resume the
+normal chase once it lapses. Purely a movement-policy flag - it doesn't
+touch current_target or ai_state, so the moment it lapses she's still
+tracking the same fight, not searching for a new one.</p><h3 id="proc/step_away_from_target"><aside class="declaration">proc </aside>step_away_from_target<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L902">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 902"/></a></aside>
+        </h3>
+        <p>Shared movement helper for a hit-and-run caste's retreat phase - backs
+directly away from current_target, routing around obstacles same as any
+other forced step. Returns whether she actually moved - &quot;mid battle they
+don't attack or know what to do and just sit there taking damage&quot; was a
+real bug here: this used to always return TRUE regardless of whether the
+step succeeded, so a caste cornered against a wall/corner with nowhere to
+actually retreat to would just stand completely still for the whole
+retreat window (tactical_retreat_until forces AI_STATE_APPROACHING, which
+blocks attacking, while this reported success and did nothing to move
+her). Callers now check the return value and cancel the retreat outright
+when it fails, so being cornered falls through to fighting instead of
+freezing.</p><h3 id="proc/stop"><aside class="declaration">proc </aside>stop<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L137">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 137"/></a></aside>
+        </h3>
+        <p>Signals the coroutine to exit at its next check. Does not touch the pilot mob itself.</p><h3 id="proc/travel_to_broadcast_turf"><aside class="declaration">proc </aside>travel_to_broadcast_turf<aside>(/<a href="turf.html">turf</a>/destination) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L721">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 721"/></a></aside>
+        </h3>
+        <p>&quot;Queen escort and commanding thing isn't working at all&quot; - shared by
+respond_to_hive_alert()/respond_to_queen_escort()/respond_to_scout_order()
+below, which all used to be a bare advance_along_path()/
+cardinal_step_towards() with none of the obstacle handling the main chase
+path (process_movement()) has - no skirt/climb-or-smash/navigate_around
+fallback at all, so a table, wall, or long detour between here and the
+broadcast point left her just walking at it and getting nowhere, same
+root cause return_to_anchor() had. No blocked_attempts give-up needed
+here the way the chase/flee paths need one - this only ever runs for one
+idle patrol tick at a time, so a genuinely stuck pilot just tries
+something else next tick instead of committing to one destination.</p><h3 id="proc/update_movement_intent"><aside class="declaration">proc </aside>update_movement_intent<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L180">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 180"/></a></aside>
+        </h3>
+        <p>Always MOVE_INTENT_RUN - the previous walk-while-idle/attacking,
+run-while-approaching split (&quot;stalk vs walk&quot;) is removed per explicit
+direction: every AI xeno moves at the same pace regardless of state now.
+Still its own proc (rather than just setting m_intent once at attach)
+since set_movement_intent() only does anything when the intent actually
+changes, and something else could in principle reset m_intent externally.</p><h3 id="proc/use_caste_ability"><aside class="declaration">proc </aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_attack.dm#L147">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_attack.dm 147"/></a></aside>
+        </h3>
+        <p>Hook point for Stage 2+ caste-specific offensive abilities (see the plan's caste
+audit, section 2.6): a caste's controller subtype can override this to call a
+specific /datum/action/xeno_action's use_ability() body directly, bypassing the
+click/mouse input layer, and return TRUE to skip the plain-melee fallback below.
+Drone has no offensive ability worth AI-triggering, so this always falls through.</p><h3 id="proc/vent_travel"><aside class="declaration">proc </aside>vent_travel<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_vents.dm#L54">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_vents.dm 54"/></a></aside>
+        </h3>
+        <p>Bounded random walk through the connected pipe graph, then exits - see
+attempt_vent_ambush()'s doc comment for why this isn't targeted routing.
+Runs as its own coroutine (started via INVOKE_ASYNC, same pattern as
+ai_loop() itself) since relaymove()'s exit branch does a real do_after
+wait - this must not block the main ai_loop() coroutine, which is kept
+from running a conflicting tick() concurrently by tick()'s own
+is_ventcrawling check instead.</p><h3 id="proc/wander"><aside class="declaration">proc </aside>wander<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_controller.dm#L476">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;xeno_ai_controller.dm 476"/></a></aside>
+        </h3>
+        <p>Idle xenos actively range around their anchor instead of standing
+perfectly still or jittering in place - makes an idle group look and
+behave alive, doubling as a real patrol rather than a tight tether.
+Bounded to AI_XENO_PATROL_RADIUS (well inside return_distance) so it
+never turns into an unbounded wander; a mob that's drifted to the edge
+heads back in instead of continuing outward.</p>
+<p>Also opportunistically rests to heal: not just when returning home
+critically hurt (see return_to_anchor()), but any time it's idle,
+standing on healing-eligible weeds, and not already at full health - a
+low per-tick chance, so it reads as &quot;resting when there's nothing better
+to do&quot; rather than stopping mid-patrol constantly. Stands back up on its
+own once fully healed (process_target() already stands it up immediately
+if a target shows up first) instead of lying there forever once healed.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>

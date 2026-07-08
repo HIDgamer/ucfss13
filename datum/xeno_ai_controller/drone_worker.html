@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <base href="../../" />
+    <link rel="stylesheet" href="dmdoc.css" />
+    <title>&#x2F;datum&#x2F;xeno_ai_controller&#x2F;drone_worker - byond</title>
+</head>
+<body>
+<header>
+    <a href="index.html">byond</a> -
+    <a href="index.html#modules">Modules</a> -
+    <a href="index.html#types">Types</a>
+ &mdash; <a href="datum/xeno_ai_controller/drone_worker.html#proc">Proc Details</a></header>
+<main>
+<h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/drone_worker.html">drone_worker</a>
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/drone_worker.dm#L16">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;drone_worker.dm 16"/></a></h1>
+
+<p>Drone AI - extends the shared melee/patrol controller with a build duty
+cycle: instead of just wandering while idle, a Drone periodically expands
+the hive's weed coverage (see xeno_ai_controller.dm's attempt_plant_weeds(),
+shared with the Queen's own patrol()). Combat/searching/returning behavior
+is entirely inherited unchanged (see patrol() below - that's the only
+override), so a target wandering into range mid-build still gets chased
+and fought normally - &quot;aid and assist in attacking&quot; per the user, not a
+builder that ignores threats.</p>
+<p>Also occasionally attempts a defensive resin wall at the hive perimeter
+(attempt_build_defense(), xeno_ai_controller.dm) on top of plain weeding -
+a real, if simple, &quot;wall a chokepoint around the hive&quot; placement instead
+of only ever weeding wherever she happens to be standing.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/drone_worker.html#proc/get_flee_threshold">get_flee_threshold</a></th><td>&quot;Drones... dive to their deaths&quot; - she's a builder pressed into a fight, not a caste actually built to brawl, so she should break off sooner than the population default.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/drone_worker.html#proc/patrol">patrol</a></th><td>Only override needed: patrol() is called from the base tick() at exactly
+the point where the pilot is confirmed idle with no target - rolling build
+attempts in here instead of duplicating the whole state machine. Checks
+for a Queen hive-alert first, same priority order as the base controller -
+a call to arms takes precedence over routine building.</td></tr>
+            <tr><th><a href="datum/xeno_ai_controller/drone_worker.html#proc/use_caste_ability">use_caste_ability</a></th><td>A builder first, but &quot;aid and assist in attacking&quot; means an actual hit when it comes to that, not a bare claw.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/get_flee_threshold"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/get_flee_threshold">&uarr;</a></aside>get_flee_threshold<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/drone_worker.dm#L19">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;drone_worker.dm 19"/></a></aside>
+        </h3>
+        <p>&quot;Drones... dive to their deaths&quot; - she's a builder pressed into a fight, not a caste actually built to brawl, so she should break off sooner than the population default.</p><h3 id="proc/patrol"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/patrol">&uarr;</a></aside>patrol<aside>() 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/drone_worker.dm#L29">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;drone_worker.dm 29"/></a></aside>
+        </h3>
+        <p>Only override needed: patrol() is called from the base tick() at exactly
+the point where the pilot is confirmed idle with no target - rolling build
+attempts in here instead of duplicating the whole state machine. Checks
+for a Queen hive-alert first, same priority order as the base controller -
+a call to arms takes precedence over routine building.</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">&uarr;</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target) 
+        
+    
+            <a href="https://github.com/HIDgamer/ucfss13/blob/3b0d87e32eb89d2d27ecdfef9590309870fed315/code/modules/mob/living/carbon/xenomorph/ai/castes/drone_worker.dm#L45">
+        <img src="git.png" width="16" height="16" title="code&#x2F;modules&#x2F;mob&#x2F;living&#x2F;carbon&#x2F;xenomorph&#x2F;ai&#x2F;castes&#x2F;drone_worker.dm 45"/></a></aside>
+        </h3>
+        <p>A builder first, but &quot;aid and assist in attacking&quot; means an actual hit when it comes to that, not a bare claw.</p></main>
+<footer>
+    colonialmarines.dme
+    <a href="https://github.com/HIDgamer/ucfss13/tree/3b0d87e32eb89d2d27ecdfef9590309870fed315">3b0d87e</a>
+        (UCFSS13) &mdash; <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.8.0</a></footer>
+</body>
+</html>
