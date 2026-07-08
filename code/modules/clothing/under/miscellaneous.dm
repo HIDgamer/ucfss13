@@ -207,3 +207,12 @@
 	item_icons = list(
 		WEAR_BODY = 'icons/mob/humans/onmob/clothing/uniforms/uniforms_by_faction/WY.dmi',
 	)
+/obj/item/clothing/under/suit_jacket/chaplain
+	name = "Chaplain Uniform"
+	desc = "A freshly cleaned chaplain uniform."
+	icon_state = "chaplain_uniform"
+	item_state = "chaplain_uniform"
+	icon = 'icons/obj/items/clothing/uniforms/misc_ert_colony.dmi'
+	item_icons = list(
+		WEAR_BODY = 'icons/mob/humans/onmob/clothing/uniforms/misc_ert_colony.dmi',
+	)

@@ -232,6 +232,7 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth_snowflake, list(
 	list("Working Joe Uniform", 36, /obj/item/clothing/under/rank/synthetic/joe, null, VENDOR_ITEM_REGULAR),
 	list("EMS Uniform - Red", 12, /obj/item/clothing/under/hybrisa/paramedic/red, null, VENDOR_ITEM_REGULAR),
 	list("EMS Uniform - Green", 12, /obj/item/clothing/under/hybrisa/paramedic, null, VENDOR_ITEM_REGULAR),
+	list("Chaplain Uniform", 12, /obj/item/clothing/under/suit_jacket/chaplain, null, VENDOR_ITEM_REGULAR),
 
 	list("GLASSES", 0, null, null, null),
 	list("HealthMate HUD", 12, /obj/item/clothing/glasses/hud/health, null, VENDOR_ITEM_REGULAR),
