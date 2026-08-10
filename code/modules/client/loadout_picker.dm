@@ -32,6 +32,11 @@
 
 	for(var/item in prefs.gear)
 		var/datum/gear/gear = GLOB.gear_datums_by_name[item]
+		// Defensive: saved prefs can reference gear that's since been renamed/removed — skip
+		// instead of crashing ui_data() outright, which takes the whole picker down for anyone
+		// with a stale loadout pick.
+		if(!gear)
+			continue
 		points += gear.cost
 
 		.["loadout"] += list(
@@ -71,7 +76,11 @@
 
 			prefs.gear -= gear.display_name
 
-	prefs.ShowChoices(ui.user)
+		if("clear")
+			prefs.gear = list()
+
+	// Refreshes the live preview instead of the legacy popup.
+	prefs.update_preview_icon()
 	return TRUE
 
 /datum/loadout_picker/tgui_interact(mob/user, datum/tgui/ui)

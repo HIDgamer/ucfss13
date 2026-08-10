@@ -91,7 +91,7 @@ export const AdminSoundPanel = () => {
   };
 
   return (
-    <Window title="Admin Sound Panel" width={480} height={400} theme="crtblue">
+    <Window title="Admin Sound Panel" width={480} height={400} theme="admin">
       <Window.Content scrollable>
         <Stack fill vertical>
           <Stack.Item>
@@ -224,14 +224,15 @@ export const AdminSoundPanel = () => {
             <Divider />
             <Stack justify="space-between" align="center">
               <Stack.Item>
-                <Button
+                <Button.Confirm
                   icon="play"
                   color="good"
                   disabled={sourceMode === 'web' && !webUrl.trim()}
+                  confirmContent={`Play to ${audience}?`}
                   onClick={handlePlay}
                 >
                   Play Sound
-                </Button>
+                </Button.Confirm>
                 <Button ml={1} icon="stop" color="bad" onClick={handleStop}>
                   Stop All
                 </Button>

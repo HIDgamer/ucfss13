@@ -24,6 +24,11 @@
 /datum/admin_spawner/ui_static_data(mob/user)
 	. = list()
 	.["types"] = typesof(/mob)
+	.["ui_effects_enabled"] = admin_ui_effects_enabled(user)
+
+/datum/admin_spawner/ui_assets(mob/user)
+	. = ..()
+	. += get_asset_datum(/datum/asset/simple/admin_ui_sounds)
 
 /datum/admin_spawner/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()

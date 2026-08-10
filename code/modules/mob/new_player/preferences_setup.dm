@@ -240,6 +240,16 @@
 		rotate_right.screen_loc = "preview:1:-16,0"
 	owner.add_to_screen(rotate_right)
 
+	preview_dummy.setDir(preview_dir)
+	var/icon/flat = getFlatIcon(preview_dummy)
+	if(flat)
+		preview_icon_b64 = icon2base64(flat)
+
+/// Cycles the static preview snapshot's facing direction — see preview_dir's docs.
+/datum/preferences/proc/rotate_preview(clockwise = TRUE)
+	preview_dir = turn(preview_dir, clockwise ? -90 : 90)
+	update_preview_icon()
+
 /datum/preferences/proc/job_pref_to_gear_preset()
 	var/high_priority
 	for(var/job in job_preference_list)

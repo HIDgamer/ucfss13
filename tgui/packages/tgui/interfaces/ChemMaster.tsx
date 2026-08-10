@@ -64,7 +64,7 @@ export const ChemMaster = () => {
 
   return (
     <Window width={550} height={550}>
-      <Window.Content className="ChemMaster">
+      <Window.Content className="ChemMaster" scrollable>
         <Section title="Status">
           <Stack vertical>
             <Stack.Item>

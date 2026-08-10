@@ -370,11 +370,6 @@
 	close_browser(src, "latechoices") //closes late choices window
 	close_browser(src, "playersetup") //closes the player setup window
 	src << sound(null, repeat = 0, wait = 0, volume = 85, channel = SOUND_CHANNEL_LOBBY) // Stops lobby music.
-	if(src.open_uis)
-		for(var/datum/nanoui/ui in src.open_uis)
-			if(ui.allowed_user_stat == -1)
-				ui.close()
-				continue
 
 /mob/new_player/get_gender()
 	if(!client || !client.prefs) ..()

@@ -4,6 +4,7 @@
  * @license MIT
  */
 
+import { playClickBlip } from 'common/audio';
 import { classes } from 'common/react';
 import type { CSSProperties } from 'react';
 import { useEffect, useRef } from 'react';
@@ -18,27 +19,6 @@ import { PingIndicator } from './ping';
 import { ReconnectButton } from './reconnect';
 import { SettingsPanel, useSettings } from './settings';
 import { CRT_THEMES } from './themes';
-
-// Generates a short CRT-style electronic click via Web Audio API.
-const playCrtClick = (fgColor: string) => {
-  try {
-    const ctx = new AudioContext();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain);
-    gain.connect(ctx.destination);
-    osc.type = 'square';
-    osc.frequency.setValueAtTime(880, ctx.currentTime);
-    osc.frequency.exponentialRampToValueAtTime(220, ctx.currentTime + 0.04);
-    gain.gain.setValueAtTime(0.06, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.06);
-    osc.start(ctx.currentTime);
-    osc.stop(ctx.currentTime + 0.06);
-    osc.onended = () => ctx.close();
-  } catch {
-    // Web Audio unavailable — silent fallback
-  }
-};
 
 export const Panel = (props) => {
   const audio = useAudio();
@@ -58,7 +38,7 @@ export const Panel = (props) => {
     const handleClick = (e: MouseEvent) => {
       const target = e.target as HTMLElement;
       if (target.closest('.Button')) {
-        playCrtClick(crtConfig?.fg ?? '#00e94e');
+        playClickBlip();
       }
     };
     el.addEventListener('mousedown', handleClick);

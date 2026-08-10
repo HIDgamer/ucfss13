@@ -42,6 +42,7 @@ import { perf } from 'common/perf';
 import { setupHotReloading } from 'tgui-dev-server/link/client.cjs';
 
 import { setGlobalStore } from './backend';
+import { ErrorBoundary } from './ErrorBoundary';
 import { setupGlobalEvents } from './events';
 import { setupHotKeys } from './hotkeys';
 import { captureExternalLinks } from './links';
@@ -58,7 +59,11 @@ const renderApp = createRenderer(() => {
 
   const { getRoutedComponent } = require('./routes');
   const Component = getRoutedComponent(store);
-  return <Component />;
+  return (
+    <ErrorBoundary>
+      <Component />
+    </ErrorBoundary>
+  );
 });
 
 const setupApp = () => {

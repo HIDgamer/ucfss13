@@ -23,14 +23,14 @@ type LoadoutItem = {
 };
 
 export const LoadoutPicker = () => {
-  const { data } = useBackend<LoadoutPickerData>();
+  const { act, data } = useBackend<LoadoutPickerData>();
 
   const { categories, points, max_points, loadout } = data;
 
   const [selected, setSelected] = useState(categories[0]);
 
   return (
-    <Window height={485} width={610} theme="crtblue">
+    <Window height={485} width={610} theme="crtlobby">
       <Window.Content className="LoadoutPicker">
         <Stack fill>
           <Stack.Item>
@@ -57,6 +57,13 @@ export const LoadoutPicker = () => {
                   title={`Loadout (${points}/${max_points} points)`}
                   height="100%"
                   scrollable
+                  buttons={
+                    loadout.length > 0 && (
+                      <Button icon="trash" onClick={() => act('clear')}>
+                        Clear All
+                      </Button>
+                    )
+                  }
                 >
                   <Stack wrap width="180px" height="165px">
                     {loadout.map((item) => (

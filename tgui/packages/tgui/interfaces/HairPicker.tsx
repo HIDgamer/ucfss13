@@ -1,6 +1,6 @@
 import { hexToHsva, HsvaColor, hsvaToHex } from 'common/color';
-import { BooleanLike, classes } from 'common/react';
-import { createRef, useState } from 'react';
+import { BooleanLike } from 'common/react';
+import { useState } from 'react';
 
 import { useBackend } from '../backend';
 import {
@@ -35,6 +35,8 @@ type HairPickerData = {
   gradient_color: string;
 };
 
+type Category = 'hair' | 'facial_hair' | 'gradient';
+
 export const HairPicker = () => {
   const { act, data } = useBackend<HairPickerData>();
 
@@ -53,18 +55,16 @@ export const HairPicker = () => {
     gradient_color,
   } = data;
 
-  const [colorPicker, setColorPicker] = useState<
-    'hair' | 'facial_hair' | 'gradient' | false
-  >(false);
+  const hasFacialHair = facial_hair_styles.length > 1;
 
-  let height = 340;
-  if (facial_hair_styles.length > 1) {
-    height = height + 310;
-  }
+  const [category, setCategory] = useState<Category>('hair');
+  const [colorPicker, setColorPicker] = useState<Category | false>(false);
 
-  if (gradient_available) {
-    height = height + 85;
-  }
+  const activeCategory: Category =
+    (category === 'facial_hair' && !hasFacialHair) ||
+    (category === 'gradient' && !gradient_available)
+      ? 'hair'
+      : category;
 
   let defaultColor = '#000000';
   switch (colorPicker) {
@@ -77,56 +77,13 @@ export const HairPicker = () => {
     case 'gradient':
       defaultColor = gradient_color;
       break;
-
     default:
       break;
   }
 
   return (
-    <Window width={400} height={height} theme={'crtblue'}>
-      <Window.Content
-        className={classes(['HairPicker', colorPicker && 'ModalOpen'])}
-      >
-        <HairPickerElement
-          name="Hair"
-          icon={hair_icon}
-          hair={hair_styles}
-          active={hair_style}
-          color={hair_color}
-          setColor={() => setColorPicker('hair')}
-          action={(obj) => act('hair', obj)}
-          height="240px"
-        />
-        {!!(facial_hair_styles.length > 1) && (
-          <HairPickerElement
-            name="Facial Hair"
-            icon={facial_hair_icon}
-            hair={facial_hair_styles}
-            active={facial_hair_style}
-            color={facial_hair_color}
-            setColor={() => setColorPicker('facial_hair')}
-            action={(obj) => act('facial_hair', obj)}
-            height="240px"
-          />
-        )}
-        {!!gradient_available && (
-          <Section
-            title="Gradient"
-            buttons={
-              <Button onClick={() => setColorPicker('gradient')}>
-                <ColorBox color={gradient_color} mr={1} />
-                Color
-              </Button>
-            }
-          >
-            <Dropdown
-              options={gradient_styles}
-              selected={gradient_style}
-              onSelected={(selected) => act('gradient', { name: selected })}
-              over
-            />
-          </Section>
-        )}
+    <Window width={560} height={440} theme={'crtlobby'}>
+      <Window.Content className="HairPicker">
         {!!colorPicker && (
           <ColorPicker
             type={colorPicker}
@@ -134,13 +91,98 @@ export const HairPicker = () => {
             default_color={defaultColor}
           />
         )}
+        <Stack fill>
+          <Stack.Item width="140px">
+            <Section title="Categories" fill>
+              <Stack vertical>
+                <Stack.Item>
+                  <Button
+                    fluid
+                    icon="scissors"
+                    selected={activeCategory === 'hair'}
+                    onClick={() => setCategory('hair')}
+                  >
+                    Hair
+                  </Button>
+                </Stack.Item>
+                {hasFacialHair && (
+                  <Stack.Item>
+                    <Button
+                      fluid
+                      icon="user-tie"
+                      selected={activeCategory === 'facial_hair'}
+                      onClick={() => setCategory('facial_hair')}
+                    >
+                      Facial Hair
+                    </Button>
+                  </Stack.Item>
+                )}
+                {!!gradient_available && (
+                  <Stack.Item>
+                    <Button
+                      fluid
+                      icon="paintbrush"
+                      selected={activeCategory === 'gradient'}
+                      onClick={() => setCategory('gradient')}
+                    >
+                      Gradient
+                    </Button>
+                  </Stack.Item>
+                )}
+              </Stack>
+            </Section>
+          </Stack.Item>
+          <Stack.Item grow>
+            {activeCategory === 'hair' && (
+              <HairGrid
+                title="Hair"
+                icon={hair_icon}
+                styles={hair_styles}
+                active={hair_style}
+                color={hair_color}
+                setColor={() => setColorPicker('hair')}
+                action={(obj) => act('hair', obj)}
+              />
+            )}
+            {activeCategory === 'facial_hair' && (
+              <HairGrid
+                title="Facial Hair"
+                icon={facial_hair_icon}
+                styles={facial_hair_styles}
+                active={facial_hair_style}
+                color={facial_hair_color}
+                setColor={() => setColorPicker('facial_hair')}
+                action={(obj) => act('facial_hair', obj)}
+              />
+            )}
+            {activeCategory === 'gradient' && (
+              <Section
+                title="Gradient"
+                fill
+                buttons={
+                  <Button onClick={() => setColorPicker('gradient')}>
+                    <ColorBox color={gradient_color} mr={1} />
+                    Color
+                  </Button>
+                }
+              >
+                <Dropdown
+                  options={gradient_styles}
+                  selected={gradient_style}
+                  onSelected={(selected) => act('gradient', { name: selected })}
+                  over
+                />
+              </Section>
+            )}
+          </Stack.Item>
+        </Stack>
       </Window.Content>
     </Window>
   );
 };
 
 const ColorPicker = (props: {
-  readonly type: 'hair' | 'facial_hair' | 'gradient';
+  readonly type: Category;
   readonly close: () => void;
   readonly default_color: string;
 }) => {
@@ -173,34 +215,66 @@ const ColorPicker = (props: {
   );
 };
 
+const HairGrid = (props: {
+  readonly title: string;
+  readonly icon: string;
+  readonly active: string;
+  readonly styles: { icon: string; name: string }[];
+  readonly color: string;
+  readonly setColor: () => void;
+  readonly action: (_: object) => void;
+}) => {
+  const { title, icon, styles, active, color, setColor, action } = props;
+
+  return (
+    <HairPickerElement
+      name={title}
+      icon={icon}
+      hair={styles}
+      active={active}
+      color={color}
+      setColor={setColor}
+      action={action}
+      height="380px"
+    />
+  );
+};
+
+// Also used standalone (not inside HairPicker's category-sidebar layout) by PredPicker's
+// "Quill Style" modal, which needs its own close button and a fixed height instead of filling
+// a Stack.Item — kept as a separate exported component rather than folding into HairGrid above.
 export const HairPickerElement = (props: {
   readonly name: string;
   readonly icon: string;
   readonly active: string;
   readonly hair: { icon: string; name: string }[];
   readonly color?: string;
+  // An explicit height (not `fill`) — Section--fill.Section--scrollable makes its content
+  // `position: absolute`, which breaks the drop-shadow color-tint trick below for tiles flush
+  // against the top edge (found live: the whole first row rendered blank/offset). Explicit pixel
+  // heights are also what LoadoutPicker.tsx/TraitsPicker.tsx already use for their scrollable
+  // grid/list Sections — this matches that established, working pattern instead.
   readonly height?: number | string;
 
   readonly action: (_: object) => void;
   readonly setColor?: (_) => void;
   readonly close?: () => void;
 }) => {
-  const { name, icon, hair, active, action, setColor, close, color, height } =
-    props;
-
-  const scrollRef = createRef<HTMLDivElement>();
+  const { name, icon, hair, active, action, setColor, close, color, height } = props;
 
   const [search, setSearch] = useState('');
 
   return (
     <Section
       title={name}
+      height={height}
       scrollable
       buttons={
         <>
           <Input
             placeholder="Search..."
             onInput={(_, val) => setSearch(val.toLowerCase())}
+            mr={1}
           />
           {color && (
             <Button onClick={() => (setColor ? setColor(action) : null)}>
@@ -208,15 +282,11 @@ export const HairPickerElement = (props: {
               Color
             </Button>
           )}
-          {close && <Button icon="x" onClick={() => close()} />}
+          {close && <Button icon="xmark" onClick={() => close()} />}
         </>
       }
-      ref={scrollRef}
-      onMouseOver={() => {
-        scrollRef.current?.focus();
-      }}
     >
-      <Stack wrap="wrap" height={height}>
+      <Stack wrap="wrap">
         {hair
           .filter(
             (val) =>
@@ -229,10 +299,7 @@ export const HairPickerElement = (props: {
               className={`Picker${active === hair.icon ? ' Active' : ''}`}
             >
               <Tooltip content={hair.name}>
-                <Box
-                  position="relative"
-                  onClick={() => action({ name: hair.name })}
-                >
+                <Box position="relative" onClick={() => action({ name: hair.name })}>
                   <DmIcon
                     icon={icon}
                     icon_state={`${hair.icon}_s`}
