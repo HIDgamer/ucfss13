@@ -73,6 +73,12 @@ GLOBAL_VAR_INIT(cas_tracking_id_increment, 0) //this var used to assign unique t
 ///Attempts to select players for special roles the mode might have.
 /datum/game_mode/proc/pre_setup()
 	SHOULD_CALL_PARENT(TRUE)
+	// The AI Xeno Spawner (SSxeno_spawner) should only ever run automatically in the PVE Hive
+	// mode - reset to off here, before any subtype's own pre_setup logic runs, so every other
+	// mode always starts clean regardless of what a previous round (or a leftover admin toggle
+	// from the AI Difficulty panel) left GLOB.xeno_spawner_enabled at. pve_hive.dm's own
+	// pre_setup() re-enables it after this base proc returns via its ..() call chain.
+	GLOB.xeno_spawner_enabled = FALSE
 	setup_structures()
 	if(static_comms_amount)
 		spawn_static_comms()
@@ -119,10 +125,17 @@ GLOBAL_VAR_INIT(cas_tracking_id_increment, 0) //this var used to assign unique t
 		for(var/ammo in GLOB.ammo_list)
 			GLOB.ammo_list[ammo].setup_faction_clash_values()
 
+/**
+ * Z-levels the win-check (count_humans_and_xenos()) should scan. During endgame (DELTA/dropship
+ * crash), only the ship counts - stragglers left behind on the ground shouldn't keep deciding the
+ * outcome. Otherwise, every humans-vs-xenos-affecting z-level counts (ship included, so marines
+ * still prepping/never dropped aren't invisible to the check).
+ */
 /datum/game_mode/proc/get_affected_zlevels()
 	if(is_in_endgame)
 		. = SSmapping.levels_by_any_trait(list(ZTRAIT_MARINE_MAIN_SHIP))
 		return
+	. = SSmapping.levels_by_any_trait(list(ZTRAIT_GROUND, ZTRAIT_RESERVED, ZTRAIT_MARINE_MAIN_SHIP))
 
 ///process()
 ///Called by the gameticker
