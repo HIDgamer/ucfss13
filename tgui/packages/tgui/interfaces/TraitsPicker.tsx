@@ -37,7 +37,7 @@ export const TraitsPicker = () => {
     );
 
   return (
-    <Window width={900} height={545} theme="crtblue">
+    <Window width={900} height={545} theme="crtlobby">
       <Window.Content>
         <Stack>
           <Stack.Item width="70%">
@@ -70,7 +70,8 @@ export const TraitsPicker = () => {
           <Stack.Item width="50%">
             <Section
               title={`Added (${starting_points - trait_points}/${starting_points} points)`}
-              fill
+              scrollable
+              height="490px"
             >
               <Stack vertical>
                 {traits.map((trait) => (

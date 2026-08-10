@@ -1,5 +1,8 @@
+import { playClickBlip } from 'common/audio';
+import { BooleanLike } from 'common/react';
 import { useState } from 'react';
 
+import { resolveAsset } from '../assets';
 import { useBackend } from '../backend';
 import {
   Box,
@@ -7,6 +10,7 @@ import {
   Dropdown,
   Input,
   LabeledList,
+  NoticeBox,
   NumberInput,
   Section,
   Stack,
@@ -25,11 +29,12 @@ const WHERE_OPTIONS = ['On Floor', 'In Marked Object'];
 
 type AdminSpawnerData = {
   types: string[];
+  ui_effects_enabled: BooleanLike;
 };
 
 export const AdminSpawner = () => {
   const { act, data } = useBackend<AdminSpawnerData>();
-  const { types } = data;
+  const { types, ui_effects_enabled = true } = data;
 
   const [filter, setFilter] = useState('');
   const [selected, setSelected] = useState('');
@@ -65,12 +70,22 @@ export const AdminSpawner = () => {
       name: customName || null,
       where: where === 'On Floor' ? 'onfloor' : 'inmarked',
     });
+    if (ui_effects_enabled) {
+      new Audio(resolveAsset('admin_spawn_confirm.ogg')).play().catch(() => {});
+    }
   };
 
   return (
-    <Window title="Admin Spawner" width={520} height={570} theme="crtblue">
+    <Window title="Mob Spawner (Any Type)" width={520} height={590} theme="admin">
       <Window.Content>
         <Stack fill vertical>
+          <Stack.Item>
+            <NoticeBox>
+              For any mob type by exact coordinates — human/xeno job- or
+              hive-configured spawns with click-to-place live in the
+              dedicated Create Humans / Create Xenos tools instead.
+            </NoticeBox>
+          </Stack.Item>
           <Stack.Item>
             <Section title="Mob Type">
               <Input
@@ -87,7 +102,7 @@ export const AdminSpawner = () => {
               <Box
                 style={{
                   height: '220px',
-                  border: '1px solid var(--color-border, #8ac8ff)',
+                  border: '1px solid var(--admin-primary-border)',
                   overflowY: 'auto',
                   fontFamily: 'monospace',
                   fontSize: '0.85em',
@@ -102,14 +117,19 @@ export const AdminSpawner = () => {
                         cursor: 'pointer',
                         background:
                           selected === type
-                            ? 'rgba(138,200,255,0.2)'
+                            ? 'var(--admin-primary-soft)'
                             : 'transparent',
                         borderLeft:
                           selected === type
-                            ? '2px solid #8ac8ff'
+                            ? '2px solid var(--admin-primary)'
                             : '2px solid transparent',
                       }}
-                      onClick={() => setSelected(type)}
+                      onClick={() => {
+                        setSelected(type);
+                        if (ui_effects_enabled) {
+                          playClickBlip();
+                        }
+                      }}
                     >
                       {type}
                     </Box>
@@ -225,7 +245,7 @@ export const AdminSpawner = () => {
           <Stack.Item>
             <Stack justify="flex-end">
               <Stack.Item>
-                <Button
+                <Button.Confirm
                   icon="plus-circle"
                   color="good"
                   disabled={!selected}
@@ -233,7 +253,7 @@ export const AdminSpawner = () => {
                   tooltip={!selected ? 'Select a mob type first' : undefined}
                 >
                   Spawn
-                </Button>
+                </Button.Confirm>
               </Stack.Item>
             </Stack>
           </Stack.Item>

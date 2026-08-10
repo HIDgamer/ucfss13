@@ -4,6 +4,8 @@
  * @license MIT
  */
 
+import { CRT_PALETTE } from 'common/crtPalette';
+
 export type CrtThemeConfig = {
   fg: string;
   bg: string;
@@ -11,34 +13,32 @@ export type CrtThemeConfig = {
   label: string;
 };
 
+// bgDark stays a locally-derived, slightly-darker variant per preset (used for the statwindow/
+// output panes specifically) — not part of the shared palette, since it has no SCSS-side
+// equivalent to reconcile against.
 export const CRT_THEMES: Record<string, CrtThemeConfig> = {
   'crt-green': {
-    fg: '#00e94e',
-    bg: '#001100',
+    ...CRT_PALETTE.green,
     bgDark: '#000d00',
     label: 'CRT Green',
   },
   'crt-amber': {
-    fg: '#ffbf00',
-    bg: '#111100',
+    ...CRT_PALETTE.yellow,
     bgDark: '#0a0a00',
     label: 'CRT Amber',
   },
   'crt-blue': {
-    fg: '#8ac8ff',
-    bg: '#001122',
+    ...CRT_PALETTE.blue,
     bgDark: '#000d1a',
     label: 'CRT Blue',
   },
   'crt-red': {
-    fg: '#ff3c3c',
-    bg: '#110000',
+    ...CRT_PALETTE.red,
     bgDark: '#0a0000',
     label: 'CRT Red',
   },
   'crt-purple': {
-    fg: '#cc88ff',
-    bg: '#110022',
+    ...CRT_PALETTE.purple,
     bgDark: '#0a001a',
     label: 'CRT Purple',
   },

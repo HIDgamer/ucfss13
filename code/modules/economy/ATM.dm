@@ -149,6 +149,8 @@ log transactions
 	var/mob/user = ui.user
 	switch(action)
 		if("eject_card")
+			if(!user || user.is_mob_incapacitated())
+				return TRUE
 			if(held_card)
 				release_held_id(user)
 				SStgui.update_uis(src)

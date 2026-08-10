@@ -47,7 +47,18 @@
 
 #define AGE_MIN 19 //youngest a character can be
 #define AGE_MAX 90 //oldest a character can be //no. you are not allowed to be 160.
+
+/// A global define rather than a preferences.dm-scoped one, since code/modules/client/
+/// job_slots_setup.dm needs it too; DM preprocesses in .dme file order, and job_slots_setup.dm
+/// sorts before preferences.dm alphabetically, so an in-file #define there wouldn't be visible
+/// yet when that file compiled.
+#define MAX_SAVE_SLOTS 10
 #define MAX_GEAR_COST 7 //Used in chargen for loadout limit.
+
+/// Number of saved-message slots (code/modules/client/saved_messages_setup.dm) — a global define
+/// since both that file and code/datums/keybinding/saved_messages.dm need it, same file-order
+/// reasoning as MAX_SAVE_SLOTS above.
+#define MAX_SAVED_MESSAGES 9
 
 ///dual_wield_pref from /datum/preferences
 ///Fire both weapons when dual wielding

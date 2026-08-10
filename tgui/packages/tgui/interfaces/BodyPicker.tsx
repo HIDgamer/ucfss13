@@ -1,3 +1,4 @@
+import { hexToHsva, HsvaColor, hsvaToHex } from 'common/color';
 import { useState } from 'react';
 
 import { useBackend } from '../backend';
@@ -7,107 +8,94 @@ import {
   ColorBox,
   DmIcon,
   Modal,
+  Section,
   Stack,
   Tooltip,
 } from '../components';
 import { Window } from '../layouts';
+import { ColorSelector } from './ColorPickerModal';
 
 type PickerData = {
   icon: string;
   body_types: { name: string; icon: string }[];
-  skin_colors: { name: string; icon: string; color: string }[];
-  body_sizes: { name: string; icon: string }[];
+  skin_colors: { name: string; icon: string }[];
 
   body_type: string;
   skin_color: string;
-  body_size: string;
+  gender: string;
+  eye_color: string;
 };
 
 export const BodyPicker = () => {
-  const { data } = useBackend<PickerData>();
+  const { act, data } = useBackend<PickerData>();
 
-  const { icon, body_size, body_type, skin_color, body_types, body_sizes } =
-    data;
+  const { icon, gender, body_type, skin_color, body_types, eye_color } = data;
 
-  const [picker, setPicker] = useState<'type' | 'size' | undefined>();
-
-  const unselectedBodyType = body_types.filter(
-    (val) => val.icon !== body_type,
-  )[0];
-
-  const unselectedBodySize = body_sizes.filter(
-    (val) => val.icon !== body_size,
-  )[0];
+  const [typePicker, setTypePicker] = useState(false);
+  const [eyeColorPicker, setEyeColorPicker] = useState(false);
 
   return (
-    <Window width={390} height={180} theme={'crtblue'}>
-      <Window.Content className="BodyPicker">
-        {picker && (
+    <Window width={420} height={420} theme={'crtlobby'}>
+      <Window.Content className="BodyPicker" scrollable>
+        {typePicker && (
           <Modal m={1}>
-            <TypePicker picker={setPicker} toUse={picker} />
+            <TypePicker close={() => setTypePicker(false)} />
           </Modal>
         )}
-        <Stack>
+        {eyeColorPicker && (
+          <EyeColorPicker
+            close={() => setEyeColorPicker(false)}
+            default_color={eye_color}
+          />
+        )}
+        <Stack vertical>
           <Stack.Item>
-            <Stack vertical>
-              <Stack.Item>
-                <DmIcon
-                  icon={icon}
-                  icon_state={`${skin_color}_torso_${body_size}_${body_type}`}
-                  width={'128px'}
-                  mt={-5}
-                />
-              </Stack.Item>
-              <Stack width="100%" fill mt={-4} justify="space-around">
+            <Section title="Body">
+              <Stack align="center">
                 <Stack.Item>
-                  <Button width={'4em'} height={'4em'}>
-                    <Tooltip
-                      content={'Change Body Type'}
-                      position="bottom-start"
-                    >
-                      <Box
-                        position="relative"
-                        onClick={() => setPicker('type')}
-                      >
-                        <DmIcon
-                          position="relative"
-                          icon={icon}
-                          icon_state={`${skin_color}_torso_${body_size}_${unselectedBodyType.icon}`}
-                          width={'80px'}
-                          right={'22px'}
-                          bottom={'18px'}
-                        />
-                      </Box>
-                    </Tooltip>
-                  </Button>
+                  <DmIcon
+                    icon={icon}
+                    icon_state={`${skin_color}_torso_${body_type}_${gender}`}
+                    width={'128px'}
+                  />
                 </Stack.Item>
-                <Stack.Item>
-                  <Button width={'4em'} height={'4em'}>
-                    <Tooltip
-                      content={'Change Body Size'}
-                      position="bottom-start"
-                    >
-                      <Box
-                        position="relative"
-                        onClick={() => setPicker('size')}
+                <Stack.Item grow>
+                  <Stack vertical>
+                    <Stack.Item>
+                      <Button
+                        fluid
+                        icon="person"
+                        onClick={() => setTypePicker(true)}
                       >
-                        <DmIcon
-                          position="relative"
-                          icon={icon}
-                          icon_state={`${skin_color}_torso_${unselectedBodySize.icon}_${body_type}`}
-                          width={'80px'}
-                          right={'22px'}
-                          bottom={'18px'}
-                        />
-                      </Box>
-                    </Tooltip>
-                  </Button>
+                        Change Body Type
+                      </Button>
+                    </Stack.Item>
+                    <Stack.Item>
+                      <Button
+                        fluid
+                        icon="venus-mars"
+                        onClick={() => act('gender')}
+                      >
+                        {gender === 'm' ? 'Male' : 'Female'}
+                      </Button>
+                    </Stack.Item>
+                  </Stack>
                 </Stack.Item>
               </Stack>
-            </Stack>
+            </Section>
           </Stack.Item>
           <Stack.Item>
-            <ColorOptions />
+            <Section title="Skin Color">
+              <ColorOptions />
+            </Section>
+          </Stack.Item>
+          <Stack.Item>
+            <Section title="Eyes">
+              <Button onClick={() => setEyeColorPicker(true)}>
+                <ColorBox color={eye_color} mr={1} />
+                Eye Color
+              </Button>
+            </Section>
           </Stack.Item>
         </Stack>
       </Window.Content>
@@ -115,42 +103,62 @@ export const BodyPicker = () => {
   );
 };
 
-const TypePicker = (props: {
-  readonly picker: (_) => void;
-  readonly toUse: 'type' | 'size';
-}) => {
+const TypePicker = (props: { readonly close: () => void }) => {
   const { data, act } = useBackend<PickerData>();
+  const { close } = props;
 
-  const { picker, toUse } = props;
-
-  const { body_type, body_types, skin_color, body_size, body_sizes, icon } =
-    data;
-
-  const toIterate = toUse === 'type' ? body_types : body_sizes;
-
-  const active = toUse === 'type' ? body_type : body_size;
+  const { body_type, body_types, skin_color, gender, icon } = data;
 
   return (
-    <Stack>
-      {toIterate.map((type) => (
-        <Stack.Item key={type.name}>
-          <Tooltip content={type.name}>
+    <Section title="Body Type" buttons={<Button icon="xmark" onClick={close} />}>
+      <Stack>
+        {body_types.map((type) => (
+          <Stack.Item key={type.name}>
+            <Tooltip content={type.name}>
+              <Box
+                onClick={() => {
+                  close();
+                  act('type', { name: type.name });
+                }}
+                position="relative"
+                className={`typePicker ${body_type === type.icon ? 'active' : ''}`}
+              >
+                <DmIcon
+                  icon={icon}
+                  icon_state={`${skin_color}_torso_${type.icon}_${gender}`}
+                  width={'80px'}
+                />
+              </Box>
+            </Tooltip>
+          </Stack.Item>
+        ))}
+      </Stack>
+    </Section>
+  );
+};
+
+// Ethnicities have no hex color of their own — skin tone is a distinct torso sprite per
+// ethnicity, not an RGB value, so each swatch renders a small real preview (same formula as the
+// main preview/TypePicker) rather than a flat ColorBox with a color that doesn't exist.
+const ColorOptions = () => {
+  const { data, act } = useBackend<PickerData>();
+
+  const { icon, gender, body_type, skin_color, skin_colors } = data;
+
+  return (
+    <Stack wrap>
+      {skin_colors.map((color) => (
+        <Stack.Item key={color.name}>
+          <Tooltip content={color.name}>
             <Box
-              onClick={() => {
-                picker(undefined);
-                act(toUse, { name: type.name });
-              }}
+              onClick={() => act('color', { name: color.name })}
               position="relative"
-              className={`typePicker ${active === type.icon ? 'active' : ''}`}
+              className={`typePicker ${skin_color === color.icon ? 'active' : ''}`}
             >
               <DmIcon
                 icon={icon}
-                icon_state={
-                  toUse === 'type'
-                    ? `${skin_color}_torso_${body_size}_${type.icon}`
-                    : `${skin_color}_torso_${type.icon}_${body_type}`
-                }
-                width={'80px'}
+                icon_state={`${color.icon}_torso_${body_type}_${gender}`}
+                width={'48px'}
               />
             </Box>
           </Tooltip>
@@ -160,24 +168,34 @@ const TypePicker = (props: {
   );
 };
 
-const ColorOptions = () => {
-  const { data, act } = useBackend<PickerData>();
+const EyeColorPicker = (props: {
+  readonly close: () => void;
+  readonly default_color: string;
+}) => {
+  const { act } = useBackend();
+  const { close, default_color } = props;
 
-  const { skin_color, skin_colors } = data;
+  const [currentColor, setCurrentColor] = useState<HsvaColor>(
+    hexToHsva(default_color || '#000000'),
+  );
 
   return (
-    <Stack wrap={'wrap'} width={'250px'}>
-      {skin_colors.map((color) => (
-        <Stack.Item key={color.name} className="colorPickerContainer">
-          <ColorBox
-            color={color.color}
-            p={3.5}
-            mt={0.5}
-            onClick={() => act('color', { name: color.name })}
-            className={`colorPicker ${skin_color === color.icon ? 'active' : ''}`}
-          />
-        </Stack.Item>
-      ))}
-    </Stack>
+    <Modal width="100%">
+      <Box width="350px">
+        <Stack vertical>
+          <Stack.Item>
+            <ColorSelector
+              color={currentColor}
+              setColor={setCurrentColor}
+              defaultColor={default_color}
+              onConfirm={() => {
+                close();
+                act('eye_color', { color: hsvaToHex(currentColor) });
+              }}
+            />
+          </Stack.Item>
+        </Stack>
+      </Box>
+    </Modal>
   );
 };

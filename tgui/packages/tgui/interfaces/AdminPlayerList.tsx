@@ -46,7 +46,7 @@ export const AdminPlayerList = () => {
     : players;
 
   return (
-    <Window title="Player Panel" width={660} height={520} theme="crtblue">
+    <Window title="Player Panel" width={660} height={520} theme="admin">
       <Window.Content scrollable>
         <Section
           title={`Players (${filtered.length})`}
@@ -161,14 +161,6 @@ const PlayerActions = ({ player }: { readonly player: PlayerEntry }) => {
             onClick={() => act('view_variables', { ref: player.ref })}
           >
             VV
-          </Button>
-        </Stack.Item>
-        <Stack.Item>
-          <Button
-            icon="crosshairs"
-            onClick={() => act('traitor_panel', { ref: player.ref })}
-          >
-            TP
           </Button>
         </Stack.Item>
         <Stack.Item>

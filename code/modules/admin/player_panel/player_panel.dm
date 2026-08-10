@@ -59,7 +59,9 @@
 			"key" = M.key,
 			"job" = M_job,
 			"ref" = "\ref[M]",
-			"ip" = M.lastKnownIP,
+			// IP is ban-relevant, not general admin business — gate it the same way the legacy
+			// panel did, rather than exposing it to every admin who can merely open this panel.
+			"ip" = CLIENT_HAS_RIGHTS(user.client, R_BAN) ? M.lastKnownIP : null,
 			"stat" = isliving(M) ? M:stat : 0,
 		))
 
@@ -99,9 +101,6 @@
 			if (!check_client_rights(ui.user.client, R_DEBUG))
 				return
 			ui.user.client.debug_variables(M)
-			return TRUE
-		if ("traitor_panel")
-			// Antagonist objective panel not implemented in this codebase
 			return TRUE
 		if ("private_message")
 			var/key = params["key"]
@@ -448,7 +447,7 @@
 
 		dat += {"<td align=center><a href='byond://?src=\ref[src];[HrefToken()];adminplayeropts=\ref[M]'>X</a></td>
 		<td>[M.computer_id]</td>
-		<td>[M.lastKnownIP]</td>
+		<td>[CLIENT_HAS_RIGHTS(usr.client, R_BAN) ? M.lastKnownIP : "—"]</td>
 		<td><a href='byond://?src=\ref[src];[HrefToken()];adminplayerobservejump=\ref[M]'>JMP</a></td>
 		<td><a href='byond://?src=\ref[src];[HrefToken()];notes=show;mob=\ref[M]'>Notes</a></td>
 		"}

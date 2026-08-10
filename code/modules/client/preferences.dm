@@ -21,14 +21,24 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 	"whitefull"
 ))
 
-#define MAX_SAVE_SLOTS 10
-
 /datum/preferences
 	var/client/owner
 	var/atom/movable/screen/preview/preview_front
 	var/mob/living/carbon/human/dummy/preview_dummy
 	var/atom/movable/screen/rotate/alt/rotate_left
 	var/atom/movable/screen/rotate/rotate_right
+	/// Flattened base64 snapshot of preview_dummy, refreshed by update_preview_icon() — a static
+	/// stand-in for a live rotatable view. Reuses the same getFlatIcon()+icon2base64() pattern
+	/// View Variables' sprite display uses, rather than the legacy static "preview" skin.dmf MAP
+	/// element (window "preferencewindow"), which needs the newer dynamic register_map_obj()
+	/// system to embed in a tgui window (used by camera consoles/tacmap/color_matrix_editor).
+	var/preview_icon_b64
+	/// Direction the static preview snapshot is rendered facing — the "rotate" action cycles this
+	/// and regenerates the snapshot, since embedding the old live rotatable map view (native
+	/// screen objects at screen_loc "preview:...") in a tgui window needs the newer dynamic
+	/// register_map_obj() system (used by camera consoles/tacmap) instead of this simpler
+	/// regenerate-a-flat-snapshot approach.
+	var/preview_dir = SOUTH
 
 	//doohickeys for savefiles
 	var/path
@@ -81,6 +91,12 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 	var/ghost_orbit = GHOST_ORBIT_CIRCLE
 	var/dual_wield_pref = DUAL_WIELD_FIRE
 
+	/// Pre-composed messages a player can fire instantly later (via the
+	/// Saved Messages panel or a bound "Send Saved Message N" hotkey) instead of retyping —
+	/// each entry is list("channel" = ..., "text" = ...). A general preference (not tied to a
+	/// character slot) since it's about how a player communicates, not who they're playing.
+	var/list/saved_messages = list()
+
 	//Synthetic specific preferences
 	var/synthetic_name = "Undefined"
 	var/synthetic_type = SYNTH_GEN_THREE
@@ -106,9 +122,6 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 	var/predator_accessory_type = 0
 	//CO career path
 	var/commander_career_path = 0
-	//Color picker preferences
-	var/skin_color = null
-	var/body_size = null
 	//Volume preferences
 	var/list/volume_preferences = list(1, 0.5, 1, 0.6) // Game, music, admin midis, lobby music
 	//Xeno ability click mode
@@ -157,7 +170,7 @@ GLOBAL_LIST_INIT(bgstate_options, list(
 	var/age = 19 //age of character
 	var/spawnpoint = "Arrivals Shuttle" //where this character will spawn (0-2).
 	var/underwear = "Boxers (Camo Conforming)" //underwear type
-	var/undershirt = "Undershirt" //undershirt type
+	var/undershirt = "Undershirt (Camo Conforming)" //undershirt type
 	var/backbag = 2 //backpack type
 	var/preferred_armor = "Random" //preferred armor type (from their primary prep vendor)
 
