@@ -21,7 +21,7 @@ export const Mortar = (props) => {
   const [dial_y, setDialY] = useState(data_dial_y);
 
   return (
-    <Window width={245} height={220}>
+    <Window width={245} height={240}>
       <Window.Content>
         <Section>
           <LabeledList>
