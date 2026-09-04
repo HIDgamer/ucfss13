@@ -122,7 +122,7 @@ export const GeneralPanel = (props) => {
                         ? document.activeElement.blur()
                         : false
                     }
-                    icon={val.phone_icon}
+                    icon={val.phone_icon ?? undefined}
                   >
                     {val.phone_id}
                   </Tabs.Tab>
