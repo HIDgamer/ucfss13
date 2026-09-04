@@ -672,7 +672,7 @@ const AbilityRow = (props: { readonly ability: Ability }) => {
   const disabled = onCooldown || (!can_afford && !is_active);
 
   let statusLabel = 'Ready';
-  let statusColor = C.textDim;
+  let statusColor: string = C.textDim;
   if (is_active) {
     statusLabel = 'Active';
     statusColor = C.accent;

@@ -1154,6 +1154,10 @@
 	for(var/T in species.mob_inherent_traits)
 		ADD_TRAIT(src, T, TRAIT_SOURCE_SPECIES)
 
+	// Single-full-body-sprite species (e.g. Synthetic K9) draw a dedicated resting sprite instead
+	// of rotating their standing sprite - see get_body_sprite_state()/set_lying_angle().
+	rotate_on_lying = !species.body_sprite_icon
+
 	if(species.weed_slowdown_mult != 1)
 		RegisterSignal(src, COMSIG_MOB_WEED_SLOWDOWN, PROC_REF(handle_weed_slowdown))
 

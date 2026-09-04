@@ -126,14 +126,19 @@
 		var/client/C = mob?.client
 		if (!C)
 			continue
-		if (C.prefs?.toggles_sound & sound_type_flag)
-			if (asset_name)
-				SSassets.transport.send_assets(C, asset_name)
-			C.tgui_panel?.play_music(web_url, music_extra_data)
-			if (show_title)
-				to_chat(C, SPAN_BOLDANNOUNCE("An admin played: [music_extra_data["title"]]"), confidential = TRUE)
-		else
-			C.tgui_panel?.stop_music()
+		try
+			if (C.prefs?.toggles_sound & sound_type_flag)
+				if (asset_name)
+					SSassets.transport.send_assets(C, asset_name)
+				C.tgui_panel?.play_music(web_url, music_extra_data)
+				if (show_title)
+					to_chat(C, SPAN_BOLDANNOUNCE("An admin played: [adminscrub(music_extra_data["title"], 200)]"), confidential = TRUE)
+			else
+				C.tgui_panel?.stop_music()
+		catch (var/exception/e)
+			// A single malformed field (bad title text, an unexpected client state, etc.) must not
+			// abort the loop and silently deny the sound to every client after this one.
+			last_error = "Playback failed for one client: [e]"
 
 /datum/admin_sound_panel/proc/upload_and_play(audience, target_ref, sound_type, show_title)
 	var/soundfile = input(owner?.mob, "Choose a sound file to play", "Upload Sound") as null|file
