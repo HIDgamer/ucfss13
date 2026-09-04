@@ -527,6 +527,7 @@
 		/obj/item/attachable/bayonet,
 		/obj/item/attachable/bayonet/upp_replica,
 		/obj/item/attachable/bayonet/upp,
+		/obj/item/attachable/bayonet/wy,
 		/obj/item/attachable/bayonet/antique,
 		/obj/item/attachable/bayonet/custom,
 		/obj/item/attachable/bayonet/custom/red,
@@ -817,7 +818,6 @@
 	damage_mult = BASE_BULLET_DAMAGE_MULT
 	recoil = RECOIL_AMOUNT_TIER_5
 	recoil_unwielded = RECOIL_AMOUNT_TIER_5
-
 
 //-------------------------------------------------------
 /*

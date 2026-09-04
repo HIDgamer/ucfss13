@@ -642,6 +642,8 @@
 
 /datum/equipment_preset/synth/survivor/wy/security_synth
 	name = "Survivor - Synthetic - W-Y Security Guard Synthetic"
+	assignment = JOB_WY_SEC_SYNTH
+	rank = JOB_WY_SEC_SYNTH
 	idtype = /obj/item/card/id/silver/cl
 	role_comm_title = "WY Syn"
 	equipment_to_spawn = list(

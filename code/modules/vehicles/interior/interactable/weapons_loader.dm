@@ -114,3 +114,6 @@
 	icon = 'icons/obj/vehicles/interiors/general_humvee.dmi'
 	density = FALSE
 	opacity = TRUE
+
+/obj/structure/weapons_loader/wy
+	icon = 'icons/obj/vehicles/interiors/general_wy.dmi'

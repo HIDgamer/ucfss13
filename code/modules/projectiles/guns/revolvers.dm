@@ -316,6 +316,7 @@
 	attachable_allowed = list(
 		/obj/item/attachable/bayonet,
 		/obj/item/attachable/bayonet/upp,
+		/obj/item/attachable/bayonet/wy,
 		/obj/item/attachable/bayonet/antique,
 		/obj/item/attachable/bayonet/custom,
 		/obj/item/attachable/bayonet/custom/red,
@@ -729,7 +730,6 @@
 	)
 
 	starting_attachment_types = list(/obj/item/attachable/mateba/silver)
-
 /obj/item/weapon/gun/revolver/mateba/engraved/tactical
 	current_mag = /obj/item/ammo_magazine/internal/revolver/mateba
 	starting_attachment_types = list(/obj/item/attachable/mateba, /obj/item/attachable/compensator, /obj/item/attachable/reflex)

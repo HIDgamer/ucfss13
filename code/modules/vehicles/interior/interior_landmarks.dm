@@ -142,6 +142,10 @@
 	S.pixel_y = pixel_y
 	qdel(src)
 
+/obj/effect/landmark/interior/spawn/vehicle_driver_seat/armor/wy
+	icon = 'icons/obj/vehicles/interiors/general_wy.dmi'
+	icon_state = "armor_chair"
+
 /obj/effect/landmark/interior/spawn/vehicle_gunner_seat/armor
 	name = "armor gunner's seat spawner"
 	icon = 'icons/obj/vehicles/interiors/general.dmi'
@@ -182,6 +186,9 @@
 	S.pixel_y = pixel_y
 	qdel(src)
 
+/obj/effect/landmark/interior/spawn/vehicle_gunner_seat/armor/wy
+	icon = 'icons/obj/vehicles/interiors/general_wy.dmi'
+
 /obj/effect/landmark/interior/spawn/vehicle_support_gunner_seat
 	name = "1st support gunner's seat spawner"
 	icon = 'icons/obj/vehicles/interiors/general.dmi'
@@ -203,6 +210,9 @@
 
 	qdel(src)
 
+/obj/effect/landmark/interior/spawn/vehicle_support_gunner_seat/wy
+	icon = 'icons/obj/vehicles/interiors/general_wy.dmi'
+
 /obj/effect/landmark/interior/spawn/vehicle_support_gunner_seat/second
 	name = "2nd support gunner's seat spawner"
 	color = "#b1b100"
@@ -221,6 +231,9 @@
 	S.pixel_y = pixel_y
 
 	qdel(src)
+
+/obj/effect/landmark/interior/spawn/vehicle_support_gunner_seat/second/wy
+	icon = 'icons/obj/vehicles/interiors/general_wy.dmi'
 
 /obj/effect/landmark/interior/spawn/interior_camera
 	name = "interior camera spawner"
@@ -267,6 +280,9 @@
 
 	qdel(src)
 
+/obj/effect/landmark/interior/spawn/telephone/wy
+	icon = 'icons/obj/vehicles/interiors/general_wy.dmi'
+
 // Landmark for spawning the reloader
 /obj/effect/landmark/interior/spawn/weapons_loader
 	name = "vehicle weapons reloader spawner"
@@ -303,6 +319,9 @@
 	R.update_icon()
 
 	qdel(src)
+
+/obj/effect/landmark/interior/spawn/weapons_loader/wy
+	icon = 'icons/obj/vehicles/interiors/general_wy.dmi'
 
 //This one spawns armored vehicles version of viewport
 /obj/effect/landmark/interior/spawn/interior_viewport
@@ -344,6 +363,9 @@
 	V.update_icon()
 
 	qdel(src)
+
+/obj/effect/landmark/interior/spawn/interior_viewport/wy
+	icon = 'icons/obj/vehicles/interiors/general_wy.dmi'
 
 //Landmark for spawning windows
 /obj/effect/landmark/interior/spawn/interior_viewport/simple

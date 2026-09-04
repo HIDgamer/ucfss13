@@ -84,6 +84,7 @@
 	group = SPECIES_HUMAN
 	name = "Human"
 	name_plural = "Humans"
+	special_body_types = TRUE
 	primitive = /mob/living/carbon/human/monkey
 	unarmed_type = /datum/unarmed_attack/punch
 	flags = HAS_SKIN_TONE|HAS_LIPS|HAS_UNDERWEAR|HAS_HARDCRIT

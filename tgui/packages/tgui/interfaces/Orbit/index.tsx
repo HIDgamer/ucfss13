@@ -329,6 +329,39 @@ const uppSort = (a: Observable, b: Observable) => {
   return a_index > b_index ? -1 : 1;
 };
 
+const weyyuSplitter = (members: Array<Observable>) => {
+  const whiteout: Array<Observable> = [];
+  const wycommando: Array<Observable> = [];
+  const pmc: Array<Observable> = [];
+  const goons: Array<Observable> = [];
+  const other: Array<Observable> = [];
+
+  members.forEach((x) => {
+    if (x.job?.includes('Whiteout')) {
+      whiteout.push(x);
+    } else if (x.job?.includes('Death Squad')) {
+      whiteout.push(x);
+    } else if (x.job?.includes('W-Y Commando')) {
+      wycommando.push(x);
+    } else if (x.job?.includes('PMC')) {
+      pmc.push(x);
+    } else if (x.job?.includes('Corporate Security')) {
+      goons.push(x);
+    } else {
+      other.push(x);
+    }
+  });
+
+  const squads = [
+    buildSquadObservable('PMCs', 'white', pmc),
+    buildSquadObservable('Goons', 'orange', goons),
+    buildSquadObservable('Corporate', 'white', other),
+    buildSquadObservable('W-Y Commando', 'white', wycommando),
+    buildSquadObservable('Whiteout', 'red', whiteout),
+  ];
+  return squads;
+};
+
 /**
  * The primary content display for points of interest.
  * Renders a scrollable section replete with subsections for each
