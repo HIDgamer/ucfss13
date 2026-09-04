@@ -91,6 +91,66 @@ GLOBAL_LIST_EMPTY(gear_datums_by_name)
 	display_name = "BiMex personal shades"
 	path = /obj/item/clothing/glasses/sunglasses/big
 
+/datum/gear/eyewear/goggles2/polarized_blue
+	display_name = "Polarized Ballistic goggles, M1A1 blue"
+	path = /obj/item/clothing/glasses/mgoggles/v2/polarized_blue
+
+/datum/gear/eyewear/goggles2/polarized_orange
+	display_name = "Polarized Ballistic goggles, M1A1 orange"
+	path = /obj/item/clothing/glasses/mgoggles/v2/polarized_orange
+
+/datum/gear/eyewear/eyepatch
+	display_name = "Eyepatch, black"
+	path = /obj/item/clothing/glasses/eyepatch
+
+/datum/gear/eyewear/eyepatch/white
+	display_name = "Eyepatch, white"
+	path = /obj/item/clothing/glasses/eyepatch/white
+
+/datum/gear/eyewear/eyepatch/green
+	display_name = "Eyepatch, green"
+	path = /obj/item/clothing/glasses/eyepatch/green
+
+/datum/gear/eyewear/rpg_glasses
+	display_name = "Marine RPG Glasses"
+	path = /obj/item/clothing/glasses/regular
+	allowed_origins = USCM_ORIGINS
+
+/datum/gear/eyewear/prescription_glasses
+	display_name = "Prescription Glasses"
+	path = /obj/item/clothing/glasses/regular/hipster
+
+/datum/gear/eyewear/hippie_glasses
+	display_name = "Rounded Prescription Glasses"
+	path = /obj/item/clothing/glasses/regular/hippie
+
+/datum/gear/eyewear/aviators
+	display_name = "Aviator shades, gold"
+	path = /obj/item/clothing/glasses/sunglasses/aviator
+
+/datum/gear/eyewear/aviators/silver
+	display_name = "Aviator shades, silver"
+	path = /obj/item/clothing/glasses/sunglasses/aviator/silver
+
+/datum/gear/eyewear/new_bimex/black
+	display_name = "BiMex tactical shades, black"
+	path = /obj/item/clothing/glasses/sunglasses/big/new_bimex/black
+	cost = 4
+
+/datum/gear/eyewear/new_bimex
+	display_name = "BiMex polarized shades, yellow"
+	path = /obj/item/clothing/glasses/sunglasses/big/new_bimex
+	cost = 4
+
+/datum/gear/eyewear/new_bimex/bronze
+	display_name = "BiMex polarized shades, bronze"
+	path = /obj/item/clothing/glasses/sunglasses/big/new_bimex/bronze
+	cost = 4
+
+/datum/gear/eyewear/prescription_sunglasses
+	display_name = "Prescription sunglasses"
+	path = /obj/item/clothing/glasses/sunglasses/prescription
+
 /datum/gear/eyewear/sunglasses
 	display_name = "Sunglasses"
 	path = /obj/item/clothing/glasses/sunglasses
@@ -1014,3 +1074,192 @@ GLOBAL_LIST_EMPTY(gear_datums_by_name)
 	display_name = "Cheap wrist watch"
 	path = /obj/item/clothing/accessory/wrist/watch
 	cost = 1 // Cheap and crappy
+
+// Civilian only
+
+/datum/gear/civilian
+	category = "Civilian only (restricted)"
+	allowed_origins = list(ORIGIN_CIVILIAN)
+
+/datum/gear/civilian/patch
+	display_name = "Weyland-Yutani shoulder patch, black"
+	path = /obj/item/clothing/accessory/patch/wy
+	cost = 1
+	slot = WEAR_IN_ACCESSORY
+
+/datum/gear/civilian/patch/wysquare
+	display_name = "Weyland-Yutani shoulder patch"
+	path = /obj/item/clothing/accessory/patch/wysquare
+
+/datum/gear/civilian/patch/wy_white
+	display_name = "Weyland-Yutani shoulder patch, white"
+	path = /obj/item/clothing/accessory/patch/wy_white
+
+/datum/gear/civilian/patch/wy_fury
+	display_name = "Weyland-Yutani Fury '161' patch"
+	path = /obj/item/clothing/accessory/patch/wyfury
+
+/datum/gear/civilian/patch/twepatch
+	display_name = "Three World Empire shoulder patch"
+	path = /obj/item/clothing/accessory/patch/twe
+
+/datum/gear/civilian/patch/cec
+	display_name = "Cosmos Exploration Corps shoulder patch"
+	path = /obj/item/clothing/accessory/patch/cec_patch
+
+/datum/gear/civilian/patch/clf
+	display_name = "Colonial Liberation Front shoulder patch"
+	path = /obj/item/clothing/accessory/patch/clf_patch
+
+/datum/gear/civilian/patch/hyperdyne
+	display_name = "Hyperdyne Corporation shoulder patch"
+	path = /obj/item/clothing/accessory/patch/hyperdyne_patch
+
+// Cheap Civilian shades - colorful!
+
+/datum/gear/civilian/eyewear/bimax_shades
+	display_name = "BiMax personal shades"
+	path = /obj/item/clothing/glasses/sunglasses/big/fake
+
+/datum/gear/civilian/eyewear/bimax_shades/red
+	display_name = "BiMax personal shades, red"
+	path = /obj/item/clothing/glasses/sunglasses/big/fake/red
+
+/datum/gear/civilian/eyewear/bimax_shades/orange
+	display_name = "BiMax personal shades, orange"
+	path = /obj/item/clothing/glasses/sunglasses/big/fake/orange
+
+/datum/gear/civilian/eyewear/bimax_shades/yellow
+	display_name = "BiMax personal shades, yellow"
+	path = /obj/item/clothing/glasses/sunglasses/big/fake/yellow
+
+/datum/gear/civilian/eyewear/bimax_shades/green
+	display_name = "BiMax personal shades, green"
+	path = /obj/item/clothing/glasses/sunglasses/big/fake/green
+
+/datum/gear/civilian/eyewear/bimax_shades/blue
+	display_name = "BiMax personal shades, blue"
+	path = /obj/item/clothing/glasses/sunglasses/big/fake/blue
+
+// Hippie Shades
+
+/datum/gear/eyewear/sunglasses/hippie_shades/pink
+	display_name = "Suntex-Sightware rounded shades, pink"
+	path = /obj/item/clothing/glasses/sunglasses/hippie
+
+/datum/gear/eyewear/sunglasses/hippie_shades/green
+	display_name = "Suntex-Sightware rounded shades, green"
+	path = /obj/item/clothing/glasses/sunglasses/hippie/green
+
+/datum/gear/eyewear/sunglasses/hippie_shades/sunrise
+	display_name = "Suntex-Sightware rounded shades, sunrise"
+	path = /obj/item/clothing/glasses/sunglasses/hippie/sunrise
+
+/datum/gear/eyewear/sunglasses/hippie_shades/sunset
+	display_name = "Suntex-Sightware rounded shades, sunset"
+	path = /obj/item/clothing/glasses/sunglasses/hippie/sunset
+
+/datum/gear/eyewear/sunglasses/hippie_shades/nightblue
+	display_name = "Suntex-Sightware rounded shades, nightblue"
+	path = /obj/item/clothing/glasses/sunglasses/hippie/nightblue
+
+/datum/gear/eyewear/sunglasses/hippie_shades/midnight
+	display_name = "Suntex-Sightware rounded shades, midnight"
+	path = /obj/item/clothing/glasses/sunglasses/hippie/midnight
+
+/datum/gear/eyewear/sunglasses/hippie_shades/bloodred
+	display_name = "Suntex-Sightware rounded shades, bloodred"
+	path = /obj/item/clothing/glasses/sunglasses/hippie/bloodred
+
+// Civilian shoes
+
+/datum/gear/civilian/shoes
+	display_name = "black shoes"
+	path = /obj/item/clothing/shoes/black
+	cost = 1
+
+/datum/gear/civilian/shoes/brown
+	display_name = "brown shoes"
+	path = /obj/item/clothing/shoes/brown
+
+/datum/gear/civilian/shoes/blue
+	display_name = "blue shoes"
+	path = /obj/item/clothing/shoes/blue
+
+/datum/gear/civilian/shoes/green
+	display_name = "green shoes"
+	path = /obj/item/clothing/shoes/green
+
+/datum/gear/civilian/shoes/yellow
+	display_name = "yellow shoes"
+	path = /obj/item/clothing/shoes/yellow
+
+/datum/gear/civilian/shoes/purple
+	display_name = "purple shoes"
+	path = /obj/item/clothing/shoes/purple
+
+/datum/gear/civilian/shoes/red
+	display_name = "red shoes"
+	path = /obj/item/clothing/shoes/red
+
+/datum/gear/civilian/shoes/rainbow
+	display_name = "rainbow shoes"
+	path = /obj/item/clothing/shoes/rainbow
+
+// Plushies - either civilian only or removed completely perhaps...
+
+/datum/gear/civilian/plush/farwa
+	display_name = "Farwa plush"
+	path = /obj/item/toy/plush/farwa
+
+/datum/gear/civilian/plush/barricade
+	display_name = "Barricade plush"
+	path = /obj/item/toy/plush/barricade
+
+/datum/gear/civilian/plush/bee
+	display_name = "Bee plush"
+	path = /obj/item/toy/plush/bee
+
+/datum/gear/civilian/plush/shark
+	display_name = "Shark plush"
+	path = /obj/item/toy/plush/shark
+
+/datum/gear/civilian/plush/gnarp
+	display_name = "Gnarp plush"
+	path = /obj/item/toy/plush/gnarp
+
+/datum/gear/civilian/plush/gnarp/alt
+	display_name = "Gnarp plush, alt"
+	path = /obj/item/toy/plush/gnarp/alt
+
+/datum/gear/civilian/plush/rock
+	display_name = "Rock plush"
+	path = /obj/item/toy/plush/rock
+
+/datum/gear/civilian/plush/therapy
+	display_name = "Therapy plush"
+	path = /obj/item/toy/plush/therapy
+
+/datum/gear/civilian/plush/therapy/red
+	display_name = "Therapy plush (Red)"
+	path = /obj/item/toy/plush/therapy/red
+
+/datum/gear/civilian/plush/therapy/blue
+	display_name = "Therapy plush (Blue)"
+	path = /obj/item/toy/plush/therapy/blue
+
+/datum/gear/civilian/plush/therapy/green
+	display_name = "Therapy plush (Green)"
+	path = /obj/item/toy/plush/therapy/green
+
+/datum/gear/civilian/plush/therapy/orange
+	display_name = "Therapy plush (Orange)"
+	path = /obj/item/toy/plush/therapy/orange
+
+/datum/gear/civilian/plush/therapy/purple
+	display_name = "Therapy plush (Purple)"
+	path = /obj/item/toy/plush/therapy/purple
+
+/datum/gear/civilian/plush/therapy/yellow
+	display_name = "Therapy plush (Yellow)"
+	path = /obj/item/toy/plush/therapy/yellow

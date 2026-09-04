@@ -1,4 +1,3 @@
-#define HELMET_GARB_RELAY_ICON_STATE "icon_state"
 /obj/item/clothing/head/helmet
 	name = "helmet"
 	desc = "Standard Security gear. Protects the head from impacts."
@@ -151,144 +150,227 @@
 
 GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	// TOBACCO-RELATED
-	/obj/item/tool/lighter/random = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/tool/lighter/zippo = "helmet_lighter_zippo",
-	/obj/item/storage/box/matches = "helmet_matches",
-	/obj/item/storage/fancy/cigarettes/emeraldgreen = "helmet_cig_cig",
-	/obj/item/storage/fancy/cigarettes/kpack = "helmet_cig_kpack",
-	/obj/item/storage/fancy/cigarettes/lucky_strikes = "helmet_cig_ls",
-	/obj/item/storage/fancy/cigarettes/wypacket = "helmet_cig_wypack",
-	/obj/item/storage/fancy/cigarettes/lady_finger = "helmet_cig_lf",
-	/obj/item/storage/fancy/cigarettes/blackpack = "helmet_cig_blackpack",
-	/obj/item/storage/fancy/cigarettes/arcturian_ace = "helmet_cig_aapack",
-	/obj/item/storage/fancy/cigarettes/lucky_strikes_4 = "hat_cig_ls_mre",
-	/obj/item/storage/fancy/cigar/matchbook = "helmet_matches_mre",
-	/obj/item/clothing/mask/cigarette/cigar = "helmet_cig_cig",
-	/obj/item/clothing/mask/electronic_cigarette = "helmet_cig_cig",
+	/obj/item/tool/lighter/random = NO_GARB_OVERRIDE,
+	/obj/item/tool/lighter/zippo = NO_GARB_OVERRIDE,
+	/obj/item/storage/box/matches = NO_GARB_OVERRIDE,
+	/obj/item/storage/fancy/cigarettes/emeraldgreen = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/storage/fancy/cigarettes/kpack = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/storage/fancy/cigarettes/lucky_strikes = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/storage/fancy/cigarettes/wypacket = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/storage/fancy/cigarettes/lady_finger = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/storage/fancy/cigarettes/blackpack = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/storage/fancy/cigarettes/arcturian_ace = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/storage/fancy/cigarettes/lucky_strikes_4 = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/storage/fancy/cigarettes/spirit = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/storage/fancy/cigarettes/spirit/yellow = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+
+	/obj/item/storage/fancy/cigar/matchbook = NO_GARB_OVERRIDE,
+	/obj/item/clothing/mask/cigarette/cigar = NO_GARB_OVERRIDE,
+	/obj/item/clothing/mask/electronic_cigarette = NO_GARB_OVERRIDE,
 
 	// CARDS
-	/obj/item/toy/deck = "helmet_card_deck",
-	/obj/item/toy/deck/uno = "helmet_card_uno",
-	/obj/item/toy/handcard = "helmet_card_card",
-	/obj/item/toy/handcard/aceofspades = "ace_of_spades",
-	/obj/item/toy/handcard/uno_reverse_red = "red_reverse",
-	/obj/item/toy/handcard/uno_reverse_blue = "blue_reverse",
-	/obj/item/toy/handcard/uno_reverse_yellow = "yellow_reverse",
-	/obj/item/toy/handcard/uno_reverse_purple = "purple_reverse",
+	/obj/item/toy/deck = NO_GARB_OVERRIDE,
+	/obj/item/toy/deck/uno = NO_GARB_OVERRIDE,
+	/obj/item/toy/handcard = NO_GARB_OVERRIDE,
+	/obj/item/toy/handcard/aceofspades = NO_GARB_OVERRIDE,
+	/obj/item/toy/handcard/uno_reverse_red = NO_GARB_OVERRIDE,
+	/obj/item/toy/handcard/uno_reverse_blue = NO_GARB_OVERRIDE,
+	/obj/item/toy/handcard/uno_reverse_yellow = NO_GARB_OVERRIDE,
+	/obj/item/toy/handcard/uno_reverse_purple = NO_GARB_OVERRIDE,
 
 	// FOOD AND SNACKS
-	/obj/item/reagent_container/food/drinks/flask = "helmet_flask",
-	/obj/item/reagent_container/food/drinks/flask/marine = "helmet_flask",
-	/obj/item/reagent_container/food/snacks/eat_bar = "helmet_snack_eat",
-	/obj/item/reagent_container/food/snacks/mushroompizzaslice = "pizza", // Fuck whoever put these under different paths for some REASON
-	/obj/item/reagent_container/food/snacks/vegetablepizzaslice = "pizza",
-	/obj/item/reagent_container/food/snacks/meatpizzaslice = "pizza",
-	/obj/item/reagent_container/food/snacks/packaged_burrito = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/reagent_container/food/snacks/packaged_hdogs = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/reagent_container/food/snacks/wrapped/chunk = "chunkbox",
-	/obj/item/reagent_container/food/snacks/donkpocket = "donkpocket",
-	/obj/item/reagent_container/food/snacks/wrapped/booniebars = "boonie-bars",
-	/obj/item/reagent_container/food/snacks/wrapped/barcardine = "barcardine-bars",
-
+	/obj/item/reagent_container/food/drinks/flask = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/food/drinks/flask/marine = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/food/snacks/eat_bar = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/food/snacks/mushroompizzaslice = NO_GARB_OVERRIDE, // Fuck whoever put these under different paths for some REASON
+	/obj/item/reagent_container/food/snacks/vegetablepizzaslice = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/food/snacks/meatpizzaslice = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/food/snacks/packaged_burrito = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/food/snacks/packaged_hdogs = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/food/snacks/wrapped/chunk = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/food/snacks/donkpocket = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/food/snacks/wrapped/booniebars = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/food/snacks/wrapped/barcardine = NO_GARB_OVERRIDE,
 
 	// EYEWEAR
-	/obj/item/clothing/glasses/mgoggles = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/clothing/glasses/mgoggles/v2 = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/clothing/glasses/mgoggles/v2/prescription = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/clothing/glasses/mgoggles/prescription = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/clothing/glasses/mgoggles/black = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/clothing/glasses/mgoggles/black/prescription = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/clothing/glasses/mgoggles/orange = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/clothing/glasses/mgoggles/orange/prescription = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/clothing/glasses/sunglasses = "sunglasses",
-	/obj/item/clothing/glasses/sunglasses/prescription = "sunglasses",
-	/obj/item/clothing/glasses/sunglasses/aviator = "aviator",
-	/obj/item/clothing/glasses/sunglasses/big = "bigsunglasses",
-	/obj/item/clothing/glasses/sunglasses/sechud = "sechud",
-	/obj/item/clothing/glasses/eyepatch = "eyepatch",
-	/obj/item/clothing/glasses/regular/hipster = "persc-glasses",
+	/obj/item/clothing/glasses/mgoggles = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/glasses/mgoggles/v2 = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/v2/prescription = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/v2/blue = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/v2/blue/prescription = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/v2/polarized_blue = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/v2/polarized_blue/prescription = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/v2/polarized_orange = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/v2/polarized_orange/prescription = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/prescription = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/glasses/mgoggles/black = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/glasses/mgoggles/black/prescription = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/glasses/mgoggles/orange = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/glasses/mgoggles/orange/prescription = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/glasses/mgoggles/blue = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/glasses/mgoggles/blue/prescription = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/glasses/mgoggles/purple = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/glasses/mgoggles/purple/prescription = PREFIX_HELMET_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/yellow = PREFIX_HELMET_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/yellow/prescription = PREFIX_HELMET_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/red = PREFIX_HELMET_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/red/prescription = PREFIX_HELMET_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/prescription = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/aviator = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/aviator/silver = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/big = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/big/new_bimex/black = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/big/new_bimex = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/big/new_bimex/bronze = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/big/fake = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/big/fake/red = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/big/fake/orange = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/big/fake/yellow = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/big/fake/green = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/big/fake/blue = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/sechud = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/sechud/blue = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/eyepatch = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/eyepatch/left = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/eyepatch/white = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/eyepatch/white/left = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/eyepatch/green = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/eyepatch/green/left = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/regular/hipster = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/regular/hippie = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/hippie = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/hippie/green = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/hippie/sunrise = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/hippie/sunset = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/hippie/nightblue = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/hippie/midnight = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/sunglasses/hippie/bloodred = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/regular = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mbcg = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/mgoggles/cmb_riot_shield = NO_GARB_OVERRIDE,
 
 	// WALKMAN AND CASSETTES
-	/obj/item/device/walkman = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/device/cassette_tape/pop1 = "cassette_blue",
-	/obj/item/device/cassette_tape/pop2 = "cassette_rainbow",
-	/obj/item/device/cassette_tape/pop3 = "cassette_orange",
-	/obj/item/device/cassette_tape/pop4 = "cassette_pink_stripe",
-	/obj/item/device/cassette_tape/heavymetal = "cassette_red_black",
-	/obj/item/device/cassette_tape/hairmetal = "cassette_red_stripe",
-	/obj/item/device/cassette_tape/indie = "cassette_rising_sun",
-	/obj/item/device/cassette_tape/hiphop = "cassette_orange_blue",
-	/obj/item/device/cassette_tape/nam = "cassette_green",
-	/obj/item/device/cassette_tape/ocean = "cassette_ocean",
-	/obj/item/storage/pouch/cassette = "cassette_pouch",
+	/obj/item/device/walkman = NO_GARB_OVERRIDE,
+	/obj/item/device/cassette_tape/pop1 = NO_GARB_OVERRIDE,
+	/obj/item/device/cassette_tape/pop2 = NO_GARB_OVERRIDE,
+	/obj/item/device/cassette_tape/pop3 = NO_GARB_OVERRIDE,
+	/obj/item/device/cassette_tape/pop4 = NO_GARB_OVERRIDE,
+	/obj/item/device/cassette_tape/heavymetal = NO_GARB_OVERRIDE,
+	/obj/item/device/cassette_tape/hairmetal = NO_GARB_OVERRIDE,
+	/obj/item/device/cassette_tape/indie = NO_GARB_OVERRIDE,
+	/obj/item/device/cassette_tape/hiphop = NO_GARB_OVERRIDE,
+	/obj/item/device/cassette_tape/nam = NO_GARB_OVERRIDE,
+	/obj/item/device/cassette_tape/ocean = NO_GARB_OVERRIDE,
+	/obj/item/storage/pouch/cassette = NO_GARB_OVERRIDE,
 
 	// PREFERENCES GEAR
-	/obj/item/prop/helmetgarb/gunoil = "gunoil",
-	/obj/item/prop/helmetgarb/netting = "netting",
-	/obj/item/prop/helmetgarb/spent_buckshot = "spent_buckshot",
-	/obj/item/prop/helmetgarb/spent_slug = "spent_slug",
-	/obj/item/prop/helmetgarb/spent_flech = "spent_flech",
-	/obj/item/prop/helmetgarb/cartridge = "cartridge",
-	/obj/item/prop/helmetgarb/prescription_bottle = "prescription_bottle",
-	/obj/item/prop/helmetgarb/raincover = "raincover",
-	/obj/item/prop/helmetgarb/rabbitsfoot = "rabbitsfoot",
-	/obj/item/prop/helmetgarb/rosary = "helmet_rosary", // This one was already in the game for some reason, but never had an object
-	/obj/item/prop/helmetgarb/lucky_feather = "lucky_feather",
-	/obj/item/prop/helmetgarb/lucky_feather/blue = "lucky_feather_blue",
-	/obj/item/prop/helmetgarb/lucky_feather/purple = "lucky_feather_purple",
-	/obj/item/prop/helmetgarb/lucky_feather/yellow = "lucky_feather_yellow",
-	/obj/item/prop/helmetgarb/trimmed_wire = "trimmed_wire",
-	/obj/item/prop/helmetgarb/helmet_nvg = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/prop/helmetgarb/helmet_nvg/cosmetic = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/prop/helmetgarb/helmet_nvg/marsoc = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/prop/helmetgarb/helmet_gasmask = "helmet_gasmask",
-	/obj/item/prop/helmetgarb/flair_initech = "flair_initech",
-	/obj/item/prop/helmetgarb/flair_io = "flair_io",
-	/obj/item/prop/helmetgarb/flair_peace ="flair_peace_smiley",
-	/obj/item/prop/helmetgarb/flair_uscm = "flair_uscm",
-	/obj/item/prop/helmetgarb/bullet_pipe = "bullet_pipe",
-	/obj/item/prop/helmetgarb/spacejam_tickets = "tickets_to_space_jam",
-	/obj/item/prop/helmetgarb/family_photo = "family_photo",
-	/obj/item/prop/helmetgarb/compass = "compass",
-	/obj/item/prop/helmetgarb/bug_spray = "bug_spray",
+	/obj/item/prop/helmetgarb/gunoil = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/netting = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/netting/desert = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/netting/jungle = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/netting/urban = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/spent_buckshot = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/spent_slug = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/spent_flech = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/cartridge = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/prescription_bottle = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/raincover = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/raincover/jungle = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/raincover/desert = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/raincover/urban = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/rabbitsfoot = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/rosary = NO_GARB_OVERRIDE, // This one was already in the game for some reason, but never had an object
+	/obj/item/prop/helmetgarb/lucky_feather = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/lucky_feather/blue = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/lucky_feather/purple = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/lucky_feather/yellow = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/trimmed_wire = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/helmet_nvg = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/prop/helmetgarb/helmet_nvg/cosmetic = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/prop/helmetgarb/helmet_nvg/marsoc = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/prop/helmetgarb/helmet_gasmask = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/flair_initech = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/flair_io = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/flair_peace = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/flair_uscm = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/bullet_pipe = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/spacejam_tickets = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/family_photo = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/compass = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/bug_spray = NO_GARB_OVERRIDE,
 
 	// MISC
-	/obj/item/tool/pen = "helmet_pen_black",
-	/obj/item/tool/pen/blue = "helmet_pen_blue",
-	/obj/item/tool/pen/red = "helmet_pen_red",
-	/obj/item/clothing/glasses/welding ="welding-h",
-	/obj/item/clothing/head/headband = "headbandgreen",
-	/obj/item/clothing/head/headband/tan = "headbandtan",
-	/obj/item/clothing/head/headband/red = "headbandred",
-	/obj/item/clothing/head/headband/brown = "helmet_headbandbrown",
-	/obj/item/clothing/head/headband/gray = "helmet_headbandgray",
-	/obj/item/clothing/head/headband/squad = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/tool/candle = "candle",
-	/obj/item/clothing/mask/facehugger/lamarr = "lamarr",
-	/obj/item/toy/crayon/red = "crayonred",
-	/obj/item/toy/crayon/orange = "crayonorange",
-	/obj/item/toy/crayon/yellow = "crayonyellow",
-	/obj/item/toy/crayon/green = "crayongreen",
-	/obj/item/toy/crayon/blue = "crayonblue",
-	/obj/item/toy/crayon/purple = "crayonpurple",
-	/obj/item/toy/crayon/rainbow = "crayonrainbow",
-	/obj/item/paper = "paper",
-	/obj/item/device/flashlight/flare = "flare",
-	/obj/item/clothing/head/headset = "headset",
-	/obj/item/clothing/accessory/patch = "uscmpatch",
-	/obj/item/clothing/accessory/patch/falcon = "falconspatch",
-	/obj/item/ammo_magazine/handful = "bullet",
-	/obj/item/prop/helmetgarb/riot_shield = "helmet_riot_shield",
-	/obj/item/attachable/flashlight = HELMET_GARB_RELAY_ICON_STATE,
-	/obj/item/prop/helmetgarb/chaplain_patch = "chaplain_patch",
-	/obj/item/tool/pen/multicolor/fountain = "fountainpen",
+	/obj/item/tool/pen = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/tool/pen/blue = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/tool/pen/red = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/tool/pen/multicolor/fountain = NO_GARB_OVERRIDE,
+	/obj/item/clothing/glasses/welding = NO_GARB_OVERRIDE,
+	/obj/item/clothing/head/headband = NO_GARB_OVERRIDE,
+	/obj/item/clothing/head/headband/tan = NO_GARB_OVERRIDE,
+	/obj/item/clothing/head/headband/red = NO_GARB_OVERRIDE,
+	/obj/item/clothing/head/headband/brown = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/head/headband/gray = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/clothing/head/headband/squad = PREFIX_HELMET_GARB_OVERRIDE, // helmet_
+	/obj/item/tool/candle = NO_GARB_OVERRIDE,
+	/obj/item/clothing/mask/facehugger = NO_GARB_OVERRIDE,
+	/obj/item/clothing/mask/facehugger/lamarr = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/red = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/orange = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/yellow = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/green = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/blue = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/purple = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/rainbow = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/pride/trans = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/pride/gay = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/pride/lesbian = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/pride/bi = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/pride/pan = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/pride/ace = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/pride/trans = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/pride/enby = NO_GARB_OVERRIDE,
+	/obj/item/toy/crayon/pride/fluid = NO_GARB_OVERRIDE,
+	/obj/item/paper = NO_GARB_OVERRIDE,
+	/obj/item/device/flashlight/flare = NO_GARB_OVERRIDE,
+	/obj/item/clothing/head/headset = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/falcon = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/falcon/squad_main = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/cec_patch = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/freelancer_patch = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/merc_patch = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/devils = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/forecon = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/royal_marines = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/upp = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/upp/airborne = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/upp/naval = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/ua = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/uasquare = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/falconalt = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/twe = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/uscmlarge = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/wy = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/wysquare = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/wy_faction = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/wy_white = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/wyfury = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/upp/alt = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/medic_patch = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/clf_patch = NO_GARB_OVERRIDE,
+	/obj/item/clothing/accessory/patch/hyperdyne_patch = NO_GARB_OVERRIDE,
+	/obj/item/ammo_magazine/handful = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/riot_shield = NO_GARB_OVERRIDE,
+	/obj/item/attachable/flashlight = NO_GARB_OVERRIDE,
+	/obj/item/prop/helmetgarb/chaplain_patch = NO_GARB_OVERRIDE,
 
 	// MEDICAL
-	/obj/item/stack/medical/bruise_pack ="brutepack (bandages)",
-	/obj/item/stack/medical/ointment = "ointment",
-	/obj/item/tool/surgery/scalpel = "scalpel",
-	/obj/item/reagent_container/hypospray/autoinjector = "helmet_injector",
-	/obj/item/storage/pill_bottle/packet = "brutepack (bandages)",
+	/obj/item/stack/medical/bruise_pack = NO_GARB_OVERRIDE,
+	/obj/item/stack/medical/ointment = NO_GARB_OVERRIDE,
+	/obj/item/tool/surgery/scalpel = NO_GARB_OVERRIDE,
+	/obj/item/reagent_container/hypospray/autoinjector = NO_GARB_OVERRIDE,
+	/obj/item/storage/pill_bottle/packet = NO_GARB_OVERRIDE,
 ))
 
 /obj/item/clothing/head/helmet/marine
@@ -331,6 +413,8 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 
 	/// The dmi where the grayscale squad overlays are contained
 	var/helmet_overlay_icon = 'icons/mob/humans/onmob/clothing/head/overlays.dmi'
+	/// The dmi where the helmet band overlay is contained
+	var/helmet_band_icon = 'icons/mob/humans/onmob/clothing/helmet_garb/misc.dmi'
 
 	///Any visors built into the helmet
 	var/list/built_in_visors = list(new /obj/item/device/helmet_visor)
@@ -529,28 +613,25 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 		var/list/above_band_layer = list()
 		var/list/below_band_layer = list()
 		var/has_helmet_band = FALSE
-		for(var/obj/O in pockets.contents)
-			if(GLOB.allowed_helmet_items[O.type])
-				var/has_band = !HAS_FLAG(O.flags_obj, OBJ_NO_HELMET_BAND)
+		for(var/obj/item/garb_object in pockets.contents)
+			if(garb_object.type in GLOB.allowed_helmet_items)
+				var/has_band = !HAS_FLAG(garb_object.flags_obj, OBJ_NO_HELMET_BAND)
 				if(has_band)
 					has_helmet_band = TRUE
-				if(GLOB.allowed_helmet_items[O.type] == HELMET_GARB_RELAY_ICON_STATE)
-					if(has_band)
-						above_band_layer += "helmet_[O.icon_state]"
-					else
-						below_band_layer += "helmet_[O.icon_state]"
+				var/image/new_overlay = garb_object.get_garb_overlay(GLOB.allowed_helmet_items[garb_object.type])
+				if(has_band)
+					above_band_layer += new_overlay
 				else
-					if(has_band)
-						above_band_layer += GLOB.allowed_helmet_items[O.type]
-					else
-						below_band_layer += GLOB.allowed_helmet_items[O.type]
+					below_band_layer += new_overlay
+
 		if(has_helmet_band)
-			helmet_overlays = above_band_layer + list("helmet_band") + below_band_layer
+			var/image/band_overlay = overlay_image(helmet_band_icon, "helmet_band", color, RESET_COLOR)
+			helmet_overlays = above_band_layer + band_overlay + below_band_layer
 		else
 			helmet_overlays = above_band_layer + below_band_layer
 
 	if(active_visor)
-		helmet_overlays += active_visor.helmet_overlay
+		helmet_overlays += overlay_image(active_visor.helmet_overlay_icon, active_visor.helmet_overlay, color, RESET_COLOR)
 
 	if(ismob(loc))
 		var/mob/M = loc
@@ -1238,6 +1319,28 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 		WEAR_HEAD = 'icons/mob/humans/onmob/clothing/head/hats_by_faction/UPP.dmi'
 	)
 
+/obj/item/clothing/head/helmet/marine/veteran/UPP/army
+	name = "\improper 6B82 combat helmet"
+	desc = "An older version of the UPP Army's 6B92 combat helmet, still worn by certain units on planets the UPP deems less important"
+	icon_state = "upp_army_helmet"
+
+/obj/item/clothing/head/helmet/marine/veteran/UPP/heavy/SOF_helmet
+	name = "\improper CCC5-L composite helmet"
+	desc = "A UPP-manufactured combat helmet with a distinctive spherical design. Made from a reinforced polymer composite, it offers ballistic protection while incorporating an integrated HUD, encrypted comms, and a rebreather system. Its limited visor visibility is a tradeoff for enhanced durability."
+	icon_state = "sof_helmet"
+	armor_melee = CLOTHING_ARMOR_MEDIUMHIGH
+	armor_bullet = CLOTHING_ARMOR_HIGHPLUS
+	armor_energy = CLOTHING_ARMOR_MEDIUM
+	armor_bomb = CLOTHING_ARMOR_HIGH
+	armor_bio = CLOTHING_ARMOR_MEDIUM
+	armor_internaldamage = CLOTHING_ARMOR_HIGH
+	flags_inv_hide = HIDEEARS|HIDEALLHAIR
+
+/obj/item/clothing/head/uppcap/peaked/police
+	name = "\improper UL3 PaP peaked cap"
+	desc = "Standard issue peaked cap of the People's Armed Police."
+	icon_state = "upp_peaked_police"
+
 /obj/item/clothing/head/uppcap
 	name = "\improper UL2 UPP cap"
 	desc = "UPP headgear issued to soldiers when they're not expected to face combat, and may be requested by officers and above."
@@ -1261,11 +1364,23 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	flags_inventory = BLOCKSHARPOBJ
 	flags_inv_hide = HIDEEARS
 
+/obj/item/clothing/head/helmet/marine/veteran/UPP/firefighter
+	name = "T-20 firefighter helmet"
+	desc = "A reinforced, heat-resistant helmet issued to UPP emergency responders. Its durable composite shell provides protection against falling debris and extreme heat, while the attached fire-resistant shroud shields the wearer’s neck and shoulders. A red star is emblazoned on the front, marking its service within the Union."
+	icon_state = "firefighter"
+	flags_heat_protection = BODY_FLAG_HEAD
+	max_heat_protection_temperature = FIRE_HELMET_MAX_HEAT_PROT
+
 /obj/item/clothing/head/uppcap/civi
 	name = "\improper UL2 UPP cap"
 	desc = "UPP civilian headgear. It's of poor quality, and isn't expected to last all that long, however for as long as it's whole, it appears quite stylish."
 	icon = 'icons/obj/items/clothing/hats/hats_by_faction/UPP.dmi'
 	icon_state = "upp_cap_civi"
+
+/obj/item/clothing/head/uppcap/civi/plant_worker
+	name = "white worker cap"
+	desc = "A simple white fabric cap, commonly worn by various UPP workers to keep hair contained and maintain cleanliness. Lightweight and practical, but not very durable."
+	icon_state = "plant_work_cap"
 
 /obj/item/clothing/head/uppcap/beret
 	name = "\improper UL3 UPP beret"
@@ -1672,5 +1787,3 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 	armor_internaldamage = CLOTHING_ARMOR_MEDIUMHIGH
 	flags_atom = NO_SNOW_TYPE
 	built_in_visors = list(new /obj/item/device/helmet_visor/security, new /obj/item/device/helmet_visor/night_vision)
-
-#undef HELMET_GARB_RELAY_ICON_STATE
