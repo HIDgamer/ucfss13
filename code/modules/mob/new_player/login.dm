@@ -142,7 +142,10 @@
 					tutorial_menu()
 					return FALSE
 
-			late_choices()
+			if(!late_join_ui)
+				late_join_ui = new(src, FACTION_NEUTRAL)
+			late_join_ui.faction = FACTION_NEUTRAL
+			late_join_ui.tgui_interact(src)
 			return TRUE
 
 		if("late_join_upp")
@@ -159,7 +162,10 @@
 					tutorial_menu()
 					return FALSE
 
-			late_choices_upp()
+			if(!late_join_ui)
+				late_join_ui = new(src, FACTION_UPP)
+			late_join_ui.faction = FACTION_UPP
+			late_join_ui.tgui_interact(src)
 			return TRUE
 
 		if("late_join_xeno")
