@@ -532,3 +532,44 @@
 
 /obj/structure/shuttle/part/dropshipupp2/transparent/right_outer_bottom_wing
 	icon_state = "6"
+
+// TWE Ship Cosmetic
+
+/obj/structure/shuttle/part/twe_cosmetic1
+	name = "\improper UD4-UK"
+	icon = 'icons/turf/twedropship.dmi'
+	icon_state = "0,0"
+	opacity = TRUE
+
+/obj/structure/shuttle/part/twe_cosmetic1/ex_act(severity, direction)
+	return FALSE
+
+/obj/structure/shuttle/part/twe_cosmetic1/transparent
+	opacity = FALSE
+
+// UPP-SOF Ship Cosmetic
+
+/obj/structure/shuttle/part/upp_sof
+	name = "\improper UPP-DS-3 'Voron'"
+	icon = 'icons/turf/upp_sof_dropship.dmi'
+	icon_state = "0,0"
+	opacity = TRUE
+
+/obj/structure/shuttle/part/upp_sof/ex_act(severity, direction)
+	return FALSE
+
+/obj/structure/shuttle/part/upp_sof/transparent
+	opacity = FALSE
+
+
+/obj/structure/shuttle/part/upp_sof_alt
+	name = "\improper UPP-DS-3 'Volk'"
+	icon = 'icons/turf/upp_sof_alt_dropship.dmi'
+	icon_state = "0,0"
+	opacity = TRUE
+
+/obj/structure/shuttle/part/upp_sof_alt/ex_act(severity, direction)
+	return FALSE
+
+/obj/structure/shuttle/part/upp_sof_alt/transparent
+	opacity = FALSE

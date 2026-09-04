@@ -1019,6 +1019,23 @@
 	has_hud = TRUE
 	hud_type = MOB_HUD_FACTION_WY
 
+/obj/item/device/radio/headset/distress/WY/guard
+	misc_tracking = TRUE
+	locate_setting = TRACKER_CL
+	inbuilt_tracking_options = list(
+		"Corporate Liaison" = TRACKER_CL
+	)
+	additional_hud_types = list(MOB_HUD_FACTION_WY)
+
+/obj/item/device/radio/headset/distress/hyperdyne
+	name = "HC corporate headset"
+	desc = "A headset commonly worn by Hyperdyne corporate personnel."
+	icon_state = "generic_headset"
+	frequency = HDC_FREQ
+	initial_keys = list(/obj/item/device/encryptionkey/colony, /obj/item/device/encryptionkey/hyperdyne)
+	has_hud = TRUE
+	hud_type = MOB_HUD_FACTION_HC
+
 /obj/item/device/radio/headset/distress/dutch
 	name = "Dutch's Dozen headset"
 	desc = "A special headset used by small groups of trained operatives. Or terrorists. To access the colony channel, use :h."
@@ -1243,7 +1260,7 @@
 
 /obj/item/device/radio/headset/distress/NSPA
 	name = "NSPA Headset"
-	desc = "NSPA headset."
+	desc = "A special headset used by the NSPA."
 	frequency = RMC_FREQ
 	icon_state = "vai_headset"
 	initial_keys = list(/obj/item/device/encryptionkey/public, /obj/item/device/encryptionkey/royal_marine)
@@ -1305,3 +1322,15 @@
 	ignore_z = FALSE
 	has_hud = TRUE
 	hud_type = MOB_HUD_FACTION_UPP
+
+/obj/item/device/radio/headset/distress/PaP
+	name = "\improper UPP PaP headset"
+	desc = "A special headset used by the People's Armed Police of the UPP."
+	frequency = UPP_FREQ
+	icon_state = "sec_headset"
+	initial_keys = list(/obj/item/device/encryptionkey/colony, /obj/item/device/encryptionkey/upp)
+	ignore_z = FALSE
+	has_hud = TRUE
+	hud_type = MOB_HUD_FACTION_PAP
+	additional_hud_types = list(MOB_HUD_FACTION_UPP)
+	volume = RADIO_VOLUME_IMPORTANT

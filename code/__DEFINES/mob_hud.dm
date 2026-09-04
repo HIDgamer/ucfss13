@@ -28,6 +28,7 @@
 #define HUNTER_HUD "26" //Displays various statuses on mobs for Hunters to identify targets
 #define HOLOCARD_HUD "27" //Displays the holocards set by medical personnel
 #define NEW_PLAYER_HUD "29" //Makes it easy to see new players.
+#define SPYCAM_HUD "30" //Remote control spy cameras.
 
 //data HUD (medhud, sechud) defines
 #define MOB_HUD_SECURITY_BASIC 1
@@ -42,16 +43,19 @@
 #define MOB_HUD_FACTION_OBSERVER 10
 #define MOB_HUD_FACTION_UPP 11
 #define MOB_HUD_FACTION_WY 12
-#define MOB_HUD_FACTION_TWE 13
-#define MOB_HUD_FACTION_CLF 14
-#define MOB_HUD_FACTION_PMC 15
-#define MOB_HUD_FACTION_CMB 16
-#define MOB_HUD_FACTION_NSPA 17
-#define MOB_HUD_HUNTER 18
-#define MOB_HUD_HUNTER_CLAN 19
-#define MOB_HUD_EXECUTE 20
-#define MOB_HUD_NEW_PLAYER 21
-#define MOB_HUD_FACTION_WO 22
+#define MOB_HUD_FACTION_HC 13
+#define MOB_HUD_FACTION_TWE 14
+#define MOB_HUD_FACTION_CLF 15
+#define MOB_HUD_FACTION_PMC 16
+#define MOB_HUD_FACTION_CMB 17
+#define MOB_HUD_FACTION_NSPA 18
+#define MOB_HUD_FACTION_PAP 19
+#define MOB_HUD_FACTION_WO 20
+#define MOB_HUD_HUNTER 21
+#define MOB_HUD_HUNTER_CLAN 22
+#define MOB_HUD_EXECUTE 23
+#define MOB_HUD_NEW_PLAYER 24
+#define MOB_HUD_SPYCAMS 25
 
 //for SL/FTL/LZ targeting on locator huds
 #define TRACKER_SL "track_sl"
