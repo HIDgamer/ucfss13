@@ -5,6 +5,8 @@
 /datum/species
 	///Used for isx(y) checking of species groups
 	var/group
+	///Whether this species has extra body-type sprite variants (see human.dm/synthetic.dm)
+	var/special_body_types = FALSE
 
 	var/name  // Species name.
 	var/name_plural

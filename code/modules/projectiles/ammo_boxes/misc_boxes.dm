@@ -65,6 +65,11 @@
 /obj/item/ammo_box/magazine/misc/mre/empty
 	empty = TRUE
 
+/obj/item/ammo_box/magazine/misc/mre/pmc
+	name = "\improper box of CFRs"
+	desc = "A box of PMC Combat Field Rations. Nutritious, and considerably more expensive than the USCM equivalent."
+	magazine_type = /obj/item/storage/box/MRE/pmc
+
 //------------------------M94 Marking Flare Packs Box--------------------------
 
 /obj/item/ammo_box/magazine/misc/flares

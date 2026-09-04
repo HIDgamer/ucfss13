@@ -914,6 +914,10 @@
 		isopened = TRUE
 		icon_state = "mealpackopened"
 
+/obj/item/storage/box/MRE/pmc
+	name = "\improper PMC CFR ration"
+	desc = "A Combat Field Ration issued to Weyland-Yutani PMC operators. Uses a similar format to the USCM MRE, but with pricier ingredients."
+
 //food boxes for storage in bulk
 
 //meat

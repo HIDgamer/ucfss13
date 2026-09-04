@@ -23,6 +23,7 @@ GLOBAL_LIST_INIT_TYPED(huds, /datum/mob_hud, list(
     new /datum/mob_hud/hunter_clan(),
     new /datum/mob_hud/execute_hud(),
     new /datum/mob_hud/new_player(),
+    new /datum/mob_hud/faction/wo(),
 	))
 
 /datum/mob_hud
@@ -217,6 +218,9 @@ GLOBAL_LIST_INIT_TYPED(huds, /datum/mob_hud, list(
 
 /datum/mob_hud/faction/pmc
 	faction_to_check = FACTION_PMC
+
+/datum/mob_hud/faction/wo
+	faction_to_check = FACTION_WY_DEATHSQUAD
 
 /datum/mob_hud/faction/nspa
 	faction_to_check = FACTION_NSPA

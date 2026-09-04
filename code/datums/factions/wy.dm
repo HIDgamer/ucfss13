@@ -15,12 +15,20 @@
 			hud_icon_state = "goon_normal"
 		if(JOB_WY_GOON_LEAD)
 			hud_icon_state = "goon_leader"
-		if(JOB_WY_GOON_RESEARCHER)
-			hud_icon_state = "goon_sci"
+		if(JOB_WY_GOON_SYNTH)
+			hud_icon_state = "goon_synth"
+		if(JOB_WY_RESEARCHER)
+			hud_icon_state = "researcher"
+		if(JOB_WY_RESEARCH_LEAD)
+			hud_icon_state = "research_lead"
 		if(JOB_WY_GOON_TECH)
 			hud_icon_state = "goon_engi"
 		if(JOB_WY_GOON_MEDIC)
 			hud_icon_state = "goon_medic"
+		if(JOB_WY_SEC)
+			hud_icon_state = "sec"
+		if(JOB_WY_SEC_SYNTH)
+			hud_icon_state = "synth"
 		if(JOB_TRAINEE)
 			hud_icon_state = "trainee"
 		if(JOB_JUNIOR_EXECUTIVE)

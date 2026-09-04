@@ -133,7 +133,7 @@
 
 /obj/item/ammo_magazine/pistol/es4
 	name = "\improper ES-4 stun magazine (9mm)"
-	default_ammo = /datum/ammo/bullet/pistol/rubber/stun
+	default_ammo = /datum/ammo/bullet/pistol/rubber/es4
 	caliber = "9mm"
 	desc = "Holds 19 rounds of specialized Conductive 9mm. Electrostatic propulsion in the ES-4 functions by propelling an cV9mm round, at a proportionally slower velocity to maintain a higher kinetic energy transfer rate. All this turns a penetrative round into a less-than-lethal round."
 	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/WY/pistols.dmi'
@@ -177,6 +177,11 @@
 /obj/item/ammo_magazine/pistol/vp78/rubber
 	name = "\improper VP78 rubber magazine (9mm)"
 	desc = "A 9mm pistol magazine for the VP78. This one is loaded with rubber bullets."
+	default_ammo = /datum/ammo/bullet/pistol/squash/rubber
+	ammo_band_color = AMMO_BAND_COLOR_RUBBER
+
+/obj/item/ammo_magazine/pistol/vp78/rubber
+	name = "\improper VP78 rubber magazine (9mm)"
 	default_ammo = /datum/ammo/bullet/pistol/squash/rubber
 	ammo_band_color = AMMO_BAND_COLOR_RUBBER
 

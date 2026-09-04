@@ -3,6 +3,7 @@
 	name = SYNTH_GEN_THREE
 	name_plural = "synthetics"
 	uses_ethnicity = TRUE //Uses ethnic presets
+	special_body_types = TRUE
 
 	unarmed_type = /datum/unarmed_attack/punch/synthetic
 	pain_type = /datum/pain/synthetic
@@ -103,27 +104,6 @@
 	//sets colonial_gen_one synth's icon to WJ sprite
 	icobase = 'icons/mob/humans/species/r_synthetic.dmi'
 	deform = 'icons/mob/humans/species/r_synthetic.dmi'
-
-// Synth used for W-Y Deathsquads
-/datum/species/synthetic/colonial/combat
-	name = SYNTH_COMBAT
-	name_plural = "Combat Synthetics"
-	uses_ethnicity = FALSE
-	mob_inherent_traits = list(TRAIT_SUPER_STRONG, TRAIT_INTENT_EYES)
-
-	burn_mod = 0.6 //made for combat
-	total_health = 250 //made for combat
-
-	hair_color = "#000000"
-	icobase = 'icons/mob/humans/species/r_synthetic.dmi'
-	deform = 'icons/mob/humans/species/r_synthetic.dmi'
-
-	default_lighting_alpha = LIGHTING_PLANE_ALPHA_VISIBLE // we don't want combat synths to run around in the dark
-
-	knock_down_reduction = 5
-	stun_reduction = 5
-
-	inherent_verbs = null
 
 // Synth used for synths posing as humans
 /datum/species/synthetic/infiltrator

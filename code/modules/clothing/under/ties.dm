@@ -412,6 +412,16 @@
 	desc = "An older version of the UPP Airborne Reconnaissance patch."
 	icon_state = "vdvpatch_old"
 
+/obj/item/clothing/accessory/patch/wy_faction
+	name = "Weyland-Yutani patch" // For WY factions like PMC's - on the right shoulder rather then left.
+	desc = "A fire-resistant black shoulder patch featuring the Weyland-Yutani logo. A symbol of loyalty to the corporation."
+	icon_state = "wypatch_faction"
+
+/obj/item/clothing/accessory/patch/freelancer_patch
+	name = "Freelancer's Guild patch"
+	desc = "A fire-resistant circular patch featuring a white skull on a vertically split black and blue background. Worn by a skilled mercenary of the Freelancers, a well-equipped group for hire across the outer colonies, known for their professionalism and neutrality."
+	icon_state = "mercpatch"
+
 
 /obj/item/clothing/accessory/poncho
 	name = "USCM Poncho"
@@ -834,6 +844,10 @@
 
 	hold = /obj/item/storage/internal/accessory/drop_pouch
 	accessory_icons = list(WEAR_BODY = 'icons/mob/humans/onmob/clothing/accessory/webbings.dmi', WEAR_JACKET = 'icons/mob/humans/onmob/clothing/accessory/webbings.dmi')
+
+/obj/item/clothing/accessory/storage/droppouch/black
+	name = "black drop pouch"
+	icon_state = "drop_pouch_black"
 
 /obj/item/clothing/accessory/storage/droppouch/black
 	name = "black drop pouch"

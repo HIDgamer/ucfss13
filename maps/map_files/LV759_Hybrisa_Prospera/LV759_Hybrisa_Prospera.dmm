@@ -53425,7 +53425,7 @@
 /turf/open/floor/plating/plating_catwalk/aicore/white,
 /area/lv759/indoors/colonial_marshals/prisoners_recreation_area)
 "hnu" = (
-/obj/item/storage/backpack/commando{
+/obj/item/storage/backpack/pmc/backpack/commando/apesuit{
 	layer = 5
 	},
 /obj/structure/closet/crate/secure/weyland{
@@ -73610,7 +73610,7 @@
 /turf/open/floor/hybrisa/tile/tilewhite,
 /area/lv759/indoors/south_public_restroom)
 "kmz" = (
-/obj/item/clothing/gloves/marine/veteran/pmc/commando,
+/obj/item/clothing/gloves/marine/veteran/pmc/apesuit,
 /obj/structure/cable/white{
 	color = "9f8700";
 	icon_state = "8-9";
@@ -100100,7 +100100,7 @@
 	pixel_y = 30
 	},
 /obj/structure/bed/chair/comfy/hybrisa/red,
-/obj/item/storage/belt/gun/m4a3/mod88,
+/obj/item/storage/belt/gun/m4a3/wy/mod88,
 /obj/effect/spawner/random/technology_scanner,
 /turf/open/floor/hybrisa/wood/blackwood,
 /area/lv759/indoors/weyyu_office/supervisor)
@@ -152496,7 +152496,7 @@
 /obj/structure/surface/table/reinforced/almayer_B,
 /obj/structure/closet/walllocker,
 /obj/item/device/encryptionkey/commando,
-/obj/item/clothing/head/helmet/marine/veteran/pmc/gunner,
+/obj/item/clothing/head/helmet/marine/veteran/pmc/enclosed,
 /obj/effect/spawner/random/technology_scanner,
 /turf/open/floor/almayer/plate,
 /area/lv759/indoors/wy_research_complex/hangarbayshuttle)
