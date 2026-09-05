@@ -135,6 +135,9 @@
 	var/armor_integrity_max = 100
 	var/armor_integrity_last_damage_time = 0
 	var/armor_integrity_immunity_time = 0
+
+	var/melee_vulnerability_mult = 0
+
 	var/pull_multiplier = 1
 	var/aura_strength = 0 // Pheromone strength
 	var/weed_level = WEED_LEVEL_STANDARD
@@ -208,6 +211,8 @@
 	var/plasmapool_modifier = 1
 	var/plasmagain_modifier = 0
 	var/tackle_chance_modifier = 0
+	var/tackle_min_modifier = 0
+	var/tackle_max_modifier = 0
 	var/regeneration_multiplier = 1
 	var/speed_modifier = 0
 	var/phero_modifier = 0
@@ -217,6 +222,9 @@
 	var/evasion_modifier = 0
 	var/attack_speed_modifier = 0
 	var/armor_integrity_modifier = 0
+
+	///Used to add plasma to strain if caste have 0 plasma_max
+	var/add_plasma = 0
 
 	var/list/modifier_sources
 	COOLDOWN_DECLARE(next_strain_reset)
@@ -619,6 +627,9 @@
 	if(caste.fire_immunity & FIRE_IMMUNITY_XENO_FRENZY)
 		. |= COMPONENT_XENO_FRENZY
 
+/mob/living/carbon/xenomorph/proc/get_reflection_chance(obj/projectile/bullet)
+	return
+
 //Off-load this proc so it can be called freely
 //Since Xenos change names like they change shoes, we need somewhere to hammer in all those legos
 //We set their name first, then update their real_name AND their mind name
@@ -929,8 +940,8 @@
 	recalculate_tackle()
 
 /mob/living/carbon/xenomorph/proc/recalculate_tackle()
-	tackle_min = caste.tackle_min
-	tackle_max = caste.tackle_max
+	tackle_min = caste.tackle_min + tackle_min_modifier
+	tackle_max = caste.tackle_max + tackle_max_modifier
 	tackle_chance = caste.tackle_chance + tackle_chance_modifier
 	tacklestrength_min = caste.tacklestrength_min
 	tacklestrength_max = caste.tacklestrength_max
@@ -951,19 +962,23 @@
 		health = maxHealth
 
 /mob/living/carbon/xenomorph/proc/recalculate_plasma()
-	if(!plasma_max)
+	var/new_plasma_max = (plasmapool_modifier * caste.plasma_max) + add_plasma
+	if(!plasma_max && new_plasma_max <= 0)
 		return
 
-	var/new_plasma_max = plasmapool_modifier * caste.plasma_max
 	plasma_gain = plasmagain_modifier + caste.plasma_gain
 	if(hive)
 		new_plasma_max += hive.hive_stat_modifier_flat["plasmapool"]
 		new_plasma_max *= hive.hive_stat_modifier_multiplier["plasmapool"]
 		plasma_gain += hive.hive_stat_modifier_flat["plasmagain"]
 		plasma_gain *= hive.hive_stat_modifier_multiplier["plasmagain"]
-	if (new_plasma_max == plasma_max)
+	if(new_plasma_max == plasma_max)
 		return
-	var/plasma_ratio = plasma_stored / plasma_max
+
+	var/plasma_ratio = 0
+	if(plasma_max > 0)
+		plasma_ratio = plasma_stored / plasma_max
+
 	plasma_max = new_plasma_max
 	plasma_stored = floor(plasma_max * plasma_ratio + 0.5) //Restore our plasma ratio, so if we're full, we continue to be full, etc. Rounding up (hence the +0.5)
 	if(plasma_stored > plasma_max)

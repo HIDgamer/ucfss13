@@ -268,9 +268,9 @@ Quick adjacency (to turf):
 	if (length(blockers["fd1"]) || length(blockers["fd2"]))
 		var/guaranteed_hit = 0 // indicates whether there is a guaranteed hit (aka there is not chance to bypass blocker). 0 = nothing
 		var/list/cur_dense_blockers = list()
-		for (var/atom/blocker in blockers["fd1"])
-			if (blocker.flags_barrier & HANDLE_BARRIER_CHANCE)
-				if(blocker.handle_barrier_chance())
+		for(var/atom/blocker in blockers["fd1"])
+			if(blocker.flags_barrier & HANDLE_BARRIER_CHANCE)
+				if(blocker.handle_barrier_chance(A))
 					return blocker
 			else
 				guaranteed_hit = 1
@@ -279,7 +279,7 @@ Quick adjacency (to turf):
 
 		for (var/atom/blocker in blockers["fd2"])
 			if(blocker.flags_barrier & HANDLE_BARRIER_CHANCE)
-				if(blocker.handle_barrier_chance())
+				if(blocker.handle_barrier_chance(A))
 					return blocker
 			else
 				guaranteed_hit++

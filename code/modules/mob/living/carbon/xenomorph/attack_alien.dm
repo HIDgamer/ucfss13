@@ -8,8 +8,8 @@
  */
 
 // this proc could use refactoring at some point
-/mob/living/carbon/human/attack_alien(mob/living/carbon/xenomorph/attacking_xeno, dam_bonus)
-	if(attacking_xeno.fortify || HAS_TRAIT(attacking_xeno, TRAIT_ABILITY_BURROWED))
+/mob/living/carbon/human/attack_alien(mob/living/carbon/xenomorph/attacking_xeno, dam_bonus, unblockable = FALSE)
+	if(attacking_xeno.fortify || HAS_TRAIT(attacking_xeno, TRAIT_ABILITY_BURROWED) || HAS_TRAIT(attacking_xeno, TRAIT_ABILITY_REFLECTIVE_PLATES))
 		return XENO_NO_DELAY_ACTION
 
 	var/intent = attacking_xeno.a_intent
@@ -31,7 +31,7 @@
 			if(attacking_xeno == src || anchored || buckled)
 				return XENO_NO_DELAY_ACTION
 
-			if(check_shields(0, attacking_xeno.name)) // Blocking check
+			if(!unblockable && check_shields(0, attacking_xeno.name)) // Blocking check
 				attacking_xeno.visible_message(SPAN_DANGER("[attacking_xeno]'s grab is blocked by [src]'s shield!"),
 				SPAN_DANGER("Our grab was blocked by [src]'s shield!"), null, 5, CHAT_TYPE_XENO_COMBAT)
 				return XENO_ATTACK_ACTION
@@ -60,7 +60,7 @@
 							to_chat(attacking_xeno, SPAN_WARNING("We should not harm this host! It has a sister inside."))
 							return XENO_NO_DELAY_ACTION
 
-			if(check_shields(0, attacking_xeno.name)) // Blocking check
+			if(!unblockable && check_shields(0, attacking_xeno.name)) // Blocking check
 				attacking_xeno.visible_message(SPAN_DANGER("[attacking_xeno]'s slash is blocked by [src]'s shield!"),
 				SPAN_DANGER("Our slash is blocked by [src]'s shield!"), null, 5, CHAT_TYPE_XENO_COMBAT)
 				return XENO_ATTACK_ACTION
@@ -179,7 +179,7 @@
 				return XENO_NO_DELAY_ACTION
 
 			attacking_xeno.animation_attack_on(src)
-			if(check_shields(0, attacking_xeno.name)) // Blocking check
+			if(!unblockable && check_shields(0, attacking_xeno.name)) // Blocking check
 				attacking_xeno.visible_message(SPAN_DANGER("[attacking_xeno]'s tackle is blocked by [src]'s shield!"),
 				SPAN_DANGER("We tackle is blocked by [src]'s shield!"), null, 5, CHAT_TYPE_XENO_COMBAT)
 				return XENO_ATTACK_ACTION
@@ -342,21 +342,24 @@
 		return XENO_ATTACK_ACTION
 
 //Breaking barricades
-/obj/structure/barricade/attack_alien(mob/living/carbon/xenomorph/M)
-	M.animation_attack_on(src)
-	take_damage( rand(M.melee_damage_lower, M.melee_damage_upper) * brute_multiplier)
+/obj/structure/barricade/attack_alien(mob/living/carbon/xenomorph/xeno)
+	xeno.animation_attack_on(src)
+	take_damage( rand(xeno.melee_damage_lower, xeno.melee_damage_upper) * brute_multiplier)
 	if(barricade_hitsound)
 		playsound(src, barricade_hitsound, 25, 1)
 	if(health <= 0)
-		M.visible_message(SPAN_DANGER("[M] slices [src] apart!"),
+		xeno.visible_message(SPAN_DANGER("[xeno] slices [src] apart!"),
 		SPAN_DANGER("We slice [src] apart!"), null, 5, CHAT_TYPE_XENO_COMBAT)
 	else
-		M.visible_message(SPAN_DANGER("[M] [M.slashes_verb] [src]!"),
-		SPAN_DANGER("We [M.slash_verb] [src]!"), null, 5, CHAT_TYPE_XENO_COMBAT)
+		xeno.visible_message(SPAN_DANGER("[xeno] [xeno.slashes_verb] [src]!"),
+		SPAN_DANGER("We [xeno.slash_verb] [src]!"), null, 5, CHAT_TYPE_XENO_COMBAT)
 	if(is_wired)
-		M.visible_message(SPAN_DANGER("The barbed wire slices into [M]!"),
+		xeno.visible_message(SPAN_DANGER("The barbed wire slices into [xeno]!"),
 		SPAN_DANGER("The barbed wire slices into us!"), null, 5, CHAT_TYPE_XENO_COMBAT)
-		M.apply_damage(10)
+		if(istype(xeno.strain, /datum/xeno_strain/bulwark))
+			xeno.apply_damage(5)
+		else
+			xeno.apply_damage(10)
 	return XENO_ATTACK_ACTION
 
 /obj/structure/barricade/handle_tail_stab(mob/living/carbon/xenomorph/xeno)
@@ -885,16 +888,16 @@
 /obj/structure/ladder/attack_larva(mob/living/carbon/xenomorph/larva/M)
 	return attack_hand(M)
 
-/obj/structure/machinery/colony_floodlight/attack_alien(mob/living/carbon/xenomorph/M)
+/obj/structure/machinery/colony_floodlight/attack_alien(mob/living/carbon/xenomorph/xeno)
 	if(!is_on)
-		to_chat(M, SPAN_WARNING("Why bother? It's just some weird metal thing."))
+		to_chat(xeno, SPAN_WARNING("Why bother? It's just some weird metal thing."))
 		return XENO_NO_DELAY_ACTION
 	if(damaged)
-		to_chat(M, SPAN_WARNING("It's already damaged."))
+		to_chat(xeno, SPAN_WARNING("It's already damaged."))
 		return XENO_NO_DELAY_ACTION
-	M.animation_attack_on(src)
-	M.visible_message("[M] slashes away at [src]!","We slash and claw at the bright light!", max_distance = 5, message_flags = CHAT_TYPE_XENO_COMBAT)
-	health  = max(health - rand(M.melee_damage_lower, M.melee_damage_upper), 0)
+	xeno.animation_attack_on(src)
+	xeno.visible_message("[xeno] slashes away at [src]!","We slash and claw at the bright light!", max_distance = 5, message_flags = CHAT_TYPE_XENO_COMBAT)
+	health = max(health - rand(xeno.melee_damage_lower, xeno.melee_damage_upper), 0)
 	if(!health)
 		set_damaged()
 	else
