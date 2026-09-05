@@ -351,7 +351,7 @@
 	var/turf/current_turf = get_turf(src)
 	var/turf/next_turf = popleft(path)
 
-	// Terminal projectiles (about to hit) are handled first for retarget logic
+	// Terminal projectiles (about to hit) are handled firer for retarget logic
 	if((speed * world.tick_lag) >= get_dist(current_turf, target_turf))
 		SEND_SIGNAL(src, COMSIG_BULLET_TERMINAL)
 
@@ -411,6 +411,8 @@
 		return FALSE
 
 	if(T.density) // Handle wall hit
+		if(T in permutated)
+			return FALSE
 		var/ammo_flags = ammo.flags_ammo_behavior | projectile_override_flags
 
 		if(SEND_SIGNAL(src, COMSIG_BULLET_PRE_HANDLE_TURF, T) & COMPONENT_BULLET_PASS_THROUGH)
@@ -421,7 +423,7 @@
 
 		// If the ammo should hit the surface of the target and the next turf is dense
 		// The current turf is the "surface" of the target
-		if(ammo_flags & AMMO_STRIKES_SURFACE)
+		if(ammo_flags & (AMMO_STRIKES_SURFACE|AMMO_STRIKES_SURFACE_ONLY))
 			// We "hit" the current turf but strike the actual blockage
 			ammo.on_hit_turf(get_turf(src),src)
 		else
@@ -482,7 +484,7 @@
 
 		// If the ammo should hit the surface of the target and there is an object blocking
 		// The current turf is the "surface" of the target
-		if(ammo_flags & AMMO_STRIKES_SURFACE)
+		if(ammo_flags & (AMMO_STRIKES_SURFACE|AMMO_STRIKES_SURFACE_ONLY))
 			var/turf/T = get_turf(O)
 
 			// We "hit" the current turf but strike the actual blockage
@@ -505,6 +507,20 @@
 
 	if((MODE_HAS_MODIFIER(/datum/gamemode_modifier/disable_attacking_corpses) && L.stat == DEAD) || (L in permutated))
 		return FALSE
+
+	if(isxeno(L))
+		var/mob/living/carbon/xenomorph/xeno = L
+		var/directional_chance = xeno.get_reflection_chance(src)
+		if(directional_chance > 0 && prob(directional_chance))
+			src.reflect_projectile_at_firer(
+			reflector = xeno,
+			new_firer = xeno,
+			damage_multiplier = BULWARK_REFLECTED_BULLET_DAMAGE,
+			accuracy_override = BULWARK_REFLECTED_BULLET_ACCURACY,
+			angle_variance = 25
+			)
+			return TRUE
+
 	permutated |= L
 	if((ammo.flags_ammo_behavior & AMMO_XENO) && (isfacehugger(L) || L.stat == DEAD)) //xeno ammo is NEVER meant to hit or damage dead people. If you want to add a xeno ammo that DOES then make a new flag that makes it ignore this check.
 		return FALSE
@@ -553,7 +569,7 @@
 
 			// If the ammo should hit the surface of the target and there is a mob blocking
 			// The current turf is the "surface" of the target
-			if(ammo_flags & AMMO_STRIKES_SURFACE)
+			if(ammo_flags & (AMMO_STRIKES_SURFACE|AMMO_STRIKES_SURFACE_ONLY))
 				var/turf/T = get_turf(L)
 
 				// We "hit" the current turf but strike the actual blockage
@@ -1332,6 +1348,60 @@
 /obj/projectile/pill/Destroy()
 	. = ..()
 	source_pill = null
+
+/**
+ * explained:
+ * * reflector - what shoots projectiles back.
+ * * new_firer - who shoots projectiles back.
+ * * damage_multiplier - how much bullet damage get reflected, default is 0.5 (50%).
+ * * accuracy_override - used to override shoot bullet accuracy.
+ * * angle_variance - how big reflection cone should be, default is 25, final cone will be 50 degrees (-25 and 25)
+ * * range_override - how far reflected bullet will travel, overridies original projectile value with new one.
+ * * projectile_flag_override - should only be used if you want to change bullet to other type than shrapnel.
+ * * ignore_safety - if set to TRUE, allows "target" to reflect reflected bullets.
+ */
+/obj/projectile/proc/reflect_projectile_at_firer(atom/reflector, atom/new_firer, damage_multiplier = 0.5, accuracy_override, angle_variance = 25, range_override, projectile_flag_override = NONE, ignore_safety = FALSE)
+	if(!ammo)
+		return
+
+	if(!firer)
+		return
+
+	if(!ignore_safety)
+		if(projectile_flags & PROJECTILE_REFLECTED) // So we cannot reflect reflected, could create infinite* loop.
+			return
+
+	var/turf/source_turf = get_turf(reflector)
+	if(!source_turf)
+		return
+
+	var/obj/projectile/new_proj = new(source_turf,create_cause_data("[reflector]"))
+	new_proj.generate_bullet(ammo)
+	new_proj.damage = damage * damage_multiplier
+
+	if(!isnull(accuracy_override))
+		new_proj.accuracy = accuracy_override
+	else
+		new_proj.accuracy = accuracy
+
+	if(projectile_flag_override)
+		new_proj.projectile_flags |= projectile_flag_override
+	else
+		new_proj.projectile_flags |= PROJECTILE_SHRAPNEL //we make it shrapnel unless overrided.
+
+	new_proj.projectile_flags |= PROJECTILE_REFLECTED
+	new_proj.permutated |= src
+	new_proj.permutated |= reflector
+
+	var/angle = Get_Angle(source_turf, firer)
+	angle += rand(-angle_variance, angle_variance)
+	var/atom/target = get_angle_target_turf(source_turf,angle,get_dist_sqrd(source_turf, firer))
+
+	if(!range_override)
+		range_override = max(ammo.max_range, 1)
+
+	new_proj.fire_at(target,new_firer ? new_firer : firer,reflector,range_override,speed = ammo.shell_speed)
+	return new_proj
 
 #undef DEBUG_HIT_CHANCE
 #undef DEBUG_HUMAN_DEFENSE

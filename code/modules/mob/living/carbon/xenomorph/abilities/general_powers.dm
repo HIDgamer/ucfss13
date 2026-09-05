@@ -98,6 +98,10 @@
 		to_chat(src, SPAN_WARNING("We cannot rest while our crest is down!"))
 		return
 
+	if(HAS_TRAIT(src, TRAIT_ABILITY_ENCLOSED_PLATES))
+		to_chat(src, SPAN_WARNING("We cannot rest when we are encased in plates!"))
+		return
+
 	return ..()
 
 /datum/action/xeno_action/onclick/xeno_resting/use_ability(atom/target)

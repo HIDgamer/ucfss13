@@ -15,6 +15,8 @@
 
 	behavior_delegate_type = /datum/behavior_delegate/warrior_base
 
+	available_strains = list(/datum/xeno_strain/bulwark)
+
 	evolves_to = list(XENO_CASTE_PRAETORIAN, XENO_CASTE_CRUSHER)
 	deevolves_to = list(XENO_CASTE_DEFENDER)
 	caste_desc = "A powerful front line combatant."
@@ -63,20 +65,27 @@
 	weed_food_states = list("Warrior_1","Warrior_2","Warrior_3")
 	weed_food_states_flipped = list("Warrior_1","Warrior_2","Warrior_3")
 
-	var/lunging = FALSE // whether or not the warrior is currently lunging (holding) a target
+/mob/living/carbon/xenomorph/warrior/handle_special_state()
+	return HAS_TRAIT(src, TRAIT_ABILITY_ENCLOSED_PLATES)
+
+/mob/living/carbon/xenomorph/warrior/handle_special_wound_states(severity)
+	if(HAS_TRAIT(src, TRAIT_ABILITY_ENCLOSED_PLATES))
+		return "Warrior_plates_[severity]"
 
 /mob/living/carbon/xenomorph/warrior/throw_item(atom/target)
 	toggle_throw_mode(THROW_MODE_OFF)
 
 /mob/living/carbon/xenomorph/warrior/stop_pulling()
-	if(isliving(pulling) && lunging)
-		lunging = FALSE // To avoid extreme cases of stopping a lunge then quickly pulling and stopping to pull someone else
+	var/datum/behavior_delegate/warrior_base/warrior_delegate = behavior_delegate
+	if(isliving(pulling) && istype(warrior_delegate) && warrior_delegate.lunging)
+		warrior_delegate.lunging = FALSE // To avoid extreme cases of stopping a lunge then quickly pulling and stopping to pull someone else
 		var/mob/living/lunged = pulling
 		lunged.set_effect(0, STUN)
 		lunged.set_effect(0, WEAKEN)
 	return ..()
 
 /mob/living/carbon/xenomorph/warrior/start_pulling(atom/movable/movable_atom, lunge)
+	var/datum/behavior_delegate/warrior_base/warrior_delegate = behavior_delegate
 	if (!check_state())
 		return FALSE
 
@@ -106,11 +115,12 @@
 				return // Grab was broken, probably as Stun side effect (eg. target getting knocked away from a manned M56D)
 			visible_message(SPAN_XENOWARNING("[src] grabs [living_mob] by the throat!"),
 			SPAN_XENOWARNING("We grab [living_mob] by the throat!"))
-			lunging = TRUE
+			warrior_delegate.lunging = TRUE
 			addtimer(CALLBACK(src, PROC_REF(stop_lunging)), get_xeno_stun_duration(living_mob, 2) SECONDS + 1 SECONDS)
 
 /mob/living/carbon/xenomorph/warrior/proc/stop_lunging(world_time)
-	lunging = FALSE
+	var/datum/behavior_delegate/warrior_base/warrior_delegate = behavior_delegate
+	warrior_delegate.lunging = FALSE
 
 /mob/living/carbon/xenomorph/warrior/hitby(atom/movable/movable_atom)
 	if(ishuman(movable_atom))
@@ -131,6 +141,7 @@
 	var/lifesteal_lock_duration = 20 // This will remove the glow effect on warrior after 2 seconds
 	var/color = "#6c6f24"
 	var/emote_cooldown = 0
+	var/lunging = FALSE
 
 /datum/behavior_delegate/warrior_base/melee_attack_additional_effects_target(mob/living/carbon/carbon)
 	..()
@@ -173,6 +184,14 @@
 
 /datum/behavior_delegate/warrior_base/proc/lifesteal_lock()
 	bound_xeno.remove_filter("empower_rage")
+
+/datum/behavior_delegate/warrior_base/override_intent(mob/living/carbon/target_carbon)
+	. = ..()
+	if(!isxeno_human(target_carbon))
+		return
+
+	if(lunging && target_carbon)
+		return INTENT_HARM
 
 
 /// Warrior specific behaviour for increasing pull power, limb rip.
