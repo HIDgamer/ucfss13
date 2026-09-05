@@ -28,6 +28,9 @@
 
 	var/charges = NO_ACTION_CHARGES
 
+	/// Should the ability trigger an acid overlay for their respective caste upon action selection and deselection.
+	var/ability_uses_acid_overlay = FALSE
+
 /datum/action/xeno_action/New(Target, override_icon_state)
 	. = ..()
 	if(charges != NO_ACTION_CHARGES)
@@ -174,6 +177,8 @@
 		xeno.set_selected_ability(null)
 		if(charge_time)
 			stop_charging_ability()
+		if(ability_uses_acid_overlay)
+			xeno.overlays -= xeno.acid_overlay
 	else
 		to_chat(xeno, "You will now use [name] with [xeno.get_ability_mouse_name()].")
 		if(xeno.selected_ability)
@@ -187,9 +192,15 @@
 			to_chat(xeno, SPAN_INFO("It has [charges] uses left."))
 		if(charge_time)
 			start_charging_ability()
+		if(ability_uses_acid_overlay && !xeno.resting && xeno.stat != DEAD)
+			if(!HAS_TRAIT(xeno, TRAIT_FLOORED))
+				xeno.overlays |= xeno.acid_overlay
 
 // Called when a different action is clicked on and this one is deselected.
 /datum/action/xeno_action/activable/proc/action_deselect()
+	var/mob/living/carbon/xenomorph/xeno = owner
+	if(ability_uses_acid_overlay)
+		xeno.overlays -= xeno.acid_overlay
 	button.icon_state = "template"
 
 
@@ -452,6 +463,20 @@
 	track_xeno_ability_stats()
 	if(action_start_message)
 		to_chat(owner, SPAN_NOTICE(action_start_message))
+
+/datum/action/xeno_action/proc/update_cooldown_visual()
+	var/time_left = max(current_cooldown_start_time + current_cooldown_duration - world.time, 0)
+	if(!owner || time_left <= 0 || cooldown_timer_id == TIMER_ID_NULL)
+		button.set_maptext()
+		return PROCESS_KILL
+	else
+		button.set_maptext(SMALL_FONTS(7, round(time_left/10, 0.1)), 4, 4)
+
+/datum/action/xeno_action/proc/on_select(mob/user)
+	return
+
+/datum/action/xeno_action/proc/on_deselect(mob/user)
+	return
 
 #define XENO_ACTION_CHECK(X) if(!X.check_state() || !action_cooldown_check() || !check_plasma_owner(src.plasma_cost)) return
 #define XENO_ACTION_CHECK_USE_PLASMA(X) if(!X.check_state() || !action_cooldown_check() || !check_and_use_plasma_owner(src.plasma_cost)) return

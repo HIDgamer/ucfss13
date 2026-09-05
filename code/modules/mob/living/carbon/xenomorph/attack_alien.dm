@@ -68,9 +68,7 @@
 			//From this point, we are certain a full attack will go out. Calculate damage and modifiers
 			attacking_xeno.track_slashes(attacking_xeno.caste_type) //Adds to slash stat.
 			var/damage = rand(attacking_xeno.melee_damage_lower, attacking_xeno.melee_damage_upper) + dam_bonus
-			var/acid_damage = 0
-			if(attacking_xeno.burn_damage_lower)
-				acid_damage = rand(attacking_xeno.burn_damage_lower, attacking_xeno.burn_damage_upper)
+			var/acid_damage = attacking_xeno.behavior_delegate.melee_attack_modify_burn_damage(0, src)
 
 			//Frenzy auras stack in a way, then the raw value is multipled by two to get the additive modifier
 			if(attacking_xeno.frenzy_aura > 0)
