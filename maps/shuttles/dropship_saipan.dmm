@@ -24,13 +24,11 @@
 /turf/open/shuttle/dropship/light_grey_left_to_right,
 /area/shuttle/drop3/sulaco)
 "cB" = (
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -7
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 9
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop3/sulaco)
@@ -191,13 +189,11 @@
 	dir = 4;
 	pixel_x = -16
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 7
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -9
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop3/sulaco)
@@ -362,13 +358,11 @@
 /obj/structure/machinery/cm_vending/sorted/medical/wall_med{
 	pixel_x = 30
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -7
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 9
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop3/sulaco)
@@ -511,11 +505,11 @@
 /turf/template_noop,
 /area/shuttle/drop3/sulaco)
 "Pc" = (
-/obj/structure/bed/chair/vehicle{
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 7
 	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -9
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop3/sulaco)
@@ -537,13 +531,11 @@
 /obj/structure/machinery/cm_vending/sorted/medical/wall_med{
 	pixel_x = -30
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 7
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -9
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop3/sulaco)
@@ -585,11 +577,11 @@
 	dir = 8;
 	pixel_x = 16
 	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -7
 	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 9
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop3/sulaco)
@@ -717,7 +709,7 @@ Pc
 Cz
 Cz
 Pc
-cB
+Pc
 lr
 TZ
 gD
@@ -759,7 +751,6 @@ OK
 PS
 KR
 Pc
-cB
 Pc
 cB
 Pc
@@ -804,9 +795,7 @@ QI
 Gl
 Na
 KR
-Pc
 cB
-Pc
 cB
 Pc
 KR
@@ -833,7 +822,7 @@ sJ
 sJ
 sJ
 ai
-Pc
+cB
 FV
 SH
 cB
@@ -849,12 +838,12 @@ SD
 SD
 NV
 Rn
-Pc
 cB
-Pc
+cB
+cB
 Cz
 Cz
-Pc
+cB
 cB
 wt
 kP
