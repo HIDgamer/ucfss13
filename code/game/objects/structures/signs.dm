@@ -92,10 +92,9 @@
 /obj/structure/sign/double/maltesefalcon/right
 	icon_state = "maltesefalcon-right"
 
-/obj/structure/sign/poster/gramps
+/obj/structure/sign/gramps
 	name = "Re-enlistment Poster"
 	desc = "A faded USCM internal propaganda poster. 'Re-enlist today! Your Corps needs you, any age, any condition!'. You recognize the grey old Devil Dog in the photo."
-	icon = 'icons/obj/structures/props/wall_decorations/decals.dmi'
 	icon_state = "bravoposter"
 //============//
 //  Banners  //

@@ -37,6 +37,13 @@
 	icon_state = "86"
 	},
 /area/shuttle/drop_upp2/devana)
+"cJ" = (
+/obj/structure/bed/chair/dropship/passenger/shuttle_chair{
+	icon_state = "shuttle_chair_buckled";
+	dir = 4
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
+/area/shuttle/drop_upp2/devana)
 "cU" = (
 /obj/structure/shuttle/part/dropshipupp2/left_outer_wing_connector{
 	icon_state = "tail_3_red"
@@ -391,14 +398,12 @@
 /turf/template_noop,
 /area/shuttle/drop_upp2/devana)
 "Id" = (
-/obj/structure/bed/chair/vehicle{
-	pixel_x = -8
-	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = 8
-	},
 /obj/structure/machinery/cm_vending/sorted/medical/wall_med{
 	pixel_x = 30
+	},
+/obj/structure/bed/chair/dropship/passenger/shuttle_chair{
+	icon_state = "shuttle_chair_buckled";
+	dir = 8
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop_upp2/devana)
@@ -460,6 +465,11 @@
 /obj/effect/decal/warning_stripes{
 	icon_state = "S"
 	},
+/obj/structure/bed/chair/dropship/passenger/shuttle_chair{
+	icon_state = "shuttle_chair_buckled";
+	dir = 1;
+	pixel_y = 8
+	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop_upp2/devana)
 "Oe" = (
@@ -469,11 +479,9 @@
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop_upp2/devana)
 "Ph" = (
-/obj/structure/bed/chair/vehicle{
-	pixel_x = -8
-	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = 8
+/obj/structure/bed/chair/dropship/passenger/shuttle_chair{
+	icon_state = "shuttle_chair_buckled";
+	dir = 8
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop_upp2/devana)
@@ -522,6 +530,16 @@
 "Tj" = (
 /turf/open/shuttle/dropship/light_grey_top_left,
 /area/shuttle/drop_upp2/devana)
+"Tq" = (
+/obj/structure/sign/flag/upp{
+	pixel_y = 30
+	},
+/obj/structure/bed/chair/dropship/passenger/shuttle_chair{
+	icon_state = "shuttle_chair_buckled";
+	dir = 4
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
+/area/shuttle/drop_upp2/devana)
 "TD" = (
 /turf/closed/shuttle/upp_dropship2{
 	icon_state = "16"
@@ -551,14 +569,12 @@
 	},
 /area/shuttle/drop_upp2/devana)
 "WJ" = (
-/obj/structure/bed/chair/vehicle{
-	pixel_x = -8
-	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = 8
-	},
 /obj/structure/machinery/cm_vending/sorted/medical/wall_med{
 	pixel_x = -30
+	},
+/obj/structure/bed/chair/dropship/passenger/shuttle_chair{
+	icon_state = "shuttle_chair_buckled";
+	dir = 4
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop_upp2/devana)
@@ -572,6 +588,14 @@
 	icon_state = "20"
 	},
 /area/shuttle/drop_upp2/devana)
+"XI" = (
+/obj/structure/platform/metal/strata/north,
+/obj/structure/bed/chair/dropship/passenger/shuttle_chair{
+	icon_state = "shuttle_chair_buckled";
+	dir = 8
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
+/area/shuttle/drop_upp2/devana)
 "Yp" = (
 /turf/closed/shuttle/upp_dropship2{
 	icon_state = "26"
@@ -581,11 +605,9 @@
 /obj/structure/sign/flag/upp{
 	pixel_y = 30
 	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = -8
-	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = 8
+/obj/structure/bed/chair/dropship/passenger/shuttle_chair{
+	icon_state = "shuttle_chair_buckled";
+	dir = 8
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop_upp2/devana)
@@ -657,8 +679,8 @@ Ph
 Ph
 qc
 qc
-Ph
-Ph
+cJ
+cJ
 qB
 Wf
 Wf
@@ -684,10 +706,10 @@ Ux
 Bv
 NP
 bM
-Ph
+cJ
 WJ
-Ph
-Ph
+cJ
+cJ
 wa
 fK
 cU
@@ -745,11 +767,11 @@ Lu
 Oe
 da
 ju
-Ph
-Ph
-Ph
+cJ
+cJ
+cJ
 ju
-Ph
+cJ
 Tj
 tP
 fp
@@ -775,7 +797,7 @@ Ux
 Ux
 CR
 NP
-bM
+XI
 Ph
 Id
 Ph
