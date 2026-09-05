@@ -7,6 +7,7 @@ import {
   Input,
   LabeledControls,
   NumberInput,
+  ProgressBar,
   Section,
   Stack,
   Table,
@@ -66,6 +67,9 @@ type Data = {
   smart_alive?: number;
   specialist_type?: string;
   distress_time_lock?: number;
+  radio_clarity: number;
+  clarity_color: string;
+  clarity_status: string;
 };
 
 export const OverwatchConsole = (props) => {
@@ -195,6 +199,16 @@ const MainDashboard = (props) => {
       title={current_squad! + ' Overwatch | Dashboard'}
       buttons={
         <>
+          <Box inline width="140px" mr={1}>
+            <ProgressBar
+              value={data.radio_clarity}
+              minValue={0}
+              maxValue={100}
+              color={data.clarity_color}
+            >
+              {data.clarity_status} {data.radio_clarity}%
+            </ProgressBar>
+          </Box>
           <Button icon="user" onClick={() => act('change_operator')}>
             Operator - {data.operator}
           </Button>
@@ -232,7 +246,7 @@ const MainDashboard = (props) => {
             inline
             width="23%"
             icon="person"
-            onClick={() => act('check_primary')}
+            onClick={() => act('remind_primary')}
           >
             REMIND PRIMARY
           </Button>
@@ -250,7 +264,7 @@ const MainDashboard = (props) => {
             inline
             width="23%"
             icon="person"
-            onClick={() => act('check_secondary')}
+            onClick={() => act('remind_secondary')}
           >
             REMIND SECONDARY
           </Button>

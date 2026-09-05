@@ -284,6 +284,10 @@ SUBSYSTEM_DEF(radio)
 	var/list/tcomm_machines_ground = list()
 	var/list/tcomm_machines_almayer = list()
 
+	/// The last cached result of whether groundside comms (COMM_FREQ) are currently up. Single scalar
+	/// since this fork only ever has one active ground deployment at a time (no multiZ support).
+	var/last_command_comms_up = FALSE
+
 	var/static/list/freq_to_span = list(
 		"[COMM_FREQ]" = "comradio",
 		"[AI_FREQ]" = "airadio",
@@ -381,8 +385,16 @@ SUBSYSTEM_DEF(radio)
 			target_zs += SSmapping.levels_by_trait(ZTRAIT_MARINE_MAIN_SHIP)
 			target_zs += SSmapping.levels_by_trait(ZTRAIT_RESERVED)
 			break
-	SEND_SIGNAL(src, COMSIG_SSRADIO_GET_AVAILABLE_TCOMMS_ZS, target_zs)
 	return target_zs
+
+/// Recomputes whether groundside comms (COMM_FREQ) are currently up. Call this whenever a
+/// telecomms tower's on/off/frequency state changes.
+/datum/controller/subsystem/radio/proc/update_cache()
+	last_command_comms_up = FALSE
+	for(var/obj/structure/machinery/telecomms/tower as anything in tcomm_machines_ground)
+		if((UNIVERSAL_FREQ in tower.freq_listening) || (COMM_FREQ in tower.freq_listening))
+			last_command_comms_up = TRUE
+			break
 
 /datum/controller/subsystem/radio/proc/add_tcomm_machine(obj/machine)
 	if(is_ground_level(machine.z))
