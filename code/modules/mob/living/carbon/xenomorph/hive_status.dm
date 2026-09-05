@@ -641,7 +641,7 @@
 		list(XENO_CASTE_LARVA = 0, "Queen" = 0),
 		list(XENO_CASTE_DRONE = 0, XENO_CASTE_RUNNER = 0, XENO_CASTE_SENTINEL = 0, XENO_CASTE_DEFENDER = 0),
 		list(XENO_CASTE_HIVELORD = 0, XENO_CASTE_BURROWER = 0, XENO_CASTE_CARRIER = 0, XENO_CASTE_LURKER = 0, XENO_CASTE_SPITTER = 0, XENO_CASTE_WARRIOR = 0),
-		list(XENO_CASTE_BOILER = 0, XENO_CASTE_CRUSHER = 0, XENO_CASTE_PRAETORIAN = 0, XENO_CASTE_RAVAGER = 0)
+		list(XENO_CASTE_BOILER = 0, XENO_CASTE_CRUSHER = 0, XENO_CASTE_PRAETORIAN = 0, XENO_CASTE_RAVAGER = 0, XENO_CASTE_DESPOILER = 0)
 	)
 
 	for(var/mob/living/carbon/xenomorph/X in totalXenos)
@@ -656,9 +656,38 @@
 
 	return xeno_counts
 
-// Returns a sorted list of some basic info (stuff that's needed for sorting) about all the xenos in the hive
-// The idea is that we sort this list, and use it as a "key" for all the other information (especially the nicknumber)
-// in the hive status UI. That way we can minimize the amount of sorts performed by only calling this when xenos are created/disposed
+/// Returns the full minimap icon as base64 string.
+/datum/hive_status/proc/get_xeno_icons()
+	// Must match hardcoded xeno counts order.
+	var/list/xeno_icons = list(
+		list(XENO_CASTE_LARVA = "", XENO_CASTE_QUEEN = "", XENO_CASTE_PREDALIEN_LARVA = "", XENO_CASTE_HELLHOUND = ""),
+		list(XENO_CASTE_DRONE = "", XENO_CASTE_RUNNER = "", XENO_CASTE_SENTINEL = "", XENO_CASTE_DEFENDER = "", XENO_CASTE_PREDALIEN = ""),
+		list(XENO_CASTE_HIVELORD = "", XENO_CASTE_BURROWER = "", XENO_CASTE_CARRIER = "", XENO_CASTE_LURKER = "", XENO_CASTE_SPITTER = "", XENO_CASTE_WARRIOR = ""),
+		list(XENO_CASTE_BOILER = "", XENO_CASTE_CRUSHER = "", XENO_CASTE_PRAETORIAN = "", XENO_CASTE_RAVAGER = "", XENO_CASTE_DESPOILER = "")
+	)
+
+	for(var/caste in GLOB.xeno_datum_list)
+		var/datum/caste_datum/caste_datum = GLOB.xeno_datum_list[caste]
+
+		// Special castes like king will not show up.
+		if(caste_datum.tier < 0 || caste_datum.tier >= length(xeno_icons) || !(caste_datum.caste_type in xeno_icons[caste_datum.tier+1]))
+			continue
+
+		xeno_icons[caste_datum.tier+1][caste_datum.caste_type] = GLOB.minimap_icons[caste_datum.minimap_icon]
+
+	return xeno_icons
+
+/// Returns the default minimap icon background, as specified on drone caste.
+/datum/hive_status/proc/get_xeno_background()
+	var/datum/caste_datum/drone = GLOB.xeno_datum_list[XENO_CASTE_DRONE]
+
+	return GLOB.minimap_icons[drone.minimap_background]
+
+/**
+ * Returns a sorted list of some basic info (stuff that's needed for sorting) about all the xenos in the hive
+ * The idea is that we sort this list, and use it as a "key" for all the other information (especially the nicknumber)
+ * in the hive status UI. That way we can minimize the amount of sorts performed by only calling this when xenos are created/disposed
+ */
 /datum/hive_status/proc/get_xeno_keys()
 	var/list/xenos = list()
 
