@@ -10,11 +10,19 @@
  * * stime - For how long the camera shakes
  * * drop - If the shaking can make people fall, or be thrown away if sstrength is above 7
  * * osound - not included in the admin verb! Can be set to FALSE if you don't want it's original sounds to play in case you want something different
+ * * restrict_to_mobs - if given, only these mobs are affected instead of every living mob on the
+ *   main ship level. Used by localized callers (e.g. a dropship sequence-violation consequence)
+ *   that want this same effect/sound package without hitting the entire crew.
  */
-/proc/shakeship(sstrength, stime, drop, osound = TRUE)
-	for(var/mob/living/carbon/current_mob in GLOB.living_mob_list)
-		if(!is_mainship_level(current_mob.z))
-			continue
+/proc/shakeship(sstrength, stime, drop, osound = TRUE, list/restrict_to_mobs = null)
+	var/list/mobs_to_shake = restrict_to_mobs
+	if(!mobs_to_shake)
+		mobs_to_shake = list()
+		for(var/mob/living/carbon/current_mob in GLOB.living_mob_list)
+			if(!is_mainship_level(current_mob.z))
+				continue
+			mobs_to_shake += current_mob
+	for(var/mob/living/carbon/current_mob as anything in mobs_to_shake)
 		shake_camera(current_mob, stime, sstrength)
 		if(drop)
 			current_mob.apply_effect(3, WEAKEN)

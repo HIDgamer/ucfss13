@@ -314,6 +314,14 @@ SUBSYSTEM_DEF(shuttle)
 		if(M.is_in_shuttle_bounds(A))
 			return TRUE
 
+/// Refreshes every dropship flight computer's cached destination list, not just whichever
+/// console's own ship happens to have moved - see GLOB.dropship_flight_consoles. Call this any
+/// time a dock's availability could have changed for someone other than the shuttle that caused it
+/// (e.g. an airlock finishing a cycle, a dock becoming occupied/vacated).
+/datum/controller/subsystem/shuttle/proc/refresh_dropship_destination_lists()
+	for(var/obj/structure/machinery/computer/shuttle/dropship/flight/console as anything in GLOB.dropship_flight_consoles)
+		console.update_static_data_for_all_viewers()
+
 /datum/controller/subsystem/shuttle/proc/get_containing_shuttle(atom/A)
 	var/list/mobile_cache = mobile
 	for(var/i in 1 to length(mobile_cache))
@@ -623,7 +631,7 @@ SUBSYSTEM_DEF(shuttle)
 			L["has_disable"] = TRUE
 			L["is_disabled"] = console.is_disabled()
 
-		if(!M.destination)
+		if(!M.destination && M.mode != SHUTTLE_RECHARGING)
 			L["can_fast_travel"] = FALSE
 		if (M.mode != SHUTTLE_IDLE)
 			L["mode"] = capitalize(M.mode)

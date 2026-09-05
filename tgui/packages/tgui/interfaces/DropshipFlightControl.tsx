@@ -41,6 +41,15 @@ interface AutomatedControl {
   ground_lz: null | string;
 }
 
+interface AirlockData {
+  processing: boolean;
+  playing_alarm: boolean;
+  inner_open: boolean;
+  lowered: boolean;
+  outer_open: boolean;
+  clamps_disengaged: boolean;
+}
+
 type ShuttleRef = {
   name: string;
   id: string;
@@ -59,6 +68,7 @@ export interface DropshipNavigationProps extends NavigationProps {
   playing_launch_announcement_alarm: boolean;
   can_change_shuttle: 0 | 1;
   alternative_shuttles: Array<ShuttleRef>;
+  airlock_data: AirlockData | null;
 }
 
 const DropshipDoorControl = () => {
@@ -151,6 +161,66 @@ const DropshipDoorControl = () => {
               </Stack.Item>
             );
           })}
+      </Stack>
+    </Section>
+  );
+};
+
+const DropshipAirlockControl = () => {
+  const { data, act } = useBackend<DropshipNavigationProps>();
+  const airlock = data.airlock_data;
+  if (!airlock) {
+    return null;
+  }
+  const disabled = airlock.processing;
+  return (
+    <Section title="Hangar Airlock Control">
+      <Stack className="DoorControlStack">
+        <Stack.Item>
+          <Button
+            disabled={disabled}
+            icon={airlock.playing_alarm ? 'bell-slash' : 'bell'}
+            onClick={() => act('airlock-control', { step: 'alarm' })}
+          >
+            {airlock.playing_alarm ? 'Silence Alarm' : 'Sound Alarm'}
+          </Button>
+        </Stack.Item>
+        <Stack.Item>
+          <Button
+            disabled={disabled}
+            icon={airlock.inner_open ? 'door-closed' : 'door-open'}
+            onClick={() => act('airlock-control', { step: 'inner' })}
+          >
+            {airlock.inner_open ? 'Close Inner Airlock' : 'Open Inner Airlock'}
+          </Button>
+        </Stack.Item>
+        <Stack.Item>
+          <Button
+            disabled={disabled}
+            icon={airlock.lowered ? 'arrow-up' : 'arrow-down'}
+            onClick={() => act('airlock-control', { step: 'height' })}
+          >
+            {airlock.lowered ? 'Raise Dropship' : 'Lower Dropship'}
+          </Button>
+        </Stack.Item>
+        <Stack.Item>
+          <Button
+            disabled={disabled}
+            icon={airlock.outer_open ? 'door-closed' : 'door-open'}
+            onClick={() => act('airlock-control', { step: 'outer' })}
+          >
+            {airlock.outer_open ? 'Close Outer Airlock' : 'Open Outer Airlock'}
+          </Button>
+        </Stack.Item>
+        <Stack.Item>
+          <Button
+            disabled={disabled}
+            icon={airlock.clamps_disengaged ? 'link' : 'link-slash'}
+            onClick={() => act('airlock-control', { step: 'clamps' })}
+          >
+            {airlock.clamps_disengaged ? 'Engage Clamps' : 'Disengage Clamps'}
+          </Button>
+        </Stack.Item>
       </Stack>
     </Section>
   );
@@ -460,6 +530,7 @@ export const RenderScreen = () => {
         <DropshipDestinationSelection />
       )}
       {data.door_status.length > 0 && <DropshipDoorControl />}
+      {data.airlock_data && <DropshipAirlockControl />}
       {data.alternative_shuttles.length === 0 && <LaunchAnnouncementAlarm />}
     </>
   );
@@ -475,10 +546,70 @@ export const DropshipDisabledScreen = () => {
   );
 };
 
+const WINDOW_CHROME = 60; // titlebar + Window.Content padding
+const SECTION_CHROME = 40; // one Section's title/border overhead
+const ROW_HEIGHT = 34; // one destination/door/ship row
+
+// Mirrors RenderScreen's own conditions exactly, so the window is sized for what's actually
+// about to render instead of guessing off a single unrelated field (see git history - this used
+// to be a two-state ternary on `airlock_data` alone, which never accounted for AutopilotConfig,
+// DropshipSelector, or DropshipDoorControl, all of which can inflate content independently of it).
+const getWindowHeight = (data: DropshipNavigationProps) => {
+  let height = WINDOW_CHROME;
+
+  if (data.alternative_shuttles.length > 0) {
+    height += SECTION_CHROME + ROW_HEIGHT; // DropshipSelector
+  }
+
+  const showDestinations =
+    data.shuttle_mode === 'idle' ||
+    (data.shuttle_mode === 'called' && !data.target_destination);
+  if (showDestinations) {
+    height += SECTION_CHROME + data.destinations.length * ROW_HEIGHT;
+  }
+
+  const showAutopilot =
+    (data.shuttle_mode === 'idle' || data.shuttle_mode === 'recharging') &&
+    data.can_set_automated === 1;
+  if (showAutopilot) {
+    // AutopilotConfig draws the full destinations list twice - a "From" list and a "To" list -
+    // plus its own two label/divider Stack.Items.
+    height +=
+      SECTION_CHROME + data.destinations.length * ROW_HEIGHT * 2 + ROW_HEIGHT * 2;
+  }
+
+  if (data.shuttle_mode === 'igniting') {
+    height += SECTION_CHROME + ROW_HEIGHT * 2; // LaunchCountdown
+  }
+  if (data.shuttle_mode === 'pre-arrival') {
+    height += SECTION_CHROME + ROW_HEIGHT * 2; // TouchdownCooldown
+  }
+  if (data.shuttle_mode === 'recharging') {
+    height += SECTION_CHROME + ROW_HEIGHT; // ShuttleRecharge
+  }
+  if (data.shuttle_mode === 'called' && data.target_destination) {
+    height += SECTION_CHROME + ROW_HEIGHT * 2; // InFlightCountdown
+  }
+
+  if (data.door_status.length > 0) {
+    height += SECTION_CHROME + Math.ceil(data.door_status.length / 3) * ROW_HEIGHT;
+  }
+
+  if (data.airlock_data) {
+    height += SECTION_CHROME + 5 * ROW_HEIGHT; // DropshipAirlockControl's 5 fixed buttons
+  }
+
+  if (data.alternative_shuttles.length === 0) {
+    height += SECTION_CHROME + ROW_HEIGHT; // LaunchAnnouncementAlarm
+  }
+
+  return Math.min(Math.max(height, 400), 1200);
+};
+
 export const DropshipFlightControl = () => {
   const { data } = useBackend<DropshipNavigationProps>();
   return (
-    <Window theme="crtgreen" height={500} width={700}>
+    <Window theme="crtgreen" height={getWindowHeight(data)} width={700}>
       <Window.Content className="NavigationMenu" scrollable>
         {data.is_disabled === 0 ? <RenderScreen /> : <DropshipDisabledScreen />}
       </Window.Content>

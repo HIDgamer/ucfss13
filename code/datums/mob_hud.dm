@@ -251,7 +251,8 @@ GLOBAL_LIST_INIT_TYPED(huds, /datum/mob_hud, alist(
 	hud.add_to_hud(src)
 
 /mob/living/carbon/human/add_to_all_mob_huds()
-	for(var/datum/mob_hud/hud in GLOB.huds)
+	for(var/hud_key in GLOB.huds)
+		var/datum/mob_hud/hud = GLOB.huds[hud_key]
 		if(istype(hud, /datum/mob_hud/xeno)) //this one is xeno only
 			continue
 		if(istype(hud, /datum/mob_hud/faction))
@@ -275,13 +276,15 @@ GLOBAL_LIST_INIT_TYPED(huds, /datum/mob_hud, alist(
 	hud.remove_from_hud(src)
 
 /mob/living/carbon/human/remove_from_all_mob_huds()
-	for(var/datum/mob_hud/hud in GLOB.huds)
+	for(var/hud_key in GLOB.huds)
+		var/datum/mob_hud/hud = GLOB.huds[hud_key]
 		if(istype(hud, /datum/mob_hud/xeno))
 			continue
 		hud.remove_from_hud(src)
 
 /mob/living/carbon/xenomorph/remove_from_all_mob_huds()
-	for(var/datum/mob_hud/hud in GLOB.huds)
+	for(var/hud_key in GLOB.huds)
+		var/datum/mob_hud/hud = GLOB.huds[hud_key]
 		if(istype(hud, /datum/mob_hud/xeno))
 			hud.remove_from_hud(src)
 			hud.remove_hud_from(src, src)
@@ -301,7 +304,8 @@ GLOBAL_LIST_INIT_TYPED(huds, /datum/mob_hud, alist(
 
 /mob/proc/refresh_huds(mob/source_mob)
 	var/mob/M = source_mob ? source_mob : src
-	for(var/datum/mob_hud/hud in GLOB.huds)
+	for(var/hud_key in GLOB.huds)
+		var/datum/mob_hud/hud = GLOB.huds[hud_key]
 		if(M in hud.hudusers)
 			hud.refresh_hud(src, hud.hudusers[M])
 

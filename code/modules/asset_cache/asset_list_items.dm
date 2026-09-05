@@ -335,7 +335,10 @@
 						new_icon.Blend(new_color, ICON_MULTIPLY)
 				else
 					new_icon = getFlatIcon(item)
-					new_icon.Scale(32,32)
+					if(!new_icon)
+						log_debug("vending_products: getFlatIcon() failed for [current_product], skipping icon")
+					else
+						new_icon.Scale(32,32)
 				qdel(item)
 			else
 				new_icon = icon(icon_file, icon_state, SOUTH)
@@ -352,13 +355,18 @@
 					icon_state = initial(target.icon_state)
 					var/target_obj = new target()
 					new_icon = getFlatIcon(target_obj)
-					new_icon.Scale(32,32)
+					if(!new_icon)
+						log_debug("vending_products: getFlatIcon() failed for [current_product] (essentials_set target [target]), skipping icon")
+					else
+						new_icon.Scale(32,32)
 					qdel(target_obj)
 			else
 				item = new current_product()
 				new_icon = icon(item.icon, item.icon_state, SOUTH)
 				qdel(item)
 
+		if(!new_icon)
+			continue
 		Insert(imgid, new_icon)
 	return ..()
 

@@ -24,6 +24,9 @@
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop_upp/morana)
 "bg" = (
+/obj/structure/machinery/light/dropship{
+	dir = 8
+	},
 /turf/open/shuttle/dropship/light_grey_top_left,
 /area/shuttle/drop_upp/morana)
 "bv" = (
@@ -102,6 +105,9 @@
 	},
 /area/shuttle/drop_upp/morana)
 "fu" = (
+/obj/structure/machinery/light/dropship{
+	dir = 4
+	},
 /turf/open/shuttle/dropship/light_grey_top_right,
 /area/shuttle/drop_upp/morana)
 "fD" = (
@@ -134,6 +140,16 @@
 	dir = 4
 	},
 /turf/template_noop,
+/area/shuttle/drop_upp/morana)
+"hi" = (
+/obj/structure/bed/chair/dropship/passenger/shuttle_chair{
+	icon_state = "shuttle_chair_buckled";
+	dir = 8
+	},
+/obj/structure/machinery/light/dropship{
+	dir = 4
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop_upp/morana)
 "hI" = (
 /obj/docking_port/mobile/marine_dropship/morana,
@@ -466,6 +482,16 @@
 	icon_state = "98"
 	},
 /area/shuttle/drop_upp/morana)
+"JG" = (
+/obj/structure/bed/chair/dropship/passenger/shuttle_chair{
+	icon_state = "shuttle_chair_buckled";
+	dir = 4
+	},
+/obj/structure/machinery/light/dropship{
+	dir = 8
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
+/area/shuttle/drop_upp/morana)
 "JO" = (
 /turf/closed/shuttle/upp_dropship{
 	icon_state = "68"
@@ -675,9 +701,9 @@ VN
 VN
 hN
 Ky
-bR
-po
-po
+Vf
+JG
+gs
 qj
 qj
 gs
@@ -709,8 +735,8 @@ Hp
 FI
 gs
 tD
-po
-po
+JG
+gs
 zk
 gQ
 Wc
@@ -801,7 +827,7 @@ Hp
 Gb
 po
 is
-po
+hi
 po
 zk
 XZ
@@ -814,7 +840,7 @@ VN
 oJ
 Ky
 bR
-po
+hi
 po
 qj
 qj

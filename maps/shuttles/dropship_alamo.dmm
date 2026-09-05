@@ -4,11 +4,11 @@
 	dir = 4;
 	pixel_x = -16
 	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 7
 	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -9
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop1/sulaco)
@@ -29,13 +29,11 @@
 	dir = 8;
 	pixel_x = 16
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 9
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -7
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop1/sulaco)
@@ -68,6 +66,18 @@
 "eD" = (
 /obj/structure/shuttle/part/dropship1/transparent/engine_right_cap,
 /turf/template_noop,
+/area/shuttle/drop1/sulaco)
+"fB" = (
+/obj/structure/machinery/light/dropship{
+	dir = 8
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 7
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -9
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop1/sulaco)
 "hG" = (
 /turf/closed/shuttle/dropship1{
@@ -181,13 +191,11 @@
 /obj/structure/machinery/cm_vending/sorted/medical/wall_med{
 	pixel_x = -30
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 7
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -9
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop1/sulaco)
@@ -222,13 +230,11 @@
 /turf/template_noop,
 /area/shuttle/drop1/sulaco)
 "ws" = (
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 7
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -9
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop1/sulaco)
@@ -323,6 +329,18 @@
 /obj/structure/shuttle/part/dropship1/transparent/engine_left_exhaust,
 /turf/template_noop,
 /area/shuttle/drop1/sulaco)
+"Fg" = (
+/obj/structure/machinery/light/dropship{
+	dir = 8
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 9
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -7
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
+/area/shuttle/drop1/sulaco)
 "FA" = (
 /obj/structure/shuttle/part/dropship1/transparent/engine_left_cap,
 /turf/template_noop,
@@ -403,6 +421,15 @@
 	dir = 1
 	},
 /obj/structure/blocker/forcefield/multitile_vehicles,
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
+/area/shuttle/drop1/sulaco)
+"KD" = (
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 9
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -7
+	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop1/sulaco)
 "KJ" = (
@@ -510,13 +537,11 @@
 /obj/structure/machinery/cm_vending/sorted/medical/wall_med{
 	pixel_x = 30
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 9
 	},
-/obj/structure/bed/chair/vehicle{
-	dir = 1;
-	pixel_x = -8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -7
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop1/sulaco)
@@ -526,11 +551,14 @@
 	},
 /area/shuttle/drop1/sulaco)
 "TK" = (
-/obj/structure/bed/chair/vehicle{
-	pixel_x = -8
+/obj/structure/machinery/light/dropship{
+	dir = 4
 	},
-/obj/structure/bed/chair/vehicle{
-	pixel_x = 8
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 7
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -9
 	},
 /turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop1/sulaco)
@@ -564,6 +592,18 @@
 "VM" = (
 /obj/structure/shuttle/part/dropship1/transparent/nose_top_left,
 /turf/template_noop,
+/area/shuttle/drop1/sulaco)
+"Wd" = (
+/obj/structure/machinery/light/dropship{
+	dir = 4
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 9
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -7
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop1/sulaco)
 "Wg" = (
 /obj/structure/shuttle/part/dropship1/right_outer_wing_connector,
@@ -677,12 +717,12 @@ mb
 mb
 UN
 oo
-TK
 ws
-TK
+ws
+ws
 il
 il
-TK
+ws
 ws
 SM
 de
@@ -707,11 +747,11 @@ Zo
 Zo
 Zo
 Ce
-TK
+ws
 qF
 aj
+fB
 ws
-TK
 ws
 WQ
 Me
@@ -724,11 +764,11 @@ UG
 wC
 Vm
 in
-TK
+ws
 ws
 TK
 ws
-TK
+ws
 in
 Zo
 Zo
@@ -770,11 +810,11 @@ Ho
 Co
 Jb
 in
-TK
-ws
-TK
-ws
-TK
+KD
+KD
+Fg
+KD
+KD
 in
 Zo
 Zo
@@ -799,12 +839,12 @@ Zo
 Zo
 Zo
 Tt
-TK
+KD
 Tu
-TK
-ws
-TK
-ws
+KD
+Wd
+KD
+KD
 LP
 Ta
 Wg
@@ -815,13 +855,13 @@ mb
 mb
 IP
 oo
-TK
+KD
 cr
-TK
+KD
 il
 il
-TK
-ws
+KD
+KD
 BS
 Zv
 Zv
