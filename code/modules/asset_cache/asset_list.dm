@@ -171,6 +171,11 @@ GLOBAL_LIST_EMPTY(asset_datums)
 
 		var/icon/tiny = size[SPRSZ_ICON]
 		var/icon/big = size[SPRSZ_STRIPPED]
+		if(big.Width() % tiny.Width() || big.Height() % tiny.Height())
+			// The exported sheet's real dimensions aren't a clean multiple of a single sprite's
+			// size - the per_line grid math below would silently compute wrong crop positions for
+			// every sprite in this size group instead of erroring, so flag it loudly instead.
+			stack_trace("spritesheet [name] size [size_id]: stripped sheet is [big.Width()]x[big.Height()], not a clean multiple of the [tiny.Width()]x[tiny.Height()] sprite size - background-position math will be wrong for [sprite_id] and likely others in this size group")
 		var/per_line = big.Width() / tiny.Width()
 		var/x = (idx % per_line) * tiny.Width()
 		var/y = floor(idx / per_line) * tiny.Height()

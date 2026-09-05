@@ -184,6 +184,18 @@
 	icon_state = "18"
 	},
 /area/shuttle/drop3/sulaco)
+"nZ" = (
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -7
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 9
+	},
+/obj/structure/machinery/light/dropship{
+	dir = 8
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
+/area/shuttle/drop3/sulaco)
 "og" = (
 /obj/structure/machinery/camera/autoname/almayer/dropship_three{
 	dir = 4;
@@ -201,6 +213,18 @@
 /turf/closed/shuttle/dropship3{
 	icon_state = "77"
 	},
+/area/shuttle/drop3/sulaco)
+"pw" = (
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -7
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 9
+	},
+/obj/structure/machinery/light/dropship{
+	dir = 4
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop3/sulaco)
 "qP" = (
 /obj/structure/machinery/door/airlock/multi_tile/almayer/dropshiprear/dropshipside/ds3{
@@ -265,6 +289,18 @@
 /turf/closed/shuttle/dropship3/transparent{
 	icon_state = "23"
 	},
+/area/shuttle/drop3/sulaco)
+"vP" = (
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 7
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -9
+	},
+/obj/structure/machinery/light/dropship{
+	dir = 4
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
 /area/shuttle/drop3/sulaco)
 "wl" = (
 /turf/closed/shuttle/dropship3/transparent{
@@ -405,6 +441,18 @@
 	icon_state = "28"
 	},
 /area/shuttle/drop3/sulaco)
+"IB" = (
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = 7
+	},
+/obj/structure/bed/chair/vehicle/white{
+	pixel_x = -9
+	},
+/obj/structure/machinery/light/dropship{
+	dir = 8
+	},
+/turf/open/shuttle/dropship/medium_grey_single_wide_up_to_down,
+/area/shuttle/drop3/sulaco)
 "IF" = (
 /turf/closed/shuttle/dropship3{
 	icon_state = "51"
@@ -527,6 +575,8 @@
 /obj/structure/shuttle/part/dropship3/left_outer_wing_connector,
 /turf/template_noop,
 /area/shuttle/drop3/sulaco)
+"Qp" = (
+)
 "Qy" = (
 /obj/structure/machinery/cm_vending/sorted/medical/wall_med{
 	pixel_x = -30
@@ -673,6 +723,7 @@ Nf
 SD
 SD
 SD
+Qp
 "}
 (2,1,1) = {"
 SD
@@ -696,6 +747,7 @@ jI
 SD
 SD
 Sj
+Qp
 "}
 (3,1,1) = {"
 SD
@@ -719,6 +771,7 @@ nI
 Pb
 SD
 wr
+Qp
 "}
 (4,1,1) = {"
 Dx
@@ -736,12 +789,13 @@ fh
 Pc
 Qy
 Pc
-cB
+IB
 Pc
-cB
+Pc
 SM
 wY
 PY
+Qp
 "}
 (5,1,1) = {"
 Tc
@@ -752,7 +806,8 @@ PS
 KR
 Pc
 Pc
-cB
+vP
+Pc
 Pc
 KR
 sJ
@@ -764,6 +819,7 @@ sJ
 Tx
 SD
 SD
+Qp
 "}
 (6,1,1) = {"
 Tc
@@ -787,6 +843,7 @@ Of
 Cz
 SD
 SD
+Qp
 "}
 (7,1,1) = {"
 Tc
@@ -797,7 +854,9 @@ Na
 KR
 cB
 cB
-Pc
+nZ
+cB
+cB
 KR
 sJ
 sJ
@@ -808,6 +867,7 @@ sJ
 Cz
 SD
 SD
+Qp
 "}
 (8,1,1) = {"
 rB
@@ -825,8 +885,8 @@ ai
 cB
 FV
 SH
+pw
 cB
-Pc
 cB
 Nt
 fb
@@ -854,6 +914,7 @@ ul
 OU
 SD
 MM
+Qp
 "}
 (10,1,1) = {"
 SD
@@ -877,6 +938,7 @@ Nf
 SD
 SD
 uD
+Qp
 "}
 (11,1,1) = {"
 SD
@@ -900,4 +962,5 @@ jI
 SD
 SD
 SD
+Qp
 "}

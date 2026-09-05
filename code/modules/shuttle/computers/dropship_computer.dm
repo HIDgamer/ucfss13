@@ -1,3 +1,8 @@
+// Every dropship flight computer instance, so a dock-availability change anywhere can refresh
+// every console watching it, not just the one riding whichever ship caused the change - see
+// SSshuttle.refresh_dropship_destination_lists().
+GLOBAL_LIST_EMPTY(dropship_flight_consoles)
+
 /obj/structure/machinery/computer/shuttle/dropship/flight
 	name = "dropship navigation computer"
 	desc = "A flight computer that can be used for autopilot or long-range flights."
@@ -42,8 +47,10 @@
 /obj/structure/machinery/computer/shuttle/dropship/flight/Initialize(mapload, ...)
 	. = ..()
 	compatible_landing_zones = get_landing_zones()
+	GLOB.dropship_flight_consoles += src
 
 /obj/structure/machinery/computer/shuttle/dropship/flight/Destroy()
+	GLOB.dropship_flight_consoles -= src
 	. = ..()
 	compatible_landing_zones = null
 
@@ -54,7 +61,25 @@
 			continue
 		if(istype(dock, /obj/docking_port/stationary/marine_dropship/crash_site))
 			continue
+		if(istype(dock, /obj/docking_port/stationary/marine_dropship/airlock/inner))
+			continue // only reachable by physically coming up through this airlock's own outer dock and
+			// raising - see ceremony_satisfied_for() and canDock() on /obj/docking_port/mobile/marine_dropship,
+			// which is what actually enforces this now (as of this cache and the register/unregister
+			// duality both being fixed - a returning ship targets the outer dock instead, below)
 		. += list(dock)
+
+/obj/structure/machinery/computer/shuttle/dropship/flight/proc/get_linked_airlock()
+	var/obj/docking_port/mobile/marine_dropship/shuttle = SSshuttle.getShuttle(shuttleId)
+	if(!shuttle)
+		return null
+	var/obj/docking_port/stationary/dock = shuttle.get_docked()
+	if(istype(dock, /obj/docking_port/stationary/marine_dropship/airlock/inner))
+		return dock
+	if(istype(dock, /obj/docking_port/stationary/marine_dropship/airlock/outer))
+		// Docked at the outer port (e.g. mid-lowered into the airlock) — resolve back to its inner counterpart
+		var/obj/docking_port/stationary/marine_dropship/airlock/outer/outer_dock = dock
+		return outer_dock.linked_inner
+	return null
 
 /obj/structure/machinery/computer/shuttle/dropship/flight/is_disabled()
 	return disabled
@@ -415,9 +440,9 @@
 	.["can_fly_by"] = !is_remote
 	.["can_set_automated"] = is_remote
 	.["automated_control"] = list(
-		"is_automated" = shuttle?.automated_hangar_id != null || shuttle?.automated_lz_id != null,
-		"hangar_lz" = shuttle?.automated_hangar_id,
-		"ground_lz" = shuttle?.automated_lz_id
+		"is_automated" = shuttle?.automated_hangar != null || shuttle?.automated_lz != null,
+		"hangar_lz" = shuttle?.automated_hangar?.id,
+		"ground_lz" = shuttle?.automated_lz?.id
 	)
 	.["primary_lz"] = SSticker.mode.active_lz?.linked_lz
 	if(shuttle?.destination)
@@ -428,6 +453,19 @@
 
 	// Launch Alarm Variables
 	.["playing_launch_announcement_alarm"] = shuttle?.playing_launch_announcement_alarm
+
+	// Hangar Airlock Variables (only present while docked at a hangar airlock)
+	var/obj/docking_port/stationary/marine_dropship/airlock/inner/airlock = get_linked_airlock()
+	.["airlock_data"] = null
+	if(airlock)
+		.["airlock_data"] = list(
+			"processing" = airlock.processing,
+			"playing_alarm" = airlock.playing_airlock_alarm,
+			"inner_open" = airlock.open_inner_airlock,
+			"lowered" = airlock.lowered_dropship,
+			"outer_open" = airlock.open_outer_airlock,
+			"clamps_disengaged" = airlock.disengaged_clamps,
+		)
 
 	.["destinations"] = list()
 	// add flight
@@ -551,6 +589,45 @@
 			else
 				playsound(loc, 'sound/machines/terminal_error.ogg', KEYBOARD_SOUND_VOLUME, 1)
 				to_chat(user, SPAN_WARNING("Door controls have been overridden. Please call technical support."))
+		if("airlock-control")
+			var/obj/docking_port/stationary/marine_dropship/airlock/inner/airlock = get_linked_airlock()
+			if(!airlock)
+				return FALSE
+			var/step = params["step"]
+			var/override_warning
+			switch(step)
+				if("alarm")
+					override_warning = "send a command to the airlock alarms"
+				if("inner")
+					override_warning = "send a command to inner airlock"
+				if("height")
+					override_warning = "raise or lower the dropship"
+				if("outer")
+					override_warning = "send a command to the outer airlock"
+				if("clamps")
+					override_warning = "send a command to the clamps"
+				else
+					return FALSE
+			if(shuttle.automated_delay && shuttle.automated_hangar && shuttle.automated_lz)
+				var/confirm_automatic_override = tgui_alert(usr, "Are you sure you want to [override_warning]? It will, if conflicting, override and destroy all automatic pilot commands.", "Override Autopilot", list("Yes", "No"))
+				if(confirm_automatic_override != "Yes")
+					return FALSE
+			var/list/result
+			switch(step)
+				if("alarm")
+					result = airlock.update_airlock_alarm(!airlock.playing_airlock_alarm)
+				if("inner")
+					result = airlock.update_inner_airlock(!airlock.open_inner_airlock)
+				if("height")
+					result = airlock.update_dropship_height(!airlock.lowered_dropship)
+				if("outer")
+					result = airlock.update_outer_airlock(!airlock.open_outer_airlock)
+				if("clamps")
+					result = airlock.update_clamps(!airlock.disengaged_clamps)
+			playsound(loc, get_sfx("terminal_button"), KEYBOARD_SOUND_VOLUME, 1)
+			if(result && !result["successful"] && result["to_chat"])
+				to_chat(user, SPAN_WARNING(result["to_chat"]))
+			return TRUE
 		if("set-automate")
 			if(!shuttle)
 				return FALSE
@@ -568,8 +645,26 @@
 				playsound(loc, 'sound/machines/terminal_error.ogg', KEYBOARD_SOUND_VOLUME, 1)
 				return
 
-			shuttle.automated_hangar_id = almayer_lz
-			shuttle.automated_lz_id = ground_lz
+			var/almayer_dock = SSshuttle.getDock(almayer_lz)
+			var/ground_dock = SSshuttle.getDock(ground_lz)
+
+			if(istype(almayer_dock, /obj/docking_port/stationary/marine_dropship/airlock/outer))
+				var/obj/docking_port/stationary/marine_dropship/airlock/outer/outer_airlock = almayer_dock
+				if(!outer_airlock.linked_inner.test_conditions(FALSE, FALSE, FALSE, null, FALSE))
+					to_chat(user, SPAN_WARNING("The selected lz airlock is unable to recieve automatic commands. It has recieved manual commands that upsets its neutral state."))
+					playsound(loc, 'sound/machines/terminal_error.ogg', KEYBOARD_SOUND_VOLUME, 1)
+					return
+				shuttle.flags_automated_airlock_presence |= DROPSHIP_HANGAR_DOCK_IS_AIRLOCK
+			if(istype(ground_dock, /obj/docking_port/stationary/marine_dropship/airlock/outer))
+				var/obj/docking_port/stationary/marine_dropship/airlock/outer/outer_airlock = ground_dock
+				if(!outer_airlock.linked_inner.test_conditions(FALSE, FALSE, FALSE, null, FALSE))
+					to_chat(user, SPAN_WARNING("The selected hangar airlock is unable to recieve automatic commands. It has recieved manual commands that upsets its neutral state."))
+					playsound(loc, 'sound/machines/terminal_error.ogg', KEYBOARD_SOUND_VOLUME, 1)
+					return
+				shuttle.flags_automated_airlock_presence |= DROPSHIP_LZ_DOCK_IS_AIRLOCK
+
+			shuttle.automated_hangar = almayer_dock
+			shuttle.automated_lz = ground_dock
 			shuttle.automated_delay = delay
 			playsound(loc, get_sfx("terminal_button"), KEYBOARD_SOUND_VOLUME, 1)
 			if(shuttle.faction == FACTION_MARINE)
@@ -581,8 +676,8 @@
 		if("disable-automate")
 			if(!shuttle)
 				return FALSE
-			shuttle.automated_hangar_id = null
-			shuttle.automated_lz_id = null
+			shuttle.automated_hangar = null
+			shuttle.automated_lz = null
 			shuttle.automated_delay = null
 			playsound(loc, get_sfx("terminal_button"), KEYBOARD_SOUND_VOLUME, 1)
 			if(shuttle.faction == FACTION_MARINE)

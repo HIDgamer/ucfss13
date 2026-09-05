@@ -24,6 +24,7 @@
 #define SHUTTLE_HEIGHT_TOO_LARGE "height too large"
 #define SHUTTLE_ALREADY_DOCKED "we are already docked"
 #define SHUTTLE_SOMEONE_ELSE_DOCKED "someone else docked"
+#define SHUTTLE_AIRLOCK_CEREMONY_REQUIRED "airlock ceremony required"
 
 //Launching Shuttles to CentCom - used for escape shuttle code
 #define NOLAUNCH -1
@@ -119,6 +120,14 @@
 
 #define ALMAYER_DROPSHIP_LZ1 "almayer-hangar-lz1"
 #define ALMAYER_DROPSHIP_LZ2 "almayer-hangar-lz2"
+
+#define GENERIC_A_O "generic-airlock-outer"
+
+#define ALMAYER_A1_OUTER "almayer-hangar-airlock-1-outer"
+#define ALMAYER_A2_OUTER "almayer-hangar-airlock-2-outer"
+
+#define ALMAYER_A1_INNER "almayer-hangar-airlock-1-inner"
+#define ALMAYER_A2_INNER "almayer-hangar-airlock-2-inner"
 
 #define UPP_DROPSHIP_LZ2 "upp-hangar-lz1"
 
