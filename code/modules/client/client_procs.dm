@@ -295,6 +295,8 @@ GLOBAL_LIST_INIT(whitelisted_client_procs, list(
 		next_external_rsc = WRAP(next_external_rsc+1, 1, length(external_rsc_urls)+1)
 		preload_rsc = external_rsc_urls[next_external_rsc]
 
+	ticket_panel = new /datum/ticket_panel()
+
 	player_entity = setup_player_entity(ckey)
 
 	if(check_localhost_status())
@@ -454,7 +456,7 @@ GLOBAL_LIST_INIT(whitelisted_client_procs, list(
 		gc_destroyed = world.time
 		if (!QDELING(src))
 			stack_trace("Client does not purport to be QDELING, this is going to cause bugs in other places!")
-
+		QDEL_NULL(ticket_panel)
 		SEND_SIGNAL(src, COMSIG_PARENT_QDELETING, TRUE)
 		Destroy()
 	return ..()
@@ -486,6 +488,15 @@ GLOBAL_LIST_INIT(whitelisted_client_procs, list(
 #undef TOPIC_SPAM_DELAY
 #undef UPLOAD_LIMIT
 #undef MIN_CLIENT_VERSION
+
+/client/var/external_username
+
+/// To be used when displaying a client's "username" to players
+/client/proc/username()
+	if(external_username)
+		return external_username
+
+	return key
 
 /// Handles login-related logging and associated notifications
 /client/proc/notify_login()
