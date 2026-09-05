@@ -321,8 +321,34 @@
 	data["specialist_type"] = specialist_type ? specialist_type : "NONE"
 	return data
 
+/obj/structure/machinery/computer/overwatch/proc/get_radio_clarity()
+	if(SSradio.last_command_comms_up)
+		return 100
+	var/duration_min_bound = CONFIG_GET(number/announcement_duration_min_bound)
+	var/duration_max_bound = CONFIG_GET(number/announcement_duration_max_bound)
+	var/clarity_min = CONFIG_GET(number/announcement_min_clarity)
+	var/clarity_max = CONFIG_GET(number/announcement_max_clarity)
+	var/duration_clamped = clamp(world.time - GLOB.last_announcement_time[FACTION_MARINE], duration_min_bound, duration_max_bound)
+	var/duration_scalar = 1 - SCALE(duration_clamped, duration_min_bound, duration_max_bound)
+	return round(LERP(clarity_max, clarity_min, duration_scalar), 1)
+
+/obj/structure/machinery/computer/overwatch/proc/pack_radio_data()
+	var/list/clarity_data = list()
+	var/clarity = get_radio_clarity()
+	clarity_data["radio_clarity"] = clarity
+	if(clarity >= 80)
+		clarity_data["clarity_color"] = "good"
+		clarity_data["clarity_status"] = "STABLE"
+	else if(clarity >= 45)
+		clarity_data["clarity_color"] = "average"
+		clarity_data["clarity_status"] = "DEGRADED"
+	else
+		clarity_data["clarity_color"] = "bad"
+		clarity_data["clarity_status"] = "CRITICAL BLACKOUT"
+	return clarity_data
+
 /obj/structure/machinery/computer/overwatch/ui_data(mob/user)
-	var/list/data = list()
+	var/list/data = pack_radio_data()
 
 	data["theme"] = ui_theme
 
@@ -373,7 +399,7 @@
 	if(.)
 		return
 
-	var/mob/user = usr
+	var/mob/user = ui.user
 	switch(action)
 		if("pick_squad")
 			if(current_squad)
@@ -424,8 +450,7 @@
 			if(current_squad)
 				var/input = sanitize_control_chars(stripped_input(user, "Please write a message to announce to the squad:", "Squad Message"))
 				if(input)
-					current_squad.send_message(input, 1) //message, adds username
-					current_squad.send_maptext(input, "Squad Message:")
+					current_squad.transmit_alert("", input, "", "Squad Message:", user) //message, adds username
 					visible_message("[icon2html(src, viewers(src))] [SPAN_BOLDNOTICE("Message '[input]' sent to all Marines of squad '[current_squad]'.")]")
 					log_overwatch("[key_name(user)] sent '[input]' to squad [current_squad].")
 
@@ -433,43 +458,36 @@
 			if(current_squad)
 				var/input = sanitize_control_chars(stripped_input(user, "Please write a message to announce to the squad leader:", "SL Message"))
 				if(input)
-					current_squad.send_message(input, 1, 1) //message, adds username, only to leader
-					current_squad.send_maptext(input, "Squad Leader Message:", 1)
+					current_squad.transmit_alert("", input, "", "Squad Leader Message:", user, only_leader=TRUE) //message, adds username, only to leader
 					visible_message("[icon2html(src, viewers(src))] [SPAN_BOLDNOTICE("Message '[input]' sent to Squad Leader [current_squad.squad_leader] of squad '[current_squad]'.")]")
 					log_overwatch("[key_name(user)] sent '[input]' to Squad Leader [current_squad.squad_leader] of squad [current_squad].")
 
-		if("check_primary")
+		if("remind_primary")
 			if(current_squad) //This is already checked, but ehh.
 				if(current_squad.primary_objective)
 					visible_message("[icon2html(src, viewers(src))] [SPAN_BOLDNOTICE("Reminding '[current_squad]' of primary objectives: [current_squad.primary_objective].")]")
-					current_squad.send_message("Your primary objective is '[current_squad.primary_objective]'. See Status pane for details.")
-					current_squad.send_maptext(current_squad.primary_objective, "Primary Objective:")
+					current_squad.remind_objective(primary=TRUE)
 
-		if("check_secondary")
+		if("remind_secondary")
 			if(current_squad) //This is already checked, but ehh.
 				if(current_squad.secondary_objective)
 					visible_message("[icon2html(src, viewers(src))] [SPAN_BOLDNOTICE("Reminding '[current_squad]' of secondary objectives: [current_squad.secondary_objective].")]")
-					current_squad.send_message("Your secondary objective is '[current_squad.secondary_objective]'. See Status pane for details.")
-					current_squad.send_maptext(current_squad.secondary_objective, "Secondary Objective:")
+					current_squad.remind_objective(primary=FALSE)
 
 		if("set_primary")
-			var/input = sanitize_control_chars(stripped_input(usr, "What will be the squad's primary objective?", "Primary Objective"))
+			var/input = sanitize_control_chars(stripped_input(user, "What will be the squad's primary objective?", "Primary Objective"))
 			if(current_squad && input)
-				current_squad.primary_objective = "[input] ([worldtime2text()])"
-				current_squad.send_message("Your primary objective has been changed to '[input]'. See Status pane for details.")
-				current_squad.send_maptext(input, "Primary Objective Updated:")
+				current_squad.transmit_objective(input, primary=TRUE)
 				visible_message("[icon2html(src, viewers(src))] [SPAN_BOLDNOTICE("Primary objective of squad '[current_squad]' set to '[input]'.")]")
-				log_overwatch("[key_name(usr)] set [current_squad]'s primary objective to '[input]'.")
+				log_overwatch("[key_name(user)] set [current_squad]'s primary objective to '[input]'.")
 				return TRUE
 
 		if("set_secondary")
-			var/input = sanitize_control_chars(stripped_input(usr, "What will be the squad's secondary objective?", "Secondary Objective"))
-			if(input)
-				current_squad.secondary_objective = input + " ([worldtime2text()])"
-				current_squad.send_message("Your secondary objective has been changed to '[input]'. See Status pane for details.")
-				current_squad.send_maptext(input, "Secondary Objective Updated:")
+			var/input = sanitize_control_chars(stripped_input(user, "What will be the squad's secondary objective?", "Secondary Objective"))
+			if(current_squad && input)
+				current_squad.transmit_objective(input, primary=FALSE)
 				visible_message("[icon2html(src, viewers(src))] [SPAN_BOLDNOTICE("Secondary objective of squad '[current_squad]' set to '[input]'.")]")
-				log_overwatch("[key_name(usr)] set [current_squad]'s secondary objective to '[input]'.")
+				log_overwatch("[key_name(user)] set [current_squad]'s secondary objective to '[input]'.")
 				return TRUE
 		if("replace_lead")
 			if(!params["ref"])

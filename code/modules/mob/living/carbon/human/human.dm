@@ -112,10 +112,19 @@
 	if(assigned_squad)
 		if(assigned_squad.overwatch_officer)
 			. += "Overwatch Officer: [assigned_squad.overwatch_officer.get_paygrade()][assigned_squad.overwatch_officer.name]"
-		if(assigned_squad.primary_objective)
-			. += "Primary Objective: [html_decode(assigned_squad.primary_objective)]"
-		if(assigned_squad.secondary_objective)
-			. += "Secondary Objective: [html_decode(assigned_squad.secondary_objective)]"
+		if(assigned_squad.primary_objective || assigned_squad.secondary_objective)
+			var/turf/current_turf = get_turf(src)
+			var/is_shipside = is_mainship_level(current_turf?.z)
+			var/garbled = !is_shipside && !SSradio.last_command_comms_up
+			if(!garbled) // They've now gotten a connection
+				squad_primary_objective_ungarbled = TRUE
+				squad_secondary_objective_ungarbled = TRUE
+			var/primary_garbled = garbled && !squad_primary_objective_ungarbled
+			var/secondary_garbled = garbled && !squad_secondary_objective_ungarbled
+			if(assigned_squad.primary_objective)
+				. += "Primary Objective: [html_decode(primary_garbled ? assigned_squad.primary_objective_garbled : assigned_squad.primary_objective)]"
+			if(assigned_squad.secondary_objective)
+				. += "Secondary Objective: [html_decode(secondary_garbled ? assigned_squad.secondary_objective_garbled : assigned_squad.secondary_objective)]"
 	if(mobility_aura)
 		. += "Active Order: MOVE"
 	if(protection_aura)
@@ -933,8 +942,6 @@
 		if (status_flags & XENO_HOST && new_accuracy >= HOLOCARD_ACCURACY_BODYSCANNER) tag_severity = 4
 
 		var/old_severity
-		// Yes, switching between strings and numbers like this is terrible and I should be using a custom define, but I don't want to touch the code already in place
-		// Technical debt schmectical debt
 		switch (holo_card_color)
 			if("", null) old_severity = 0
 			if("orange") old_severity = 1
@@ -946,7 +953,6 @@
 		// If the scan's accuracy is equal to or greater than the previous scan, or if the severity is higher than the old severity, update the card
 		if (tag_severity > old_severity || new_accuracy >= holo_card_accuracy)
 			holo_card_accuracy = new_accuracy
-			// See previous comment
 			switch (tag_severity)
 				if (0)
 					holo_card_color = ""
