@@ -368,7 +368,7 @@ GLOBAL_LIST_INIT(frozen_items, list(SQUAD_MARINE_1 = list(), SQUAD_MARINE_2 = li
 			GLOB.data_core.general -= G
 			qdel(G)
 
-	icon_state = "body_scanner_open"
+	icon_state = initial(icon_state)
 	set_light(0)
 
 	if(occupant.key)
@@ -538,7 +538,7 @@ GLOBAL_LIST_INIT(frozen_items, list(SQUAD_MARINE_1 = list(), SQUAD_MARINE_2 = li
 	occupant.forceMove(get_turf(src))
 	occupant = null
 	stop_processing()
-	icon_state = "body_scanner_open"
+	icon_state = initial(icon_state)
 	set_light(0)
 	playsound(src, 'sound/machines/pod_open.ogg', 30)
 	SEND_SIGNAL(src, COMSIG_CRYOPOD_GO_OUT)
@@ -595,7 +595,7 @@ GLOBAL_LIST_INIT(frozen_items, list(SQUAD_MARINE_1 = list(), SQUAD_MARINE_2 = li
 		var/mob/living/carbon/human/man = occupant
 		man.species.handle_cryo(man)
 
-	icon_state = "body_scanner_open"
+	icon_state = initial(icon_state)
 	set_light(0)
 
 
