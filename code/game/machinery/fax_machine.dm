@@ -89,6 +89,12 @@ GLOBAL_DATUM_INIT(fax_network, /datum/fax_network, new)
 	var/can_send_priority = FALSE
 	/// If this machine is sending only to one machine at a time or not.
 	var/single_sending = FALSE
+	/// TGUI theme for this machine's interface
+	var/ui_theme = "crtblue"
+	/// Simple per-machine round log of faxes sent from here, most recent last
+	var/list/sent_log = list()
+	/// Simple per-machine round log of faxes received here, most recent last
+	var/list/received_log = list()
 
 /obj/structure/machinery/faxmachine/Initialize(mapload, ...)
 	. = ..()
@@ -281,16 +287,23 @@ GLOBAL_DATUM_INIT(fax_network, /datum/fax_network, new)
 	data["department"] = department
 	data["network"] = network
 	data["machine_id_tag"] = machine_id_tag
+	data["theme"] = ui_theme
 
 	return data
 
 /obj/structure/machinery/faxmachine/ui_data(mob/user)
 	var/list/data = list()
 
-	data["idcard"] = scan
-	data["paper"] = original_fax
+	data["idcard"] = scan ? scan.name : null
+	data["has_paper"] = !!original_fax
 	if(original_fax)
 		data["paper_name"] = original_fax.name
+		data["paper_icon"] = original_fax.icon
+		data["paper_icon_state"] = original_fax.icon_state
+		data["is_jammed"] = FALSE
+		if(istype(original_fax, /obj/item/paper_bundle))
+			var/obj/item/paper_bundle/bundle = original_fax
+			data["is_jammed"] = bundle.amount > 5
 
 	data["authenticated"] = authenticated
 
@@ -316,6 +329,24 @@ GLOBAL_DATUM_INIT(fax_network, /datum/fax_network, new)
 	data["is_priority_fax"] = is_priority_fax
 	data["is_single_sending"] = single_sending
 
+	var/list/department_names = list()
+	for(var/dept_name in GLOB.fax_network.all_departments)
+		department_names += dept_name
+	data["departments"] = department_names
+
+	var/list/machine_names = list()
+	if(target_department && (target_department in GLOB.fax_network.all_departments))
+		for(var/machine_name in GLOB.fax_network.all_departments[target_department])
+			machine_names += machine_name
+	data["machines_in_dept"] = machine_names
+
+	var/list/code_names = list()
+	for(var/code in GLOB.fax_network.all_faxcodes)
+		code_names += code
+	data["specific_codes"] = code_names
+
+	data["sent_log"] = sent_log
+	data["received_log"] = received_log
 
 	return data
 
@@ -366,6 +397,15 @@ GLOBAL_DATUM_INIT(fax_network, /datum/fax_network, new)
 					return
 
 			copy_fax_paper()
+
+			var/log_target = target_department
+			if(target_department == FAX_DEPARTMENT_SPECIFIC_CODE)
+				log_target = "machine [target_machine_id]"
+			else if(single_sending)
+				log_target = "[target_department] ([target_machine])"
+			sent_log += "[time_stamp()]: Sent '[original_fax.name]' to [log_target]."
+			if(length(sent_log) > 20)
+				sent_log.Cut(1, 2)
 
 			outgoing_fax_message(user, is_priority_fax)
 			is_priority_fax = FALSE
@@ -424,33 +464,35 @@ GLOBAL_DATUM_INIT(fax_network, /datum/fax_network, new)
 			playsound(src, 'sound/machines/terminal_eject.ogg', 15, TRUE)
 			. = TRUE
 
-		if("select_dept")
-			var/last_target_department = target_department
-			target_department = tgui_input_list(user, "Which department?", "Choose a department", GLOB.fax_network.all_departments)
-			if(!target_department)
-				target_department = last_target_department
-			if(target_department != last_target_department)
+		if("set_dept")
+			var/new_department = params["department"]
+			if(!(new_department in GLOB.fax_network.all_departments))
+				return
+			if(new_department != target_department)
 				target_machine = "Undefined"
+			target_department = new_department
 			if(target_department in FAX_HIGHCOM_DEPARTMENTS)
 				single_sending = FALSE
-			if(target_department == FAX_DEPARTMENT_SPECIFIC_CODE)
-				var/new_target_machine_id = tgui_input_list(user, "Which machine?", "Choose a machine code", GLOB.fax_network.all_faxcodes)
-				if(!new_target_machine_id)
-					target_department = last_target_department
-				else if(new_target_machine_id == machine_id_tag)
-					to_chat(user, SPAN_WARNING("You cannot send a fax to your own machine!"))
-					target_department = last_target_department
-				else
-					target_machine_id = new_target_machine_id
-					single_sending = TRUE
 			. = TRUE
 
-		if("select_machine")
-			var/last_target_machine = target_machine
-			target_machine = tgui_input_list(user, "Which machine?", "Choose a machine", GLOB.fax_network.all_departments[target_department])
-			if(!target_machine)
-				target_machine = last_target_machine
+		if("set_specific_code")
+			if(target_department != FAX_DEPARTMENT_SPECIFIC_CODE)
+				return
+			var/new_target_machine_id = params["code"]
+			if(!(new_target_machine_id in GLOB.fax_network.all_faxcodes))
+				return
+			if(new_target_machine_id == machine_id_tag)
+				to_chat(user, SPAN_WARNING("You cannot send a fax to your own machine!"))
+				return
+			target_machine_id = new_target_machine_id
+			single_sending = TRUE
+			. = TRUE
 
+		if("set_machine")
+			var/new_machine = params["machine"]
+			if(!(new_machine in GLOB.fax_network.all_departments[target_department]))
+				return
+			target_machine = new_machine
 			. = TRUE
 
 		if("auth")
@@ -663,6 +705,9 @@ GLOBAL_DATUM_INIT(fax_network, /datum/fax_network, new)
 				else
 					P.stamps += "<HR><i>This paper has been sent by [machine_id_tag].</i>"
 				P.overlays += stampoverlay
+				receiver.received_log += "[time_stamp()]: Received '[P.name]' from [machine_id_tag]."
+				if(length(receiver.received_log) > 20)
+					receiver.received_log.Cut(1, 2)
 				if(sending_priority)
 					playsound(receiver.loc, "sound/machines/twobeep.ogg", 45)
 					receiver.langchat_speech("beeps with a priority message", get_mobs_in_view(GLOB.world_view_size, receiver), GLOB.all_languages, skip_language_check = TRUE, animation_style = LANGCHAT_FAST_POP, additional_styles = list("langchat_small", "emote"))
@@ -681,6 +726,7 @@ GLOBAL_DATUM_INIT(fax_network, /datum/fax_network, new)
 	name = "\improper W-Y Corporate Fax Machine"
 	department = "W-Y Local Office"
 	network = FAX_NET_WY
+	ui_theme = "weyland"
 
 /obj/structure/machinery/faxmachine/corporate/liaison
 	department = "W-Y Liaison"
@@ -743,6 +789,7 @@ GLOBAL_DATUM_INIT(fax_network, /datum/fax_network, new)
 	department = "UPP Local Operations"
 	network = FAX_NET_UPP
 	target_department = FAX_DEPARTMENT_UPP
+	ui_theme = "crtupp"
 
 /obj/structure/machinery/faxmachine/upp/highcom
 	department = FAX_DEPARTMENT_UPP
@@ -779,6 +826,7 @@ GLOBAL_DATUM_INIT(fax_network, /datum/fax_network, new)
 	network = FAX_NET_PRESS_HC
 	target_department = FAX_DEPARTMENT_GENERAL_PUBLIC
 	can_send_priority = TRUE
+	ui_theme = "weyland"
 
 ///The deployed fax machine backpack
 /obj/structure/machinery/faxmachine/backpack
@@ -788,6 +836,7 @@ GLOBAL_DATUM_INIT(fax_network, /datum/fax_network, new)
 	needs_power = FALSE
 	use_power = USE_POWER_NONE
 	health = 150
+	ui_theme = "weyland"
 	var/obj/item/device/fax_backpack/faxbag
 
 /obj/structure/machinery/faxmachine/backpack/New(loc, portable_id_tag)

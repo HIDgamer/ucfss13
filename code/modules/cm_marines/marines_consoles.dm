@@ -28,27 +28,40 @@
 	// What factions we are able to modify
 	var/list/factions = list(FACTION_MARINE)
 	var/printing
+	var/print_started_at
+	var/print_ends_at
 
 	var/is_weyland = FALSE
 	var/authenticated = FALSE
+	/// TGUI theme for this console
+	var/ui_theme = "crtblue"
+	/// Last in-panel error/status notice shown to the operator, reset at the start of every ui_act()
+	var/notice_text
+	var/notice_severity = "danger"
 
 /obj/structure/machinery/computer/card/wey_yu
 	is_weyland = TRUE
 	req_access = list(ACCESS_WY_DATABASE)
 	factions = list(FACTION_WY, FACTION_PMC)
+	ui_theme = "weyland"
 
 /obj/structure/machinery/computer/card/proc/authenticate(mob/user, obj/item/card/id/id_card)
 	if(!id_card)
 		visible_message("[SPAN_BOLD("[src]")] states, \"AUTH ERROR: Authority confirmation card is missing!\"")
+		notice_text = "Authority confirmation card is missing."
+		notice_severity = "danger"
 		return FALSE
 
 	if(check_access(id_card))
 		authenticated = TRUE
 		visible_message("[SPAN_BOLD("[src]")] states, \"AUTH LOGIN: Welcome, [id_card.registered_name]. Access granted.\"")
+		notice_text = null
 		update_static_data(user)
 		return TRUE
 
 	visible_message("[SPAN_BOLD("[src]")] states, \"AUTH ERROR: You have not enough authority! Access denied.\"")
+	notice_text = "You do not have enough authority. Access denied."
+	notice_severity = "danger"
 	return FALSE
 
 /obj/structure/machinery/computer/card/tgui_interact(mob/user, datum/tgui/ui)
@@ -63,6 +76,7 @@
 		return
 
 	var/mob/user = ui.user
+	notice_text = null
 
 	playsound(src, pick('sound/machines/computer_typing4.ogg', 'sound/machines/computer_typing5.ogg', 'sound/machines/computer_typing6.ogg'), 5, 1)
 	switch(action)
@@ -103,6 +117,8 @@
 						return
 
 					printing = TRUE
+					print_started_at = world.time
+					print_ends_at = world.time + 40
 					playsound(src.loc, 'sound/machines/fax.ogg', 15, 1)
 					sleep(40)
 					var/contents = {"<center><h4>Access Report</h4></center>
@@ -181,6 +197,8 @@
 			var/new_name = strip_html(params["name"])
 			if(!new_name)
 				visible_message(SPAN_NOTICE("[src] buzzes rudely."))
+				notice_text = "Rename rejected — name cannot be blank."
+				notice_severity = "danger"
 				return
 			target_id_card.registered_name = new_name
 			return TRUE
@@ -204,6 +222,8 @@
 
 					if(!job)
 						visible_message("[SPAN_BOLD("[src]")] states, \"DATA ERROR: Can not find next entry in database: [target]\"")
+						notice_text = "Could not find job '[target]' in the database."
+						notice_severity = "danger"
 						return
 					new_access = job.get_access()
 				target_id_card.access -= get_access(ACCESS_LIST_WY_ALL) + get_access(ACCESS_LIST_MARINE_MAIN)
@@ -294,8 +314,7 @@
 
 /obj/structure/machinery/computer/card/ui_static_data(mob/user)
 	var/list/data = list()
-	data["station_name"] = MAIN_SHIP_NAME
-	data["weyland_access"] = is_weyland
+	data["theme"] = ui_theme
 
 	var/list/departments
 	if(is_weyland)
@@ -392,8 +411,14 @@
 /obj/structure/machinery/computer/card/ui_data(mob/user)
 	var/list/data = list()
 
-	data["station_name"] = MAIN_SHIP_NAME
 	data["authenticated"] = authenticated
+	data["notice_text"] = notice_text
+	data["notice_severity"] = notice_severity
+
+	data["worldtime"] = world.time
+	data["printing"] = printing
+	data["print_started_at"] = print_started_at
+	data["print_ends_at"] = print_ends_at
 
 	data["has_id"] = !!target_id_card
 	data["id_name"] = target_id_card ? target_id_card.name : "-----"
@@ -402,6 +427,10 @@
 		data["id_owner"] = target_id_card.registered_name ? target_id_card.registered_name : "-----"
 		data["access_on_card"] = target_id_card.access + target_id_card.faction_group
 		data["id_account"] = target_id_card.associated_account_number
+		var/list/log_display = list()
+		for(var/entry in target_id_card.modification_log)
+			log_display += strip_html(entry)
+		data["modification_log"] = log_display
 
 	return data
 

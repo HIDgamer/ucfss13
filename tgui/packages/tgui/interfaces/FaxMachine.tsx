@@ -1,27 +1,33 @@
 import { BooleanLike } from 'common/react';
+import { useState } from 'react';
 
 import { useBackend } from '../backend';
 import {
   Box,
   Button,
+  Collapsible,
+  DmIcon,
   Flex,
   Icon,
+  Input,
   NoticeBox,
   Section,
   Stack,
 } from '../components';
 import { Window } from '../layouts';
+import { PrintProgress } from './common/PrintProgress';
 
 type Data = {
+  theme: string;
   department: string;
   network: string;
   machine_id_tag: string;
-  // NOTE: the backend assigns the raw ID-card/paper datum reference here
-  // (`data["idcard"] = scan`, `data["paper"] = original_fax`) rather than a
-  // name string like sibling machines do -- see report.
   idcard: string | null;
-  paper: string | null;
+  has_paper: BooleanLike;
   paper_name?: string;
+  paper_icon?: string;
+  paper_icon_state?: string;
+  is_jammed?: BooleanLike;
   authenticated: BooleanLike;
   target_department: string;
   target_machine: string;
@@ -34,25 +40,29 @@ type Data = {
   can_send_priority: BooleanLike;
   is_priority_fax: BooleanLike;
   is_single_sending: BooleanLike;
+  departments: string[];
+  machines_in_dept: string[];
+  specific_codes: string[];
+  sent_log: string[];
+  received_log: string[];
 };
 
 export const FaxMachine = () => {
   const { data } = useBackend<Data>();
-  const { idcard } = data;
+  const { idcard, theme } = data;
   const body = idcard ? <FaxMain /> : <FaxEmpty />;
-  const windowWidth = idcard ? 800 : 400;
-  const windowHeight = idcard ? 440 : 215;
 
   return (
-    <Window width={windowWidth} height={windowHeight} theme="weyland">
-      <Window.Content>{body}</Window.Content>
+    <Window width={idcard ? 800 : 400} height={idcard ? 560 : 215} resizable theme={theme}>
+      <Window.Content scrollable={!!idcard}>{body}</Window.Content>
     </Window>
   );
 };
 
 const FaxMain = () => {
   const { data } = useBackend<Data>();
-  const { machine_id_tag, awake_responder, highcom_dept } = data;
+  const { machine_id_tag, awake_responder, highcom_dept, target_department } =
+    data;
   return (
     <>
       <FaxId />
@@ -66,13 +76,14 @@ const FaxMain = () => {
           color={awake_responder ? 'orange' : 'grey'}
           textAlign="center"
         >
-          A designated communications operator is
+          A {target_department} communications operator is
           {awake_responder ? ' currently' : ' not currently'} awake.
           <br />
           Message responses
           {awake_responder ? ' are likely to be swift.' : ' may be delayed.'}
         </NoticeBox>
       )}
+      <RecentActivity />
     </>
   );
 };
@@ -108,19 +119,59 @@ const FaxId = () => {
   );
 };
 
+const InlinePicker = (props: {
+  options: string[];
+  placeholder: string;
+  onSelect: (option: string) => void;
+}) => {
+  const { options, placeholder, onSelect } = props;
+  const [search, setSearch] = useState('');
+  const filtered = options.filter((option) =>
+    option.toLowerCase().includes(search.toLowerCase()),
+  );
+  return (
+    <Box mt="0.25rem">
+      <Input
+        fluid
+        placeholder={placeholder}
+        value={search}
+        onInput={(e, value) => setSearch(value)}
+      />
+      <Section scrollable height="120px" mt="0.25rem">
+        {filtered.length === 0 ? (
+          <Box color="label" fontStyle="italic">
+            No matches.
+          </Box>
+        ) : (
+          filtered.map((option) => (
+            <Button key={option} fluid onClick={() => onSelect(option)}>
+              {option}
+            </Button>
+          ))
+        )}
+      </Section>
+    </Box>
+  );
+};
+
 const FaxSelect = () => {
   const { act, data } = useBackend<Data>();
   const {
-    paper,
+    has_paper,
     authenticated,
     target_department,
-    can_send_priority,
-    is_priority_fax,
     is_single_sending,
     target_machine,
     highcom_dept,
     sending_to_specific,
+    departments,
+    machines_in_dept,
+    specific_codes,
   } = data;
+
+  const [deptPickerOpen, setDeptPickerOpen] = useState(false);
+  const [codePickerOpen, setCodePickerOpen] = useState(false);
+  const [machinePickerOpen, setMachinePickerOpen] = useState(false);
 
   return (
     <Section title="Department selection">
@@ -129,7 +180,8 @@ const FaxSelect = () => {
           <Button
             icon="list"
             disabled={!authenticated}
-            onClick={() => act('select_dept')}
+            selected={deptPickerOpen}
+            onClick={() => setDeptPickerOpen(!deptPickerOpen)}
             width="220px"
           >
             Select department to send to
@@ -137,7 +189,7 @@ const FaxSelect = () => {
         </Stack.Item>
         <Stack.Item grow>
           <Button icon="building" fluid disabled={!authenticated}>
-            {'Currently sending to : ' + target_department + '.'}
+            {'Currently sending to: ' + target_department + '.'}
           </Button>
         </Stack.Item>
         <Stack.Item>
@@ -147,16 +199,50 @@ const FaxSelect = () => {
             onClick={() => act('toggle_single_send')}
             color={is_single_sending ? 'purple' : 'blue'}
             disabled={
-              !paper ||
+              !has_paper ||
               !!highcom_dept ||
               !authenticated ||
               !!sending_to_specific
             }
             tooltip="Toggle sending to a specific machine in the department."
-          />
+          >
+            {is_single_sending ? 'Single Machine' : 'Whole Department'}
+          </Button>
         </Stack.Item>
       </Stack>
-      <Box width="600px" height="5px" />
+      {deptPickerOpen && (
+        <InlinePicker
+          options={departments}
+          placeholder="Search departments.."
+          onSelect={(dept) => {
+            act('set_dept', { department: dept });
+            setDeptPickerOpen(false);
+          }}
+        />
+      )}
+      {!!sending_to_specific && (
+        <Box mt="0.5rem">
+          <Button
+            icon="hashtag"
+            fluid
+            selected={codePickerOpen}
+            onClick={() => setCodePickerOpen(!codePickerOpen)}
+          >
+            Select specific machine code
+          </Button>
+          {codePickerOpen && (
+            <InlinePicker
+              options={specific_codes}
+              placeholder="Search codes.."
+              onSelect={(code) => {
+                act('set_specific_code', { code });
+                setCodePickerOpen(false);
+              }}
+            />
+          )}
+        </Box>
+      )}
+      <Box height="5px" />
       <Stack>
         <Stack.Item>
           <Button
@@ -164,7 +250,8 @@ const FaxSelect = () => {
             disabled={
               !authenticated || !is_single_sending || !!sending_to_specific
             }
-            onClick={() => act('select_machine')}
+            selected={machinePickerOpen}
+            onClick={() => setMachinePickerOpen(!machinePickerOpen)}
             width="220px"
           >
             Select machine to send to
@@ -178,10 +265,20 @@ const FaxSelect = () => {
               !authenticated || !is_single_sending || !!sending_to_specific
             }
           >
-            {'Currently sending to : ' + target_machine + '.'}
+            {'Currently sending to: ' + target_machine + '.'}
           </Button>
         </Stack.Item>
       </Stack>
+      {machinePickerOpen && (
+        <InlinePicker
+          options={machines_in_dept}
+          placeholder="Search machines.."
+          onSelect={(machine) => {
+            act('set_machine', { machine });
+            setMachinePickerOpen(false);
+          }}
+        />
+      )}
     </Section>
   );
 };
@@ -189,45 +286,66 @@ const FaxSelect = () => {
 const ConfirmSend = () => {
   const { act, data } = useBackend<Data>();
   const {
-    paper,
+    has_paper,
     paper_name,
+    paper_icon,
+    paper_icon_state,
+    is_jammed,
     authenticated,
     worldtime,
     nextfaxtime,
+    faxcooldown,
     can_send_priority,
     is_priority_fax,
   } = data;
 
-  const timeLeft = nextfaxtime - worldtime;
+  const onCooldown = nextfaxtime - worldtime > 0;
 
   return (
     <Section title="Send Confirmation">
-      <Box width="600px" height="5px" />
       <Stack>
         <Stack.Item>
           <Button
             icon="eject"
             fluid
-            onClick={() => act(paper ? 'ejectpaper' : 'insertpaper')}
-            color={paper ? 'default' : 'grey'}
+            onClick={() => act(has_paper ? 'ejectpaper' : 'insertpaper')}
+            color={has_paper ? 'default' : 'grey'}
           >
-            {paper ? 'Currently sending : ' + paper_name : 'No paper loaded!'}
+            {has_paper ? (
+              <>
+                {!!paper_icon && (
+                  <DmIcon
+                    icon={paper_icon}
+                    icon_state={paper_icon_state}
+                    mr={1}
+                  />
+                )}
+                {'Currently loaded: ' + paper_name}
+              </>
+            ) : (
+              'No paper loaded!'
+            )}
           </Button>
         </Stack.Item>
         <Stack.Item grow>
-          {(timeLeft < 0 && (
-            <Button
+          {onCooldown ? (
+            <PrintProgress
+              startedAt={nextfaxtime - faxcooldown}
+              endsAt={nextfaxtime}
+              worldTime={worldtime}
+            >
+              Transmitters realigning..
+            </PrintProgress>
+          ) : (
+            <Button.Confirm
               icon="paper-plane"
               fluid
               onClick={() => act('send')}
-              disabled={timeLeft > 0 || !paper || !authenticated}
+              disabled={!has_paper || !authenticated || !!is_jammed}
+              confirmContent="Send this fax? This cannot be undone."
             >
-              {paper ? 'Send' : 'No paper loaded!'}
-            </Button>
-          )) || (
-            <Button icon="window-close" fluid disabled={1}>
-              {'Transmitters realigning, ' + timeLeft / 10 + ' seconds left.'}
-            </Button>
+              {has_paper ? 'Send' : 'No paper loaded!'}
+            </Button.Confirm>
           )}
         </Stack.Item>
         {!!can_send_priority && (
@@ -237,19 +355,61 @@ const ConfirmSend = () => {
               fluid
               onClick={() => act('toggle_priority')}
               color={is_priority_fax ? 'green' : 'red'}
-              disabled={!paper || !can_send_priority || !authenticated}
+              disabled={!has_paper || !can_send_priority || !authenticated}
               tooltip="Toggle priority alert."
-            />
+            >
+              {is_priority_fax ? 'Priority' : 'Standard'}
+            </Button>
           </Stack.Item>
         )}
       </Stack>
+      {!!is_jammed && (
+        <NoticeBox danger>
+          The bundle is jammed — this machine can only send up to five pages
+          at once. Remove some pages before sending.
+        </NoticeBox>
+      )}
     </Section>
+  );
+};
+
+const RecentActivity = () => {
+  const { data } = useBackend<Data>();
+  const { sent_log = [], received_log = [] } = data;
+
+  if (!sent_log.length && !received_log.length) {
+    return null;
+  }
+
+  return (
+    <Collapsible title="Recent Activity">
+      {!!sent_log.length && (
+        <Section title="Sent">
+          {sent_log
+            .slice()
+            .reverse()
+            .map((entry, index) => (
+              <Box key={index}>{entry}</Box>
+            ))}
+        </Section>
+      )}
+      {!!received_log.length && (
+        <Section title="Received" mt={sent_log.length ? '0.5rem' : 0}>
+          {received_log
+            .slice()
+            .reverse()
+            .map((entry, index) => (
+              <Box key={index}>{entry}</Box>
+            ))}
+        </Section>
+      )}
+    </Collapsible>
   );
 };
 
 const FaxEmpty = () => {
   const { act, data } = useBackend<Data>();
-  const { paper, paper_name } = data;
+  const { has_paper, paper_name } = data;
   return (
     <Section textAlign="center" fill>
       <Flex height="100%">
@@ -258,12 +418,8 @@ const FaxEmpty = () => {
           <br />
           No ID card detected.
           <br />
-          {paper && (
-            <Button
-              icon="eject"
-              onClick={() => act('ejectpaper')}
-              disabled={!paper}
-            >
+          {!!has_paper && (
+            <Button icon="eject" onClick={() => act('ejectpaper')}>
               {'Eject ' + paper_name + '.'}
             </Button>
           )}

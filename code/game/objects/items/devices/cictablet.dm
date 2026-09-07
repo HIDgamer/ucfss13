@@ -19,6 +19,8 @@
 
 	///flags that we want to be shown when you interact with this table
 	var/minimap_flag = MINIMAP_FLAG_USCM
+	///TGUI theme for this tablet's interface
+	var/ui_theme = "crtblue"
 
 	COOLDOWN_DECLARE(announcement_cooldown)
 	COOLDOWN_DECLARE(distress_cooldown)
@@ -55,6 +57,7 @@
 	data["faction"] = announcement_faction
 	data["cooldown_message"] = cooldown_between_messages
 	data["distresstimelock"] = DISTRESS_TIME_LOCK
+	data["theme"] = ui_theme
 
 	return data
 
@@ -66,6 +69,9 @@
 	data["endtime"] = announcement_cooldown
 	data["distresstime"] = distress_cooldown
 	data["worldtime"] = world.time
+
+	var/datum/component/tacmap/tacmap_component = GetComponent(/datum/component/tacmap)
+	data["mapview_open"] = (user in tacmap_component.interactees)
 
 	return data
 
@@ -102,7 +108,7 @@
 				to_chat(user, SPAN_WARNING("Please wait [COOLDOWN_TIMELEFT(src, announcement_cooldown)/10] second\s before making your next announcement."))
 				return FALSE
 
-			var/input = stripped_multiline_input(user, "Please write a message to announce to the [MAIN_SHIP_NAME]'s crew and all groundside personnel.", "Priority Announcement", "")
+			var/input = html_encode(trim(params["message"], MAX_MESSAGE_LEN))
 			if(!input || !COOLDOWN_FINISHED(src, announcement_cooldown) || !(user in dview(1, src)))
 				return FALSE
 
@@ -181,6 +187,7 @@
 	announcement_faction = FACTION_PMC
 	add_pmcs = TRUE
 	minimap_flag = MINIMAP_FLAG_WY
+	ui_theme = "weyland"
 
 /obj/item/device/cotablet/upp
 
@@ -193,3 +200,4 @@
 	req_access = list(ACCESS_UPP_LEADERSHIP)
 
 	minimap_flag = MINIMAP_FLAG_UPP
+	ui_theme = "crtupp"

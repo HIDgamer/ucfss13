@@ -22,101 +22,158 @@
 	///the flick state to use when inserting paper into the machine
 	var/animate_state = "bigscanner1"
 
+	/// TRUE while a print job (addtimer-driven, see process_next_copy()) is actively running
+	var/printing_active = FALSE
+	var/copies_completed = 0
+	var/copies_total = 0
+	/// world.time this specific in-flight copy started/will finish - used for the live progress bar
+	var/current_copy_started_at = 0
+	var/current_copy_ends_at = 0
+
 
 /obj/structure/machinery/photocopier/attack_remote(mob/user as mob)
 	return attack_hand(user)
 
 /obj/structure/machinery/photocopier/attack_hand(mob/user as mob)
 	user.set_interaction(src)
+	tgui_interact(user)
 
-	var/dat
-	if(copy || photocopy || bundle)
-		dat += "<a href='byond://?src=\ref[src];remove=1'>Remove Paper</a><BR>"
-		if(toner)
-			dat += "<a href='byond://?src=\ref[src];copy=1'>Copy</a><BR>"
-			dat += "Printing: [copies] copies."
-			dat += "<a href='byond://?src=\ref[src];min=1'>-</a> "
-			dat += "<a href='byond://?src=\ref[src];add=1'>+</a><BR><BR>"
-	else if(toner)
-		dat += "Please insert paper to copy.<BR><BR>"
-	dat += "Current toner level: [toner]"
-	if(!toner)
-		dat +="<BR>Please insert a new toner cartridge!"
-	show_browser(user, dat, "Photocopier", "copier")
-	return
+/obj/structure/machinery/photocopier/tgui_interact(mob/user, datum/tgui/ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new(user, src, "Photocopier", name)
+		ui.open()
 
-/obj/structure/machinery/photocopier/Topic(href, href_list)
+/obj/structure/machinery/photocopier/ui_status(mob/user, datum/ui_state/state)
+	. = ..()
+	if(inoperable())
+		return UI_CLOSE
+
+/obj/structure/machinery/photocopier/ui_data(mob/user)
+	var/list/data = list()
+	data["worldtime"] = world.time
+
+	data["loadedType"] = null
+	data["loadedName"] = null
+	if(copy)
+		data["loadedType"] = "paper"
+		data["loadedName"] = copy.name
+	else if(photocopy)
+		data["loadedType"] = "photo"
+		data["loadedName"] = photocopy.name
+	else if(bundle)
+		data["loadedType"] = "bundle"
+		data["loadedName"] = bundle.name
+
+	data["toner"] = toner
+	data["maxToner"] = initial(toner)
+	data["copies"] = copies
+	data["maxcopies"] = maxcopies
+
+	data["printingActive"] = printing_active
+	data["copiesCompleted"] = copies_completed
+	data["copiesTotal"] = copies_total
+	data["currentCopyStartedAt"] = current_copy_started_at
+	data["currentCopyEndsAt"] = current_copy_ends_at
+
+	return data
+
+/obj/structure/machinery/photocopier/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
 	. = ..()
 	if(.)
 		return
-	if(href_list["copy"])
-		if(copy)
-			for(var/i = 0, i < copies, i++)
-				if(toner > 0 && copy)
-					copy(copy)
-					sleep(15)
-				else
-					break
-			updateUsrDialog()
-		else if(photocopy)
-			for(var/i = 0, i < copies, i++)
-				if(toner > 0 && photocopy)
-					photocopy(photocopy)
-					sleep(15)
-				else
-					break
-			updateUsrDialog()
-		else if(bundle)
-			for(var/i = 0, i < copies, i++)
-				if(toner <= 0 || !bundle)
-					break
-				var/obj/item/paper_bundle/p = new /obj/item/paper_bundle (src)
-				var/j = 0
-				for(var/obj/item/W in bundle)
-					if(toner <= 0)
-						to_chat(usr, SPAN_NOTICE("The photocopier couldn't finish the printjob."))
-						break
-					else if(istype(W, /obj/item/paper))
-						W = copy(W)
-					else if(istype(W, /obj/item/photo))
-						W = photocopy(W)
-					W.forceMove(p)
-					p.amount++
-					j++
-				p.amount--
-				p.forceMove(src.loc)
-				p.update_icon()
-				p.icon_state = "paper_words"
-				p.name = bundle.name
-				sleep(15*j)
-			updateUsrDialog()
-	else if(href_list["remove"])
-		if(copy)
-			copy.forceMove(usr.loc)
-			usr.put_in_hands(copy)
-			to_chat(usr, SPAN_NOTICE("You take the paper out of \the [src]."))
-			copy = null
-			updateUsrDialog()
-		else if(photocopy)
-			photocopy.forceMove(usr.loc)
-			usr.put_in_hands(photocopy)
-			to_chat(usr, SPAN_NOTICE("You take the photo out of \the [src]."))
-			photocopy = null
-			updateUsrDialog()
-		else if(bundle)
-			bundle.forceMove(usr.loc)
-			usr.put_in_hands(bundle)
-			to_chat(usr, SPAN_NOTICE("You take the paper bundle out of \the [src]."))
-			bundle = null
-			updateUsrDialog()
-	else if(href_list["min"])
-		if(copies > 1)
-			copies--
-			updateUsrDialog()
-	else if(href_list["add"])
-		if(copies < maxcopies)
-			copies++
-			updateUsrDialog()
+
+	switch(action)
+		if("set_copies")
+			var/new_copies = clamp(round(text2num(params["copies"])), 1, maxcopies)
+			if(isnull(new_copies))
+				return
+			copies = new_copies
+			return TRUE
+
+		if("start_print")
+			if(printing_active)
+				return
+			if(!copy && !photocopy && !bundle)
+				return
+			if(toner <= 0)
+				return
+			printing_active = TRUE
+			copies_completed = 0
+			copies_total = copies
+			process_next_copy()
+			return TRUE
+
+		if("remove_document")
+			if(copy)
+				copy.forceMove(usr.loc)
+				usr.put_in_hands(copy)
+				to_chat(usr, SPAN_NOTICE("You take the paper out of \the [src]."))
+				copy = null
+			else if(photocopy)
+				photocopy.forceMove(usr.loc)
+				usr.put_in_hands(photocopy)
+				to_chat(usr, SPAN_NOTICE("You take the photo out of \the [src]."))
+				photocopy = null
+			else if(bundle)
+				bundle.forceMove(usr.loc)
+				usr.put_in_hands(bundle)
+				to_chat(usr, SPAN_NOTICE("You take the paper bundle out of \the [src]."))
+				bundle = null
+			return TRUE
+
+/// Produces one copy (or, for a bundle, one full bundle-copy) per invocation, then reschedules
+/// itself via addtimer() until copies_total is reached or the job is interrupted (toner runs out,
+/// the loaded document is removed) - replaces the old Topic()'s blocking for/sleep(15) loop, which
+/// left the player's client frozen on a static page for up to 15*copies deciseconds with no visible
+/// progress. ui_data() polling + the shared PrintProgress component now show live progress instead.
+/obj/structure/machinery/photocopier/proc/process_next_copy()
+	if(!printing_active)
+		return
+	if(copies_completed >= copies_total || toner <= 0 || (!copy && !photocopy && !bundle))
+		finish_print()
+		return
+
+	var/this_copy_ticks = 15 // deciseconds - matches the old per-copy sleep(15) cadence
+	current_copy_started_at = world.time
+
+	if(copy)
+		copy(copy)
+	else if(photocopy)
+		photocopy(photocopy)
+	else if(bundle)
+		var/obj/item/paper_bundle/p = new /obj/item/paper_bundle(src)
+		var/j = 0
+		for(var/obj/item/W in bundle)
+			if(toner <= 0)
+				visible_message(SPAN_NOTICE("[src] beeps: \"Print job aborted - out of toner.\""))
+				break
+			else if(istype(W, /obj/item/paper))
+				W = copy(W)
+			else if(istype(W, /obj/item/photo))
+				W = photocopy(W)
+			W.forceMove(p)
+			p.amount++
+			j++
+		p.amount--
+		p.forceMove(src.loc)
+		p.update_icon()
+		p.icon_state = "paper_words"
+		p.name = bundle.name
+		this_copy_ticks = 15 * max(1, j)
+
+	copies_completed++
+	current_copy_ends_at = world.time + this_copy_ticks
+	SStgui.update_uis(src)
+
+	if(copies_completed >= copies_total || toner <= 0 || (!copy && !photocopy && !bundle))
+		addtimer(CALLBACK(src, PROC_REF(finish_print)), this_copy_ticks)
+	else
+		addtimer(CALLBACK(src, PROC_REF(process_next_copy)), this_copy_ticks)
+
+/obj/structure/machinery/photocopier/proc/finish_print()
+	printing_active = FALSE
+	SStgui.update_uis(src)
 
 /obj/structure/machinery/photocopier/attackby(obj/item/O as obj, mob/user as mob)
 	if(istype(O, /obj/item/paper))
@@ -125,7 +182,7 @@
 				copy = O
 				to_chat(user, SPAN_NOTICE("You insert the paper into \the [src]."))
 				flick(animate_state, src)
-				updateUsrDialog()
+				SStgui.update_uis(src)
 		else
 			to_chat(user, SPAN_NOTICE("There is already something in \the [src]."))
 	else if(istype(O, /obj/item/photo))
@@ -134,7 +191,7 @@
 				photocopy = O
 				to_chat(user, SPAN_NOTICE("You insert the photo into \the [src]."))
 				flick(animate_state, src)
-				updateUsrDialog()
+				SStgui.update_uis(src)
 		else
 			to_chat(user, SPAN_NOTICE("There is already something in \the [src]."))
 	else if(istype(O, /obj/item/paper_bundle))
@@ -143,14 +200,14 @@
 				bundle = O
 				to_chat(user, SPAN_NOTICE("You insert the bundle into \the [src]."))
 				flick(animate_state, src)
-				updateUsrDialog()
+				SStgui.update_uis(src)
 	else if(istype(O, /obj/item/device/toner))
 		if(toner == 0)
 			if(user.temp_drop_inv_item(O))
 				qdel(O)
 				toner = initial(toner)
 				to_chat(user, SPAN_NOTICE("You insert the toner cartridge into \the [src]."))
-				updateUsrDialog()
+				SStgui.update_uis(src)
 		else
 			to_chat(user, SPAN_NOTICE("This cartridge is not yet ready for replacement! Use up the rest of the toner."))
 	else if(HAS_TRAIT(O, TRAIT_TOOL_WRENCH))

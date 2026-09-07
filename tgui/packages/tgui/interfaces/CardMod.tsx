@@ -5,7 +5,9 @@ import { useBackend } from '../backend';
 import {
   Box,
   Button,
+  Collapsible,
   Input,
+  NoticeBox,
   NumberInput,
   Section,
   Stack,
@@ -13,6 +15,7 @@ import {
 } from '../components';
 import { Window } from '../layouts';
 import { AccessList } from './common/AccessList';
+import { PrintProgress } from './common/PrintProgress';
 
 type Job = {
   display_name: string;
@@ -31,31 +34,38 @@ type Region = {
 };
 
 type Data = {
-  station_name: string;
-  weyland_access: BooleanLike;
+  theme: string;
   authenticated: BooleanLike;
+  notice_text: string | null;
+  notice_severity: 'info' | 'danger';
+  worldtime: number;
+  printing: BooleanLike;
+  print_started_at: number;
+  print_ends_at: number;
   has_id: BooleanLike;
   id_name: string;
   id_rank?: string;
   id_owner?: string;
   access_on_card?: Array<number | string>;
   id_account?: number;
+  modification_log?: string[];
   jobs: Record<string, Job[]>;
   regions: Region[];
 };
 
-export const CardMod = (props) => {
-  const [tab2, setTab2] = useState(1);
+export const CardMod = () => {
+  const { data } = useBackend<Data>();
+
   return (
-    <Window width={450} height={520} resizable>
+    <Window width={450} height={560} resizable theme={data.theme}>
       <Window.Content scrollable>
-        <Box>{tab2 === 1 && <CardContent />}</Box>
+        <CardContent />
       </Window.Content>
     </Window>
   );
 };
 
-export const CardContent = (props) => {
+export const CardContent = () => {
   const { act, data } = useBackend<Data>();
   const [tab, setTab] = useState(1);
   const {
@@ -68,13 +78,28 @@ export const CardContent = (props) => {
     has_id,
     id_name,
     id_account,
+    notice_text,
+    notice_severity,
+    printing,
+    print_started_at,
+    print_ends_at,
+    worldtime,
+    modification_log = [],
   } = data;
   const [selectedDepartment, setSelectedDepartment] = useState(
     Object.keys(jobs)[0],
   );
-  const departmentJobs = jobs[selectedDepartment] || [];
+  const [jobSearch, setJobSearch] = useState('');
+  const departmentJobs = (jobs[selectedDepartment] || []).filter((job) =>
+    job.display_name.toLowerCase().includes(jobSearch.toLowerCase()),
+  );
   return (
     <>
+      {!!notice_text && (
+        <NoticeBox danger={notice_severity === 'danger'} info={notice_severity === 'info'}>
+          {notice_text}
+        </NoticeBox>
+      )}
       <Section
         title={
           has_id && authenticated ? (
@@ -95,7 +120,7 @@ export const CardContent = (props) => {
           <>
             <Button
               icon="print"
-              disabled={!has_id || !authenticated}
+              disabled={!has_id || !authenticated || !!printing}
               onClick={() =>
                 act('PRG_print', {
                   mode: 1,
@@ -119,6 +144,17 @@ export const CardContent = (props) => {
         <Button fluid icon="eject" onClick={() => act('PRG_eject')}>
           {id_name}
         </Button>
+        {!!printing && (
+          <Box mt="0.25rem">
+            <PrintProgress
+              startedAt={print_started_at}
+              endsAt={print_ends_at}
+              worldTime={worldtime}
+            >
+              Printing Access Report..
+            </PrintProgress>
+          </Box>
+        )}
         {!!has_id && !!authenticated && (
           <>
             Linked Account:
@@ -144,6 +180,9 @@ export const CardContent = (props) => {
             </Tabs.Tab>
             <Tabs.Tab selected={tab === 2} onClick={() => setTab(2)}>
               Jobs
+            </Tabs.Tab>
+            <Tabs.Tab selected={tab === 3} onClick={() => setTab(3)}>
+              History
             </Tabs.Tab>
           </Tabs>
           {tab === 1 && (
@@ -176,6 +215,7 @@ export const CardContent = (props) => {
                 <Button.Confirm
                   icon="exclamation-triangle"
                   color="bad"
+                  confirmContent="Terminate this ID? This wipes its assignment and all access."
                   onClick={() => act('PRG_terminate')}
                 >
                   Terminate
@@ -208,10 +248,18 @@ export const CardContent = (props) => {
                   </Tabs>
                 </Stack.Item>
                 <Stack.Item grow={1}>
+                  <Input
+                    fluid
+                    mb={1}
+                    placeholder="Search jobs.."
+                    value={jobSearch}
+                    onInput={(e, value) => setJobSearch(value)}
+                  />
                   {departmentJobs.map((job) => (
-                    <Button
+                    <Button.Confirm
                       fluid
                       key={job.job}
+                      confirmContent={`Assign as ${job.display_name}? This replaces the card's current access with this job's default set.`}
                       onClick={() =>
                         act('PRG_assign', {
                           assign_target: job.job,
@@ -219,10 +267,27 @@ export const CardContent = (props) => {
                       }
                     >
                       {job.display_name}
-                    </Button>
+                    </Button.Confirm>
                   ))}
                 </Stack.Item>
               </Stack>
+            </Section>
+          )}
+          {tab === 3 && (
+            <Section title="Modification Log">
+              {modification_log.length === 0 ? (
+                <Box color="label" fontStyle="italic">
+                  No modifications recorded for this card yet.
+                </Box>
+              ) : (
+                <Collapsible title={`${modification_log.length} entries`} open>
+                  {modification_log.map((entry, index) => (
+                    <Box key={index} mb="0.25rem">
+                      {entry}
+                    </Box>
+                  ))}
+                </Collapsible>
+              )}
             </Section>
           )}
         </Box>

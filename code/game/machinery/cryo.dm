@@ -115,6 +115,23 @@
 		else
 			data["occupant"]["temperaturestatus"] = "bad"
 
+			// Rough estimate only - mirrors process_occupant()'s healing formulas, but those heal
+			// rates decrease as damage drops (asymptotic), so this consistently underestimates the
+			// true time for higher damage values. Only shown once full healing has actually started
+			// (mirrors process_occupant()'s own BODYTEMP_CRYO_LIQUID_THRESHOLD gate) - before that
+			// the patient is still cooling and no honest ETA exists yet.
+			if(on && mob_occupant.stat != DEAD && mob_occupant.bodytemperature <= BODYTEMP_CRYO_LIQUID_THRESHOLD)
+				var/ticks_needed = 0
+				if(mob_occupant.getToxLoss())
+					ticks_needed = max(ticks_needed, mob_occupant.getToxLoss() / min(1, 20 / mob_occupant.getToxLoss()))
+				if(mob_occupant.getBruteLoss())
+					ticks_needed = max(ticks_needed, mob_occupant.getBruteLoss() / min(1, 20 / mob_occupant.getBruteLoss()))
+				if(mob_occupant.getFireLoss())
+					ticks_needed = max(ticks_needed, mob_occupant.getFireLoss() / min(1, 20 / mob_occupant.getFireLoss()))
+				if(mob_occupant.getOxyLoss())
+					ticks_needed = max(ticks_needed, mob_occupant.getOxyLoss())
+				data["occupant"]["etaSeconds"] = round(ticks_needed * (SSmachinery.wait / 10))
+
 	data["cellTemperature"] = floor(temperature)
 
 	data["isBeakerLoaded"] = beaker ? TRUE : FALSE

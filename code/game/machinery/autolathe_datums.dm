@@ -1,6 +1,6 @@
 /datum/autolathe/recipe
 	var/name = "object"
-	var/path
+	var/obj/item/path
 	var/list/resources
 	var/hidden = FALSE
 	var/category

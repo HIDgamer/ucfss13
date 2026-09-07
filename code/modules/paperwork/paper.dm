@@ -394,46 +394,73 @@
 	update_icon()
 	return TRUE
 
-/obj/item/paper/Topic(href, href_list)
-	..()
-	if(!usr || (usr.stat || usr.is_mob_restrained()))
+/obj/item/paper/tgui_interact(mob/user, datum/tgui/ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new(user, src, "PaperEditor", "[name]")
+		ui.open()
+
+/obj/item/paper/ui_data(mob/user)
+	var/list/data = list()
+	var/obj/item/active = user.get_active_hand()
+	data["mode"] = istype(active, /obj/item/toy/crayon) ? "crayon" : "pen"
+
+	var/datum/asset/asset = get_asset_datum(/datum/asset/simple/paper)
+	var/list/mappings = asset.get_url_mappings()
+	data["logo_wy"] = mappings["logo_wy.png"]
+	data["logo_wy_inv"] = mappings["logo_wy_inv.png"]
+	data["logo_uscm"] = mappings["logo_uscm.png"]
+	data["logo_upp"] = mappings["logo_upp.png"]
+	data["logo_cmb"] = mappings["logo_cmb.png"]
+
+	return data
+
+/obj/item/paper/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	. = ..()
+	if(.)
 		return
+	var/mob/user = ui.user
 
-	if(usr.client.prefs.muted & MUTE_IC)
-		to_chat(usr, SPAN_DANGER("You cannot write on paper (muted)."))
-		return
-
-	if(href_list["write"])
-		var/id = href_list["write"]
-		var/t =  stripped_multiline_input(usr, "Enter what you want to write:", "Write", "", MAX_MESSAGE_LEN)
-		var/shortened_t = copytext(t,1,100)
-		msg_admin_niche("PAPER: [key_name(usr)] tried to write something. First 100 characters: [shortened_t]")
-
-		var/obj/item/i = usr.get_active_hand() // Check to see if he still got that darn pen, also check if he's using a crayon or pen.
-		var/iscrayon = 0
-		if(!HAS_TRAIT(i, TRAIT_TOOL_PEN))
-			if(!istype(i, /obj/item/toy/crayon))
+	switch(action)
+		if("commit")
+			if(!user || user.stat || user.is_mob_restrained())
 				return
-			iscrayon = 1
+			if(user.client.prefs.muted & MUTE_IC)
+				to_chat(user, SPAN_DANGER("You cannot write on paper (muted)."))
+				return
 
+			// Re-derive the active tool at commit time, not whichever tool opened the editor -
+			// matches the old Topic() write handler's behavior exactly.
+			var/obj/item/active = user.get_active_hand()
+			var/iscrayon = istype(active, /obj/item/toy/crayon)
+			var/obj/item/tool/pen/pen = HAS_TRAIT(active, TRAIT_TOOL_PEN) ? active : null
+			if(!iscrayon && !pen)
+				return
 
-		// if paper is not in usr, then it must be near them, or in a clipboard, noticeboard or folder, which must be in or near usr
-		if(src.loc != usr && !src.Adjacent(usr) && !((istype(src.loc, /obj/item/clipboard) || istype(src.loc, /obj/structure/noticeboard) || istype(src.loc, /obj/item/folder)) && (src.loc.loc == usr || src.loc.Adjacent(usr)) ) )
-			return
+			// if paper is not in usr, then it must be near them, or in a clipboard, noticeboard or folder, which must be in or near usr
+			if(loc != user && !Adjacent(user) && !((istype(loc, /obj/item/clipboard) || istype(loc, /obj/structure/noticeboard) || istype(loc, /obj/item/folder)) && (loc.loc == user || loc.Adjacent(user))))
+				return
 
-		t = replacetext(t, "\n", "<BR>")
-		t = parsepencode(t, i, usr, iscrayon) // Encode everything from pencode to html
+			var/html = params["html"]
+			if(!html)
+				return
 
-		if(id!="end")
-			addtofield(text2num(id), t) // He wants to edit a field, let him.
-		else
-			info += t // Oh, he wants to edit to the end of the file, let him.
+			var/shortened = copytext(html, 1, 100)
+			msg_admin_niche("PAPER: [key_name(user)] tried to write something. First 100 characters: [shortened]")
+
+			html = sanitize_paper_html(html, iscrayon)
+			html = resolve_paper_placeholders(html, user)
+
+			var/pen_color = iscrayon ? "black" : (pen ? pen.pen_color : "black")
+			var/font = iscrayon ? crayonfont : deffont
+			html = iscrayon ? "<font face=\"[font]\" color=[pen_color]><b>[html]</b></font>" : "<font face=\"[font]\" color=[pen_color]>[html]</font>"
+
+			info += html
 			updateinfolinks()
-
-		show_browser(usr, "<BODY class='paper'>[info_links][stamps]</BODY>", name, name) // Update the window
-
-		update_icon()
-		playsound(src, "paper_writing", 15, TRUE)
+			calculate_fields(html) // only counts fields in this new fragment, matching parsepencode()'s own usage
+			update_icon()
+			playsound(src, "paper_writing", 15, TRUE)
+			. = TRUE
 
 /obj/item/paper/attackby(obj/item/P, mob/user)
 	..()
@@ -465,8 +492,7 @@
 			if(!p.on)
 				to_chat(user, SPAN_NOTICE("Your pen is not on!"))
 				return
-		show_browser(user, "<BODY class='paper'>[info_links][stamps]</BODY>", name, name) // Update the window
-		//openhelp(user)
+		tgui_interact(user)
 		return
 
 	else if(istype(P, /obj/item/tool/stamp))

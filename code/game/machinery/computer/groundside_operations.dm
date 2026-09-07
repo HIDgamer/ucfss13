@@ -14,7 +14,7 @@
 
 	var/minimap_type = MINIMAP_FLAG_USCM
 
-	var/is_announcement_active = TRUE
+	COOLDOWN_DECLARE(announcement_cooldown)
 	var/announcement_title = COMMAND_ANNOUNCE
 	var/announcement_faction = FACTION_MARINE
 	var/add_pmcs = FALSE
@@ -27,6 +27,8 @@
 	var/list/concurrent_users = list()
 
 	var/minimap_flag = MINIMAP_FLAG_USCM
+	/// TGUI theme for this console
+	var/ui_theme = "crtblue"
 
 /obj/structure/machinery/computer/groundside_operations/Initialize()
 	if(SSticker.mode && MODE_HAS_FLAG(MODE_FACTION_CLASH))
@@ -70,82 +72,66 @@
 	if(..() || !allowed(user) || inoperable())
 		return
 
-	ui_interact(user)
+	tgui_interact(user)
 
-/obj/structure/machinery/computer/groundside_operations/ui_interact(mob/user as mob)
-	user.set_interaction(src)
+// tgui boilerplate \\
 
-	var/dat = "<head><title>Groundside Operations Console</title></head><body>"
-	dat += "<BR><A href='byond://?src=\ref[src];operation=announce'>[is_announcement_active ? "Make An Announcement" : "*Unavailable*"]</A>"
-	dat += "<BR><A href='byond://?src=\ref[src];operation=mapview'>Tactical Map</A>"
-	dat += "<BR><hr>"
+/obj/structure/machinery/computer/groundside_operations/tgui_interact(mob/user, datum/tgui/ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new(user, src, "GroundsideOperations", name)
+		ui.open()
+
+/obj/structure/machinery/computer/groundside_operations/ui_status(mob/user, datum/ui_state/state)
+	. = ..()
+	if(!allowed(user))
+		return UI_CLOSE
+	if(inoperable())
+		return UI_CLOSE
+
+/obj/structure/machinery/computer/groundside_operations/ui_static_data(mob/user)
+	var/list/data = list()
+	data["theme"] = ui_theme
+	return data
+
+// tgui data \\
+
+/obj/structure/machinery/computer/groundside_operations/ui_data(mob/user)
+	var/list/data = list()
+
+	data["isAnnouncementActive"] = COOLDOWN_FINISHED(src, announcement_cooldown)
+	data["announcementCooldown"] = COOLDOWN_COMM_MESSAGE
+	data["announcementEndTime"] = announcement_cooldown
+	data["worldtime"] = world.time
+
 	var/datum/squad/marine/echo/echo_squad = locate() in GLOB.RoleAuthority.squads
-	if(!echo_squad.active && faction == FACTION_MARINE)
-		dat += "<BR><A href='byond://?src=\ref[src];operation=activate_echo'>Designate Echo Squad</A>"
-		dat += "<BR><hr>"
+	data["hasEchoOption"] = (echo_squad && !echo_squad.active && faction == FACTION_MARINE)
 
-	if(lz_selection && SSticker.mode && (isnull(SSticker.mode.active_lz) || isnull(SSticker.mode.active_lz.loc)))
-		dat += "<BR><A href='byond://?src=\ref[src];operation=selectlz'>Designate Primary LZ</A><BR>"
-		dat += "<BR><hr>"
+	data["hasLzSelection"] = lz_selection && SSticker.mode && (isnull(SSticker.mode.active_lz) || isnull(SSticker.mode.active_lz.loc))
 
+	data["hasSquadOverwatch"] = has_squad_overwatch
 	if(has_squad_overwatch)
+		var/list/squad_list = list()
+		for(var/datum/squad/S in GLOB.RoleAuthority.squads)
+			if(S.active && S.faction == faction)
+				squad_list += S.name
+		squad_list += COMMAND_SQUAD
+		data["squadList"] = squad_list
+
+		data["showCommandSquad"] = show_command_squad
+		data["currentSquad"] = current_squad ? current_squad.name : null
+
 		if(show_command_squad)
-			dat += "Current Squad: <A href='byond://?src=\ref[src];operation=pick_squad'>Command</A><BR>"
-		else
-			dat += "Current Squad: <A href='byond://?src=\ref[src];operation=pick_squad'>[!isnull(current_squad) ? "[current_squad.name]" : "----------"]</A><BR>"
-		if(current_squad || show_command_squad)
-			dat += get_overwatch_info()
+			get_marine_list_data(data, list(GLOB.marine_leaders[JOB_CO], GLOB.marine_leaders[JOB_XO]) + GLOB.marine_leaders[JOB_SO])
+		else if(current_squad)
+			get_marine_list_data(data, current_squad.marines_list)
 
-	dat += "<BR><A href='byond://?src=\ref[user];mach_close=groundside_operations'>Close</A>"
-	show_browser(user, dat, name, "groundside_operations", "size=600x700")
-	concurrent_users += WEAKREF(user)
-	onclose(user, "groundside_operations")
+	return data
 
-/obj/structure/machinery/computer/groundside_operations/proc/get_overwatch_info()
-	var/dat = ""
-	dat += {"
-	<script type="text/javascript">
-		function updateSearch() {
-			var filter_text = document.getElementById("filter");
-			var filter = filter_text.value.toLowerCase();
+// end tgui data \\
 
-			var marine_list = document.getElementById("marine_list");
-			var ltr = marine_list.getElementsByTagName("tr");
-
-			for(var i = 0; i < ltr.length; ++i) {
-				try {
-					var tr = ltr\[i\];
-					tr.style.display = '';
-					var ltd = tr.getElementsByTagName("td")
-					var name = ltd\[0\].innerText.toLowerCase();
-					var role = ltd\[1\].innerText.toLowerCase()
-					if(name.indexOf(filter) == -1 && role.indexOf(filter) == -1) {
-						tr.style.display = 'none';
-					}
-				} catch(err) {}
-			}
-		}
-	</script>
-	"}
-
-	if(show_command_squad)
-		dat += format_list_of_marines(list(GLOB.marine_leaders[JOB_CO], GLOB.marine_leaders[JOB_XO]) + GLOB.marine_leaders[JOB_SO], list(JOB_CO, JOB_XO, JOB_SO))
-	else if(current_squad)
-		dat += format_list_of_marines(current_squad.marines_list, list(JOB_SQUAD_LEADER, JOB_SQUAD_TEAM_LEADER, JOB_SQUAD_SPECIALIST, JOB_SQUAD_SMARTGUN, JOB_SQUAD_MEDIC, JOB_SQUAD_ENGI, JOB_SQUAD_MARINE))
-	else
-		dat += "No Squad selected!<BR>"
-	dat += "<br><hr>"
-	dat += "<A href='byond://?src=\ref[src];operation=refresh'>Refresh</a><br>"
-	return dat
-
-/obj/structure/machinery/computer/groundside_operations/proc/format_list_of_marines(list/mob/living/carbon/human/marine_list, list/jobs_in_order)
-	var/dat = ""
-	var/list/job_order = list()
-
-	for(var/job in jobs_in_order)
-		job_order[job] = ""
-
-	var/misc_text = ""
+/obj/structure/machinery/computer/groundside_operations/proc/get_marine_list_data(list/data, list/marine_list)
+	var/list/rows = list()
 
 	var/living_count = 0
 	var/almayer_count = 0
@@ -155,12 +141,12 @@
 
 	for(var/X in marine_list)
 		if(!X)
-			continue //just to be safe
+			continue
 		total_count++
 		var/mob_name = "unknown"
 		var/mob_state = ""
 		var/role = "unknown"
-		var/area_name = "<b>???</b>"
+		var/area_name = "???"
 		var/mob/living/carbon/human/H
 		var/act_sl = ""
 		if(ishuman(X))
@@ -182,7 +168,7 @@
 					mob_state = "Conscious"
 					living_count++
 				if(UNCONSCIOUS)
-					mob_state = "<b>Unconscious</b>"
+					mob_state = "Unconscious"
 					living_count++
 				else
 					continue
@@ -190,45 +176,50 @@
 			if(!is_ground_level(M_turf.z))
 				almayer_count++
 				continue
-
 			if(!H.get_camera_holder())
 				helmetless_count++
 				continue
-
 			if(!H.key || !H.client)
 				SSD_count++
 				continue
 			if(current_squad)
 				if(H == current_squad.squad_leader && role != JOB_SQUAD_LEADER)
 					act_sl = " (ASL)"
-		var/marine_infos = "<tr><td><A href='byond://?src=\ref[src];operation=use_cam;cam_target=\ref[H]'>[mob_name]</a></td><td>[role][act_sl]</td><td>[mob_state]</td><td>[area_name]</td></tr>"
-		if(role in job_order)
-			job_order[role] += marine_infos
-		else
-			misc_text += marine_infos
-	dat += "<b>Total: [total_count] Deployed</b><BR>"
-	dat += "<b>Marines detected: [living_count] ([helmetless_count] no camera, [SSD_count] SSD, [almayer_count] on Almayer)</b><BR>"
-	dat += "<center><b>Search:</b> <input type='text' id='filter' value='' onkeyup='updateSearch();' style='width:300px;'></center>"
-	dat += "<table id='marine_list' border='2px' style='width: 100%; border-collapse: collapse;' align='center'><tr>"
-	dat += "<th>Name</th><th>Role</th><th>State</th><th>Location</th></tr>"
-	for(var/job in job_order)
-		dat += job_order[job]
-	dat += misc_text
-	dat += "</table>"
-	return dat
 
-/obj/structure/machinery/computer/groundside_operations/Topic(href, href_list)
-	if(..())
-		return FALSE
+			rows += list(list(
+				"name" = mob_name,
+				"ref" = REF(H),
+				"role" = role,
+				"actingSl" = act_sl,
+				"state" = mob_state,
+				"areaName" = area_name,
+			))
 
-	usr.set_interaction(src)
-	switch(href_list["operation"])
+	data["marines"] = rows
+	data["totalDeployed"] = total_count
+	data["livingCount"] = living_count
+	data["almayerCount"] = almayer_count
+	data["ssdCount"] = SSD_count
+	data["helmetlessCount"] = helmetless_count
+	return data
+
+// tgui interact \\
+
+/obj/structure/machinery/computer/groundside_operations/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	. = ..()
+	if(.)
+		return
+	var/mob/user = ui.user
+	user.set_interaction(src)
+
+	switch(action)
 		if("mapview")
-			var/mob/user = usr
 			var/datum/component/tacmap/tacmap_component = GetComponent(/datum/component/tacmap)
 			tacmap_component.show_tacmap(user)
+			. = TRUE
+
 		if("announce")
-			var/mob/living/carbon/human/human_user = usr
+			var/mob/living/carbon/human/human_user = user
 			var/obj/item/card/id/idcard = human_user.get_active_hand()
 			var/bio_fail = FALSE
 			if(!istype(idcard))
@@ -239,110 +230,113 @@
 				bio_fail = TRUE
 			if(bio_fail)
 				to_chat(human_user, SPAN_WARNING("Biometrics failure! You require an authenticated ID card to perform this action!"))
-				return FALSE
-
-			if(usr.client.prefs.muted & MUTE_IC)
-				to_chat(usr, SPAN_DANGER("You cannot send Announcements (muted)."))
 				return
 
-			if(!is_announcement_active)
-				to_chat(usr, SPAN_WARNING("Please allow at least [COOLDOWN_COMM_MESSAGE*0.1] second\s to pass between announcements."))
-				return FALSE
-			if(announcement_faction != FACTION_MARINE && usr.faction != announcement_faction)
-				to_chat(usr, SPAN_WARNING("Access denied."))
+			if(user.client.prefs.muted & MUTE_IC)
+				to_chat(user, SPAN_DANGER("You cannot send Announcements (muted)."))
 				return
-			var/input = stripped_multiline_input(usr, "Please write a message to announce to the station crew.", "Priority Announcement", "")
-			if(!input || !is_announcement_active || !(usr in dview(1, src)))
-				return FALSE
 
-			is_announcement_active = FALSE
+			if(!COOLDOWN_FINISHED(src, announcement_cooldown))
+				to_chat(user, SPAN_WARNING("Please allow at least [COOLDOWN_COMM_MESSAGE*0.1] second\s to pass between announcements."))
+				return
+			if(announcement_faction != FACTION_MARINE && user.faction != announcement_faction)
+				to_chat(user, SPAN_WARNING("Access denied."))
+				return
+
+			var/input = html_encode(trim(params["message"], MAX_MESSAGE_LEN))
+			if(!input || !COOLDOWN_FINISHED(src, announcement_cooldown) || !(user in dview(1, src)))
+				return
 
 			var/signed = null
-			if(ishuman(usr))
-				var/mob/living/carbon/human/H = usr
-				var/obj/item/card/id/id = H.get_idcard()
-				if(id)
-					var/paygrade = get_paygrades(id.paygrade, FALSE, H.gender)
-					signed = "[paygrade] [id.registered_name]"
+			if(ishuman(user))
+				var/paygrade = get_paygrades(idcard.paygrade, FALSE, human_user.gender)
+				signed = "[paygrade] [idcard.registered_name]"
 
 			marine_announcement(input, announcement_title, faction_to_display = announcement_faction, add_PMCs = add_pmcs, signature = signed)
-			addtimer(CALLBACK(src, PROC_REF(reactivate_announcement), usr), COOLDOWN_COMM_MESSAGE)
-			message_admins("[key_name(usr)] has made a command announcement.")
-			log_announcement("[key_name(usr)] has announced the following: [input]")
+			COOLDOWN_START(src, announcement_cooldown, COOLDOWN_COMM_MESSAGE)
+			message_admins("[key_name(user)] has made a command announcement.")
+			log_announcement("[key_name(user)] has announced the following: [input]")
+			. = TRUE
 
 		if("award")
-			open_medal_panel(usr, src)
+			open_medal_panel(user, src)
+			. = TRUE
 
-		if("selectlz")
-			if(SSticker.mode.active_lz)
+		if("select_lz")
+			if(!lz_selection || (SSticker.mode && SSticker.mode.active_lz))
 				return
-			var/lz_choices = list("lz1", "lz2")
-			var/new_lz = tgui_input_list(usr, "Select primary LZ", "LZ Select", lz_choices)
-			if(!new_lz)
-				return
+			var/new_lz = params["lz"]
 			if(new_lz == "lz1")
 				SSticker.mode.select_lz(locate(/obj/structure/machinery/computer/shuttle/dropship/flight/lz1))
-			else
+			else if(new_lz == "lz2")
 				SSticker.mode.select_lz(locate(/obj/structure/machinery/computer/shuttle/dropship/flight/lz2))
+			else
+				return
+			. = TRUE
 
 		if("pick_squad")
-			var/list/squad_list = list()
-			for(var/datum/squad/S in GLOB.RoleAuthority.squads)
-				if(S.active && S.faction == faction)
-					squad_list += S.name
-			squad_list += COMMAND_SQUAD
-
-			var/name_sel = tgui_input_list(usr, "Which squad would you like to look at?", "Pick Squad", squad_list)
-			if(!name_sel)
+			if(!has_squad_overwatch)
 				return
-
+			var/name_sel = params["squad"]
 			if(name_sel == COMMAND_SQUAD)
 				show_command_squad = TRUE
 				current_squad = null
-
 			else
+				var/datum/squad/selected
+				for(var/datum/squad/S in GLOB.RoleAuthority.squads)
+					if(S.active && S.faction == faction && S.name == name_sel)
+						selected = S
+						break
+				if(!selected)
+					return
 				show_command_squad = FALSE
-
-				var/datum/squad/selected = get_squad_by_name(name_sel)
-				if(selected)
-					current_squad = selected
-				else
-					to_chat(usr, "[icon2html(src, usr)] [SPAN_WARNING("Invalid input. Aborting.")]")
+				current_squad = selected
+			. = TRUE
 
 		if("use_cam")
-			if(isRemoteControlling(usr))
-				to_chat(usr, "[icon2html(src, usr)] [SPAN_WARNING("Unable to override console camera viewer. Track with camera instead. ")]")
+			if(isRemoteControlling(user))
+				to_chat(user, "[icon2html(src, user)] [SPAN_WARNING("Unable to override console camera viewer. Track with camera instead. ")]")
 				return
-
-			if(current_squad || show_command_squad)
-				var/mob/living/carbon/human/cam_target = locate(href_list["cam_target"])
-				var/obj/item/new_holder = cam_target.get_camera_holder()
-				var/obj/structure/machinery/camera/new_cam
-				if(new_holder)
-					new_cam = new_holder.get_camera()
-				if(!new_cam || !new_cam.can_use())
-					to_chat(usr, "[icon2html(src, usr)] [SPAN_WARNING("Searching for camera. No camera found for this marine! Tell your squad to put their cameras on!")]")
-				else if(cam && cam == new_cam)//click the camera you're watching a second time to stop watching.
-					visible_message("[icon2html(src, viewers(src))] [SPAN_BOLDNOTICE("Stopping camera view of [cam_target].")]")
-					usr.UnregisterSignal(cam, COMSIG_PARENT_QDELETING)
-					disconnect_holder()
-					cam = null
-					usr.reset_view(null)
-				else if(usr.client.view != GLOB.world_view_size)
-					to_chat(usr, SPAN_WARNING("You're too busy peering through binoculars."))
-				else
+			if(!current_squad && !show_command_squad)
+				return
+			var/mob/living/carbon/human/cam_target = locate(params["target_ref"])
+			if(!cam_target)
+				return
+			var/obj/item/new_holder = cam_target.get_camera_holder()
+			var/obj/structure/machinery/camera/new_cam
+			if(new_holder)
+				new_cam = new_holder.get_camera()
+			if(!new_cam || !new_cam.can_use())
+				to_chat(user, "[icon2html(src, user)] [SPAN_WARNING("Searching for camera. No camera found for this marine! Tell your squad to put their cameras on!")]")
+			else if(cam && cam == new_cam) //click the camera you're watching a second time to stop watching.
+				visible_message("[icon2html(src, viewers(src))] [SPAN_BOLDNOTICE("Stopping camera view of [cam_target].")]")
+				for(var/datum/weakref/user_ref in concurrent_users)
+					var/mob/concurrent = user_ref.resolve()
+					if(!concurrent)
+						continue
+					concurrent.reset_view(null)
+					concurrent.UnregisterSignal(cam, COMSIG_PARENT_QDELETING)
+				disconnect_holder()
+				cam = null
+			else if(user.client.view != GLOB.world_view_size)
+				to_chat(user, SPAN_WARNING("You're too busy peering through binoculars."))
+			else
+				for(var/datum/weakref/user_ref in concurrent_users)
+					var/mob/concurrent = user_ref.resolve()
+					if(!concurrent)
+						continue
 					if(cam)
-						usr.UnregisterSignal(cam, COMSIG_PARENT_QDELETING)
-					if(camera_holder)
-						disconnect_holder()
-
-					cam = new_cam
-					connect_holder(new_holder)
-					usr.reset_view(cam)
-					usr.RegisterSignal(cam, COMSIG_PARENT_QDELETING, TYPE_PROC_REF(/mob, reset_observer_view_on_deletion))
+						concurrent.UnregisterSignal(cam, COMSIG_PARENT_QDELETING)
+					concurrent.reset_view(new_cam)
+					concurrent.RegisterSignal(new_cam, COMSIG_PARENT_QDELETING, TYPE_PROC_REF(/mob, reset_observer_view_on_deletion))
+				if(camera_holder)
+					disconnect_holder()
+				cam = new_cam
+				connect_holder(new_holder)
+			. = TRUE
 
 		if("activate_echo")
-			var/mob/living/carbon/human/human_user = usr
+			var/mob/living/carbon/human/human_user = user
 			var/obj/item/card/id/idcard = human_user.get_active_hand()
 			var/bio_fail = FALSE
 			if(!istype(idcard))
@@ -353,28 +347,34 @@
 				bio_fail = TRUE
 			if(bio_fail)
 				to_chat(human_user, SPAN_WARNING("Biometrics failure! You require an authenticated ID card to perform this action!"))
-				return FALSE
-
-			var/reason = strip_html(input(usr, "What is the purpose of Echo Squad?", "Activation Reason"))
-			if(!reason)
 				return
-			if(alert(usr, "Confirm activation of Echo Squad for [reason]", "Confirm Activation", "Yes", "No") != "Yes")
+
+			var/reason = html_encode(trim(params["reason"], MAX_MESSAGE_LEN))
+			if(!reason)
 				return
 			var/datum/squad/marine/echo/echo_squad = locate() in GLOB.RoleAuthority.squads
 			if(!echo_squad)
 				visible_message(SPAN_BOLDNOTICE("ERROR: Unable to locate Echo Squad database."))
 				return
 			echo_squad.engage_squad(TRUE)
-			message_admins("[key_name(usr)] activated Echo Squad for '[reason]'.")
+			message_admins("[key_name(user)] activated Echo Squad for '[reason]'.")
+			. = TRUE
 
-		if("refresh")
-			attack_hand(usr)
+	add_fingerprint(user)
 
-	updateUsrDialog()
+// end tgui interact \\
 
-/obj/structure/machinery/computer/groundside_operations/proc/reactivate_announcement(mob/user)
-	is_announcement_active = TRUE
-	updateUsrDialog()
+// end tgui \\
+
+/obj/structure/machinery/computer/groundside_operations/on_set_interaction(mob/user)
+	if(user.interactee != src)
+		user.unset_interaction()
+	..()
+	if(!isRemoteControlling(user))
+		concurrent_users += WEAKREF(user)
+		if(cam)
+			user.reset_view(cam)
+			user.RegisterSignal(cam, COMSIG_PARENT_QDELETING, TYPE_PROC_REF(/mob, reset_observer_view_on_deletion))
 
 /obj/structure/machinery/computer/groundside_operations/on_unset_interaction(mob/user)
 	..()
@@ -385,12 +385,23 @@
 	if(!isRemoteControlling(user))
 		if(cam)
 			user.UnregisterSignal(cam, COMSIG_PARENT_QDELETING)
-		cam = null
 		user.reset_view(null)
 		concurrent_users -= WEAKREF(user)
-		if(!camera_holder)
-			return
-		disconnect_holder()
+
+/obj/structure/machinery/computer/groundside_operations/check_eye(mob/user)
+	if(user.is_mob_incapacitated(TRUE) || get_dist(user, src) > 1 || user.blinded)
+		user.unset_interaction()
+	else if(!cam || !cam.can_use())
+		for(var/datum/weakref/user_ref in concurrent_users)
+			var/mob/concurrent = user_ref.resolve()
+			if(!concurrent)
+				continue
+			if(cam)
+				concurrent.UnregisterSignal(cam, COMSIG_PARENT_QDELETING)
+			concurrent.reset_view(null)
+		if(camera_holder)
+			disconnect_holder()
+		cam = null
 
 /obj/structure/machinery/computer/groundside_operations/proc/transfer_talk(obj/item/camera, mob/living/sourcemob, message, verb = "says", datum/language/language, italics = FALSE, show_message_above_tv = FALSE)
 	SIGNAL_HANDLER
@@ -428,6 +439,7 @@
 	has_squad_overwatch = FALSE
 	minimap_type = MINIMAP_FLAG_UPP
 	freq = UPP_FREQ
+	ui_theme = "crtupp"
 
 /obj/structure/machinery/computer/groundside_operations/clf
 	announcement_title = CLF_COMMAND_ANNOUNCE
@@ -446,6 +458,7 @@
 	has_squad_overwatch = FALSE
 	minimap_type = MINIMAP_FLAG_WY
 	freq = PMC_FREQ
+	ui_theme = "weyland"
 
 /obj/structure/machinery/computer/groundside_operations/arc
 	icon = 'icons/obj/vehicles/interiors/arc.dmi'

@@ -83,15 +83,24 @@ GLOBAL_LIST_INIT(frozen_items, list(SQUAD_MARINE_1 = list(), SQUAD_MARINE_2 = li
 	data["cryotype"] = cryotype
 
 	var/list/frozen_crew_list = list()
-	for(var/person in GLOB.frozen_crew)
-		frozen_crew_list += person
+	for(var/list/person in GLOB.frozen_crew)
+		frozen_crew_list += list(list(
+			"name" = person["name"],
+			"job" = person["job"],
+			"minutes_ago" = round((world.time - person["frozen_at"]) / 600),
+		))
 	data["frozen_crew"] = frozen_crew_list
 
 	var/list/frozen_items_for_type = GLOB.frozen_items[cryotype]
-	var/list/item_names = list()
+	var/list/item_data = list()
 	for(var/obj/item/I in frozen_items_for_type)
-		item_names += I.name
-	data["frozen_items"] = item_names
+		item_data += list(list(
+			"name" = I.name,
+			"ref" = REF(I),
+			"icon" = I.icon,
+			"icon_state" = I.icon_state,
+		))
+	data["frozen_items"] = item_data
 
 	return data
 
@@ -111,12 +120,9 @@ GLOBAL_LIST_INIT(frozen_items, list(SQUAD_MARINE_1 = list(), SQUAD_MARINE_2 = li
 				to_chat(user, SPAN_WARNING("There is nothing to recover from storage."))
 				return TRUE
 
-			var/obj/item/I = tgui_input_list(user, "Please choose which object to retrieve.", "Object recovery", frozen_items_for_type)
+			var/obj/item/I = locate(params["ref"]) in frozen_items_for_type
 			if(!I)
-				return TRUE
-
-			if(!(I in frozen_items_for_type))
-				to_chat(user, SPAN_WARNING("[I] is no longer in storage."))
+				to_chat(user, SPAN_WARNING("That item is no longer in storage."))
 				return TRUE
 
 			visible_message(SPAN_NOTICE("[src] beeps happily as it disgorges [I]."))
@@ -375,7 +381,11 @@ GLOBAL_LIST_INIT(frozen_items, list(SQUAD_MARINE_1 = list(), SQUAD_MARINE_2 = li
 		occupant.ghostize(0)
 
 	//Make an announcement and log the person entering storage.
-	GLOB.frozen_crew += "[occupant.real_name] ([occupant.job])"
+	GLOB.frozen_crew += list(list(
+		"name" = occupant.real_name,
+		"job" = occupant.job,
+		"frozen_at" = world.time,
+	))
 
 	if(!gearless_role(occupant))
 		ai_silent_announcement("[occupant.real_name], [occupant.job], has entered long-term hypersleep storage. Belongings moved to hypersleep inventory.")

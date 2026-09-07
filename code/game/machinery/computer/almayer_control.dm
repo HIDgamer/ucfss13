@@ -65,6 +65,7 @@
 	data["cooldown_central"] = COOLDOWN_COMM_CENTRAL
 	data["cooldown_message"] = COOLDOWN_COMM_MESSAGE
 	data["distresstimelock"] = DISTRESS_TIME_LOCK
+	data["theme"] = "crtblue"
 
 	return data
 
@@ -72,7 +73,26 @@
 	var/list/data = list()
 	var/list/messages = list()
 
-	data["alert_level"] = GLOB.security_level
+	var/alert_level = GLOB.security_level
+	data["alert_level"] = alert_level
+	data["alert_level_string"] = uppertext(get_security_level())
+	switch(alert_level)
+		if(SEC_LEVEL_DELTA)
+			data["alert_level_color"] = "purple"
+		if(SEC_LEVEL_RED)
+			data["alert_level_color"] = "red"
+		if(SEC_LEVEL_BLUE)
+			data["alert_level_color"] = "blue"
+		else
+			data["alert_level_color"] = "green"
+
+	var/list/selectable_levels = list()
+	if(alert_level != SEC_LEVEL_DELTA)
+		if(alert_level != SEC_LEVEL_GREEN)
+			selectable_levels += "green"
+		if(alert_level != SEC_LEVEL_BLUE)
+			selectable_levels += "blue"
+	data["selectable_levels"] = selectable_levels
 
 	data["time_request"] = cooldown_request
 	data["time_destruct"] = cooldown_destruct
@@ -84,6 +104,13 @@
 	data["evac_status"] = SShijack.evac_status
 	if(SShijack.evac_status == EVACUATION_STATUS_INITIATED)
 		data["evac_eta"] = SShijack.get_evac_eta()
+
+	var/minimum_time_elapsed = world.time > DISTRESS_TIME_LOCK
+	data["can_message"] = cooldown_message < world.time
+	data["can_central"] = cooldown_central < world.time
+	data["can_evac"] = (SShijack.evac_status == EVACUATION_STATUS_NOT_INITIATED) && (alert_level >= SEC_LEVEL_RED)
+	data["can_request"] = (cooldown_request < world.time) && (alert_level == SEC_LEVEL_RED) && minimum_time_elapsed
+	data["can_destruct"] = (cooldown_destruct < world.time) && (alert_level == SEC_LEVEL_RED) && minimum_time_elapsed
 
 	if(!length(messagetitle))
 		data["messages"] = null
@@ -160,17 +187,12 @@
 		// evac stuff end \\
 
 		if("change_sec_level")
-			var/list/alert_list = list(num2seclevel(SEC_LEVEL_GREEN), num2seclevel(SEC_LEVEL_BLUE))
-			switch(GLOB.security_level)
-				if(SEC_LEVEL_GREEN)
-					alert_list -= num2seclevel(SEC_LEVEL_GREEN)
-				if(SEC_LEVEL_BLUE)
-					alert_list -= num2seclevel(SEC_LEVEL_BLUE)
-				if(SEC_LEVEL_DELTA)
-					return
-
-			var/level_selected = tgui_input_list(user, "What alert would you like to set it as?", "Alert Level", alert_list)
-			if(!level_selected)
+			if(GLOB.security_level == SEC_LEVEL_DELTA)
+				return
+			var/level_selected = params["level"]
+			if(level_selected != "green" && level_selected != "blue")
+				return
+			if(seclevel2num(level_selected) == GLOB.security_level)
 				return
 
 			set_security_level(seclevel2num(level_selected), log = ARES_LOG_NONE)
@@ -183,7 +205,7 @@
 			if(!COOLDOWN_FINISHED(src, cooldown_central))
 				to_chat(user, SPAN_WARNING("Arrays are re-cycling.  Please stand by."))
 				return FALSE
-			var/input = stripped_input(user, "Please choose a message to transmit to USCM.  Please be aware that this process is very expensive, and abuse will lead to termination.  Transmission does not guarantee a response. There is a small delay before you may send another message. Be clear and concise.", "To abort, send an empty message.", "")
+			var/input = html_encode(trim(params["message"], MAX_MESSAGE_LEN))
 			if(!input || !(user in dview(1, src)) || !COOLDOWN_FINISHED(src, cooldown_central))
 				return FALSE
 
@@ -210,7 +232,7 @@
 			if(!COOLDOWN_FINISHED(src, cooldown_message))
 				to_chat(user, SPAN_WARNING("Please allow at least [COOLDOWN_TIMELEFT(src, cooldown_message)/10] second\s to pass between announcements."))
 				return FALSE
-			var/input = stripped_multiline_input(user, "Please write a message to announce to the station crew.", "Priority Announcement", "")
+			var/input = html_encode(trim(params["message"], MAX_MESSAGE_LEN))
 			if(!input || !COOLDOWN_FINISHED(src, cooldown_message) || !(user in dview(1, src)))
 				return FALSE
 
