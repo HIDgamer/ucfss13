@@ -6,6 +6,7 @@ import {
   ProgressBar,
   Section,
 } from '../components';
+import { formatTime } from '../format';
 import { Window } from '../layouts';
 import { BeakerContents } from './common/BeakerContents';
 
@@ -22,6 +23,12 @@ type Occupant = {
   fireLoss?: number;
   bodyTemperature?: number;
   temperaturestatus?: string;
+  etaSeconds?: number;
+};
+
+const damageRange: Record<string, [number, number]> = {
+  average: [0.25, 0.5],
+  bad: [0.5, Infinity],
 };
 
 type BeakerContent = {
@@ -61,7 +68,7 @@ const damageTypes = [
 
 export const Cryo = () => {
   return (
-    <Window width={400} height={550}>
+    <Window theme="weyland" width={400} height={550}>
       <Window.Content scrollable>
         <CryoContent />
       </Window.Content>
@@ -112,6 +119,7 @@ const CryoContent = (props) => {
                 >
                   <ProgressBar
                     value={(data.occupant[damageType.type] ?? 0) / 100}
+                    ranges={damageRange}
                   >
                     <AnimatedNumber
                       value={data.occupant[damageType.type] ?? 0}
@@ -119,6 +127,13 @@ const CryoContent = (props) => {
                   </ProgressBar>
                 </LabeledList.Item>
               ))}
+              {data.occupant.etaSeconds !== undefined && (
+                <LabeledList.Item label="Est. Time to Stable">
+                  {data.occupant.etaSeconds <= 0
+                    ? 'Stable'
+                    : formatTime(data.occupant.etaSeconds * 10, 'short')}
+                </LabeledList.Item>
+              )}
             </>
           )}
         </LabeledList>

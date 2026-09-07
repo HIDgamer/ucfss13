@@ -10,6 +10,9 @@
 	req_access = list(ACCESS_MARINE_SENIOR)
 	var/on = TRUE // 0 for off
 	var/cooldown_between_messages = COOLDOWN_COMM_MESSAGE
+	/// How far a deployed (off-ship) announcement reaches - shipwide is unrestricted, but a tablet
+	/// out in the field only reaches marines actually near the LZ, not the whole faction at once.
+	var/deployed_announce_range = 30
 
 	var/tablet_name = "Commanding Officer's Tablet"
 
@@ -19,6 +22,8 @@
 
 	///flags that we want to be shown when you interact with this table
 	var/minimap_flag = MINIMAP_FLAG_USCM
+	///TGUI theme for this tablet's interface
+	var/ui_theme = "crtblue"
 
 	COOLDOWN_DECLARE(announcement_cooldown)
 	COOLDOWN_DECLARE(distress_cooldown)
@@ -55,6 +60,7 @@
 	data["faction"] = announcement_faction
 	data["cooldown_message"] = cooldown_between_messages
 	data["distresstimelock"] = DISTRESS_TIME_LOCK
+	data["theme"] = ui_theme
 
 	return data
 
@@ -66,6 +72,11 @@
 	data["endtime"] = announcement_cooldown
 	data["distresstime"] = distress_cooldown
 	data["worldtime"] = world.time
+	var/turf/current_turf = get_turf(src)
+	data["deployed"] = !current_turf || !is_mainship_level(current_turf.z)
+
+	var/datum/component/tacmap/tacmap_component = GetComponent(/datum/component/tacmap)
+	data["mapview_open"] = (user in tacmap_component.interactees)
 
 	return data
 
@@ -102,7 +113,7 @@
 				to_chat(user, SPAN_WARNING("Please wait [COOLDOWN_TIMELEFT(src, announcement_cooldown)/10] second\s before making your next announcement."))
 				return FALSE
 
-			var/input = stripped_multiline_input(user, "Please write a message to announce to the [MAIN_SHIP_NAME]'s crew and all groundside personnel.", "Priority Announcement", "")
+			var/input = html_encode(trim(params["message"], MAX_MESSAGE_LEN))
 			if(!input || !COOLDOWN_FINISHED(src, announcement_cooldown) || !(user in dview(1, src)))
 				return FALSE
 
@@ -114,7 +125,11 @@
 					var/paygrade = get_paygrades(id.paygrade, FALSE, human_user.gender)
 					signed = "[paygrade] [id.registered_name]"
 
-			marine_announcement(input, announcement_title, faction_to_display = announcement_faction, add_PMCs = add_pmcs, signature = signed)
+			var/turf/tablet_turf = get_turf(src)
+			if(tablet_turf && is_mainship_level(tablet_turf.z))
+				marine_announcement(input, announcement_title, faction_to_display = announcement_faction, add_PMCs = add_pmcs, signature = signed)
+			else
+				marine_announcement(input, announcement_title, faction_to_display = announcement_faction, add_PMCs = add_pmcs, signature = signed, range_source = src, range_dist = deployed_announce_range)
 			message_admins("[key_name(user)] has made a command announcement.")
 			log_announcement("[key_name(user)] has announced the following: [input]")
 			COOLDOWN_START(src, announcement_cooldown, cooldown_between_messages)
@@ -181,6 +196,7 @@
 	announcement_faction = FACTION_PMC
 	add_pmcs = TRUE
 	minimap_flag = MINIMAP_FLAG_WY
+	ui_theme = "weyland"
 
 /obj/item/device/cotablet/upp
 
@@ -193,3 +209,4 @@
 	req_access = list(ACCESS_UPP_LEADERSHIP)
 
 	minimap_flag = MINIMAP_FLAG_UPP
+	ui_theme = "crtupp"

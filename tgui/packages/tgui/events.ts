@@ -52,7 +52,7 @@ let focusStolenBy: HTMLElement | null = null;
 
 export const canStealFocus = (node: HTMLElement) => {
   const tag = String(node.tagName).toLowerCase();
-  return tag === 'input' || tag === 'textarea';
+  return tag === 'input' || tag === 'textarea' || node.isContentEditable;
 };
 
 const stealFocus = (node: HTMLElement) => {

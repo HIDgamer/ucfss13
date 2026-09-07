@@ -1,12 +1,28 @@
+import { useState } from 'react';
+
 import { useBackend } from '../backend';
-import { Box, Button, Section, Stack } from '../components';
+import { Box, Button, DmIcon, Input, Section, Stack } from '../components';
+import { Table, TableCell, TableRow } from '../components/Table';
 import { Window } from '../layouts';
+
+type CrewRecord = {
+  name: string;
+  job: string;
+  minutes_ago: number;
+};
+
+type ItemRecord = {
+  name: string;
+  ref: string;
+  icon: string;
+  icon_state: string;
+};
 
 type Data = {
   welcome_name: string;
   cryotype: string;
-  frozen_crew: string[];
-  frozen_items: string[];
+  frozen_crew: CrewRecord[];
+  frozen_items: ItemRecord[];
 };
 
 export const CryopodConsole = (props) => {
@@ -17,9 +33,19 @@ export const CryopodConsole = (props) => {
     frozen_crew = [],
     frozen_items = [],
   } = data;
+  const [searchTerm, setSearchTerm] = useState('');
+
+  const filteredItems = frozen_items.filter((item) =>
+    item.name.toLowerCase().includes(searchTerm.toLowerCase()),
+  );
 
   return (
-    <Window title={`Cryogenic Oversight Control — ${cryotype}`} width={420} height={480}>
+    <Window
+      theme="weyland"
+      title={`Cryogenic Oversight Control — ${cryotype}`}
+      width={480}
+      height={560}
+    >
       <Window.Content scrollable>
         <Stack vertical fill>
           <Stack.Item>
@@ -29,27 +55,62 @@ export const CryopodConsole = (props) => {
           </Stack.Item>
 
           <Stack.Item>
-            <Section title="Recovery">
-              <Stack>
-                <Stack.Item grow>
-                  <Button
+            <Section
+              title="Stored Objects"
+              buttons={
+                <Button.Confirm
+                  icon="boxes-stacked"
+                  disabled={frozen_items.length === 0}
+                  onClick={() => act('recover_all')}
+                >
+                  Recover All
+                </Button.Confirm>
+              }
+            >
+              <Stack vertical>
+                <Stack.Item>
+                  <Input
                     fluid
-                    icon="box-open"
-                    disabled={frozen_items.length === 0}
-                    onClick={() => act('recover_item')}
-                  >
-                    Recover Object
-                  </Button>
+                    placeholder="Search stored objects..."
+                    value={searchTerm}
+                    onInput={(_, value) => setSearchTerm(value)}
+                  />
                 </Stack.Item>
-                <Stack.Item grow>
-                  <Button.Confirm
-                    fluid
-                    icon="boxes-stacked"
-                    disabled={frozen_items.length === 0}
-                    onClick={() => act('recover_all')}
-                  >
-                    Recover All Objects
-                  </Button.Confirm>
+                <Stack.Item>
+                  {frozen_items.length === 0 ? (
+                    <Box color="label" fontStyle="italic">
+                      Nothing in storage.
+                    </Box>
+                  ) : filteredItems.length === 0 ? (
+                    <Box color="label" fontStyle="italic">
+                      No objects match your search.
+                    </Box>
+                  ) : (
+                    <Table>
+                      {filteredItems.map((item) => (
+                        <TableRow key={item.ref}>
+                          <TableCell collapsing>
+                            <DmIcon
+                              icon={item.icon}
+                              icon_state={item.icon_state}
+                              width="24px"
+                            />
+                          </TableCell>
+                          <TableCell>{item.name}</TableCell>
+                          <TableCell collapsing>
+                            <Button
+                              icon="box-open"
+                              onClick={() =>
+                                act('recover_item', { ref: item.ref })
+                              }
+                            >
+                              Recover
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </Table>
+                  )}
                 </Stack.Item>
               </Stack>
             </Section>
@@ -62,19 +123,19 @@ export const CryopodConsole = (props) => {
                   No records.
                 </Box>
               ) : (
-                frozen_crew.map((person, i) => <Box key={i}>{person}</Box>)
-              )}
-            </Section>
-          </Stack.Item>
-
-          <Stack.Item grow basis={0} style={{ overflowY: 'auto' }}>
-            <Section title="Stored Objects" fill>
-              {frozen_items.length === 0 ? (
-                <Box color="label" fontStyle="italic">
-                  Nothing in storage.
-                </Box>
-              ) : (
-                frozen_items.map((item, i) => <Box key={i}>{item}</Box>)
+                <Table>
+                  {frozen_crew.map((person, i) => (
+                    <TableRow key={i}>
+                      <TableCell>{person.name}</TableCell>
+                      <TableCell color="label">{person.job}</TableCell>
+                      <TableCell collapsing color="label">
+                        {person.minutes_ago <= 0
+                          ? 'just now'
+                          : `${person.minutes_ago}m ago`}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </Table>
               )}
             </Section>
           </Stack.Item>

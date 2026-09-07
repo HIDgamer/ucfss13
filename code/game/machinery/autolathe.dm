@@ -39,7 +39,7 @@
 	var/wires = AUTOLATHE_WIRES_UNCUT
 
 	/// theme for tgui
-	var/tgui_theme = "normal"
+	var/tgui_theme = "weyland"
 	/// queue of items to be printed after the current one is done
 	var/list/queue = list()
 	/// max length of the queue
@@ -106,6 +106,8 @@
 
 /obj/structure/machinery/autolathe/ui_data(mob/user)
 	var/list/data = list()
+
+	data["worldtime"] = world.time
 
 	if(length(queue))
 		var/list/queue_list = list()
@@ -414,16 +416,18 @@
 
 	update_printables()
 
-	currently_making_data = list(
-		"name" = making.name,
-		"multiplier" = multiplier
-	)
-	SStgui.update_uis(src)
-
 	//Print speed based on w_class.
 	var/obj/item/item = making.path
 	var/size = initial(item.w_class)
 	var/print_speed = clamp(size, 2, 5) SECONDS
+
+	currently_making_data = list(
+		"name" = making.name,
+		"multiplier" = multiplier,
+		"started_at" = world.time,
+		"ends_at" = world.time + print_speed,
+	)
+	SStgui.update_uis(src)
 
 	//Fancy autolathe animation.
 	icon_state = "[base_state]_n"
@@ -524,6 +528,8 @@
 		print_data["has_multipliers"] = FALSE
 		print_data["hidden"] = R.hidden
 		print_data["recipe_category"] = R.category
+		print_data["icon"] = R.path::icon
+		print_data["icon_state"] = R.path::icon_state
 
 		max_print_amt = -1
 

@@ -1,7 +1,9 @@
 import { sortBy } from 'common/collections';
 import { useState } from 'react';
 
-import { Button, Section, Stack, Tabs } from '../../components';
+import { Box, Button, Input, Section, Stack, Tabs } from '../../components';
+
+const IFF_REGION_ID = 'Faction (IFF system)';
 
 const diffMap = {
   0: {
@@ -31,27 +33,23 @@ export const AccessList = (props) => {
   const [selectedAccessName, setSelectedAccessName] = useState(
     accesses[0]?.name,
   );
+  const [search, setSearch] = useState('');
   const selectedAccess = accesses.find(
     (access) => access.name === selectedAccessName,
   );
   const selectedAccessEntries = sortBy(
     selectedAccess?.accesses || [],
     (entry) => entry.desc,
-  );
+  ).filter((entry) => entry.desc.toLowerCase().includes(search.toLowerCase()));
+
+  const countGranted = (accesses) =>
+    accesses.filter((entry) => selectedList.includes(entry.ref)).length;
 
   const checkAccessIcon = (accesses) => {
-    let oneAccess = false;
-    let oneInaccess = false;
-    for (let element of accesses) {
-      if (selectedList.includes(element.ref)) {
-        oneAccess = true;
-      } else {
-        oneInaccess = true;
-      }
-    }
-    if (!oneAccess && oneInaccess) {
+    const granted = countGranted(accesses);
+    if (granted === 0) {
       return 0;
-    } else if (oneAccess && oneInaccess) {
+    } else if (granted < accesses.length) {
       return 1;
     } else {
       return 2;
@@ -66,9 +64,14 @@ export const AccessList = (props) => {
           <Button icon="check-double" color="good" onClick={() => grantAll()}>
             Grant All
           </Button>
-          <Button icon="undo" color="bad" onClick={() => denyAll()}>
+          <Button.Confirm
+            icon="undo"
+            color="bad"
+            confirmContent="Revoke every access and faction IFF from this card?"
+            onClick={() => denyAll()}
+          >
             Deny All
-          </Button>
+          </Button.Confirm>
         </>
       }
     >
@@ -77,8 +80,11 @@ export const AccessList = (props) => {
           <Tabs vertical>
             {accesses.map((access) => {
               const entries = access.accesses || [];
-              const icon = diffMap[checkAccessIcon(entries)].icon;
-              const color = diffMap[checkAccessIcon(entries)].color;
+              const isIff = access.regid === IFF_REGION_ID;
+              const icon = isIff
+                ? 'flag'
+                : diffMap[checkAccessIcon(entries)].icon;
+              const color = isIff ? null : diffMap[checkAccessIcon(entries)].color;
               return (
                 <Tabs.Tab
                   key={access.name}
@@ -89,6 +95,11 @@ export const AccessList = (props) => {
                   onClick={() => setSelectedAccessName(access.name)}
                 >
                   {access.name}
+                  {entries.length > 0 && (
+                    <Box color="label" inline ml={1}>
+                      ({countGranted(entries)}/{entries.length})
+                    </Box>
+                  )}
                 </Tabs.Tab>
               );
             })}
@@ -117,6 +128,13 @@ export const AccessList = (props) => {
               </Button>
             </Stack.Item>
           </Stack>
+          <Input
+            fluid
+            mt={1}
+            placeholder="Search access.."
+            value={search}
+            onInput={(e, value) => setSearch(value)}
+          />
           <Stack vertical mt={1}>
             {selectedAccessEntries.map((entry) => (
               <Stack.Item key={entry.desc}>

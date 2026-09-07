@@ -30,7 +30,7 @@
 
 
 //general marine announcement
-/proc/marine_announcement(message, title = COMMAND_ANNOUNCE, sound_to_play = sound('sound/misc/notice2.ogg'), faction_to_display = FACTION_MARINE, add_PMCs = FALSE, signature, logging = ARES_LOG_MAIN)
+/proc/marine_announcement(message, title = COMMAND_ANNOUNCE, sound_to_play = sound('sound/misc/notice2.ogg'), faction_to_display = FACTION_MARINE, add_PMCs = FALSE, signature, logging = ARES_LOG_MAIN, atom/range_source = null, range_dist = 0)
 	var/list/targets = GLOB.human_mob_list + GLOB.dead_mob_list
 	var/list/targets_to_garble = list()
 
@@ -116,6 +116,19 @@
 
 			if(!is_shipside && !SSradio.last_command_comms_up)
 				targets_to_garble += current_human
+
+	// A source atom + range narrows delivery to whoever is physically nearby it (e.g. a command
+	// tablet announcing locally while deployed off-ship) instead of the whole faction - observers
+	// are exempt so ghosts/admins watching can still follow along regardless of range.
+	if(range_source)
+		var/turf/source_turf = get_turf(range_source)
+		for(var/mob/current_mob in targets)
+			if(isobserver(current_mob))
+				continue
+			var/turf/current_turf = get_turf(current_mob)
+			if(!current_turf || !source_turf || current_turf.z != source_turf.z || get_dist(current_turf, source_turf) > range_dist)
+				targets -= current_mob
+				targets_to_garble -= current_mob
 
 	var/postfix = ""
 	if(!isnull(signature))
