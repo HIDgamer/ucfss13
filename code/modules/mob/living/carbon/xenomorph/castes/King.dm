@@ -9,9 +9,12 @@
 	max_health = XENO_HEALTH_KING
 	plasma_gain = XENO_PLASMA_GAIN_TIER_3
 	plasma_max = XENO_PLASMA_TIER_10
-	xeno_explosion_resistance = XENO_EXPLOSIVE_ARMOR_TIER_7
+	// Matches Queen's/Crusher's TIER_10 explosion resistance - the endgame boss shouldn't be the easiest one to OB.
+	xeno_explosion_resistance = XENO_EXPLOSIVE_ARMOR_TIER_10
 	armor_deflection = XENO_ARMOR_FACTOR_TIER_5
 	speed = XENO_SPEED_TIER_1
+	// Matches Crusher's/Ravager's heal_standing sustain level.
+	heal_standing = 0.66
 
 	evolves_to = null
 	deevolves_to = null

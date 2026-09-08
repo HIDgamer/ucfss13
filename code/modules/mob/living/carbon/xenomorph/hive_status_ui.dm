@@ -159,6 +159,42 @@
 	var/mob/living/carbon/xenomorph/queen/Q = user
 	.["is_in_ovi"] = istype(Q) && Q.ovipositor
 
+	// Structure counts/caps, from hive_structures/hive_structures_limit (hive_status.dm).
+	var/list/structures = list()
+	for(var/structure_type in assoc_hive.hive_structures_limit)
+		structures[structure_type] = list(
+			"count" = assoc_hive.get_structure_count(structure_type),
+			"max" = assoc_hive.hive_structures_limit[structure_type],
+		)
+	.["structures"] = structures
+
+	// Active hivebuffs, by name.
+	var/list/buffs = list()
+	if(assoc_hive.active_hivebuffs)
+		for(var/datum/hivebuff/buff as anything in assoc_hive.active_hivebuffs)
+			buffs += buff.name
+	.["active_buffs"] = buffs
+
+	// Hive-wide stat modifiers (hive_stat_modifier_multiplier/flat, hive_status.dm) - only surfaced
+	// when they actually differ from the "no change" baseline, so a normal hive with nothing active
+	// shows nothing here.
+	var/list/stat_mods = list()
+	for(var/stat_name in assoc_hive.hive_stat_modifier_multiplier)
+		var/mult = assoc_hive.hive_stat_modifier_multiplier[stat_name]
+		var/flat = assoc_hive.hive_stat_modifier_flat[stat_name]
+		if(mult != XENO_HIVE_STATMOD_MULT_NONE || flat != XENO_HIVE_STATMOD_FLAT_NONE)
+			stat_mods[stat_name] = list("multiplier" = mult, "flat" = flat)
+	.["stat_modifiers"] = stat_mods
+
+	// Permission-tier indicator, so a non-Queen viewer knows why other buttons may be disabled.
+	if(user == assoc_hive.living_xeno_queen)
+		.["viewer_role"] = "Queen"
+	else if(isxeno(user))
+		var/mob/living/carbon/xenomorph/xeno_user = user
+		.["viewer_role"] = IS_XENO_LEADER(xeno_user) ? "Hive Leader" : "Hive Member"
+	else
+		.["viewer_role"] = "Observer"
+
 /datum/hive_status_ui/ui_static_data(mob/user)
 	. = list()
 	.["user_ref"] = REF(user)

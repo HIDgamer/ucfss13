@@ -680,6 +680,36 @@ ICEY GRASS. IT LOOKS LIKE IT'S MADE OF ICE.
 	..()
 	icon_state = pick("heavy_1","heavy_2","heavy_3","heavy_4","heavy_5","heavy_6")
 
+// A genuine blocking obstacle, unlike the passable light/heavy vines above - map-placed at jungle
+// choke points where cutting through is meant to be the point, not just decoration. Mirrors the
+// existing /obj/structure/flora attackby() cut_hits mechanic for the item-based case; a
+// xenomorph's own attack_alien() override below reuses that same counter so both paths agree on
+// how tough it is to clear.
+/obj/structure/flora/jungle/vines/wall
+	name = "tangled vines"
+	desc = "A dense, tangled wall of vines blocking the way - it'd take something sharp and some real effort to hack through."
+	icon_state = "heavy_6"
+	icon_tag = "heavy"
+	variations = 6
+	density = TRUE
+	cut_level = PLANT_CUT_MACHETE
+	cut_hits = 5
+
+/obj/structure/flora/jungle/vines/wall/New()
+	..()
+	icon_state = pick("heavy_1","heavy_2","heavy_3","heavy_4","heavy_5","heavy_6")
+
+/obj/structure/flora/jungle/vines/wall/attack_alien(mob/living/carbon/xenomorph/M)
+	M.animation_attack_on(src)
+	cut_hits--
+	M.visible_message(SPAN_DANGER("[M] slashes through [src]!"),
+	SPAN_DANGER("We slash through [src]!"),
+	SPAN_DANGER("We hear vines tearing!"), 5, CHAT_TYPE_XENO_COMBAT)
+	playsound(src, 'sound/effects/vegetation_hit.ogg', 25, 1)
+	if(cut_hits <= 0)
+		qdel(src)
+	return XENO_ATTACK_ACTION
+
 /obj/structure/flora/jungle/thickbush
 	name = "dense vegetation"
 	desc = "Pretty thick scrub, it'll take something sharp and a lot of determination to clear away."

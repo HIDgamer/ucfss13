@@ -205,13 +205,14 @@ export const XenoCommandConsole = () => {
                 <Stack.Item>
                   <Stack>
                     <Stack.Item grow>
-                      <Button
+                      <Button.Confirm
                         fluid
                         color="bad"
+                        confirmContent="Cancel all active orders?"
                         onClick={() => act('cancel_all_orders')}
                       >
                         Cancel All Orders
-                      </Button>
+                      </Button.Confirm>
                     </Stack.Item>
                     <Stack.Item grow>
                       <Button

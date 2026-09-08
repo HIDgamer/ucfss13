@@ -74,6 +74,16 @@
 	var/turf/frontier_turf
 	/// world.time frontier_turf was last set/reinforced - purely observational (hive status roster); unlike an alert, banked territory doesn't go stale on its own.
 	var/frontier_turf_time = 0
+	/// True hive-wide focus-fire: the most recent notably-high-priority target any same-hive AI xeno has personally acquired (see acquire_target()'s broadcast_focus_target() call) - other idle/scanning xenos prefer this over independently picking their own nearest candidate (process_target()), so a cluster of marines draws the hive onto one of them at a time instead of one xeno each. Left stale/pointing at a dead or QDELETED target is harmless - process_target() validates it before ever acquiring it.
+	var/atom/movable/focus_target
+	/// world.time focus_target was last set, so a long-dead lead goes stale (AI_FOCUS_TARGET_WINDOW) instead of the hive fixating on a fight that's long over.
+	var/focus_target_time = 0
+	/// Whoever's actively hitting the Queen/King right now, set by check_retaliation() the instant she/he takes a real hit - lets an engaged daughter fighting something else entirely notice via check_nearby_threats() and break off to defend her/him, not just idle daughters via respond_to_queen_escort().
+	var/mob/living/boss_under_attack
+	/// The Queen/King who reported boss_under_attack - excludes her/him from also being told to "help defend" her/his own attacker via the same check.
+	var/mob/living/carbon/xenomorph/boss_under_attack_source
+	/// world.time boss_under_attack was last set, so a stale hit report doesn't keep pulling responders long after the fight's moved on.
+	var/boss_under_attack_time = 0
 	var/allowed_nest_distance = 15 //How far away do we allow nests from an ovied Queen. Default 15 tiles.
 	var/obj/effect/alien/resin/special/pylon/core/hive_location = null //Set to ref every time a core is built, for defining the hive location
 
@@ -82,6 +92,9 @@
 
 	/// approach turf -> the gate turf it belongs to, for every completed AI-built fort gate (see register_fort_gate()) - the two tiles immediately perpendicular to the line's build direction on either side of each door, i.e. the tiles something actually stands on to walk through the gate. is_valid_ai_build_site()/would_seal_known_gate() (xeno_ai_controller.dm) reject a later wall placement here so a corner turn or continuing segment can't seal a gate's own approach shut - a closed resin door reads as plain density to would_block_passage()'s live BFS, so that check alone never protects a gate it can't see through. Live-validated at check time (the gate turf still needs an actual resin door on it), same "don't bother pruning, just re-check" tolerance as fort_gates above.
 	var/list/turf/fort_gate_approach_tiles = list()
+
+	/// turf -> in-flight reservation count, for every build_resin() call currently mid-do_after anywhere in the hive (reserve_build_turf()/unreserve_build_turf(), called from Powers.dm regardless of whether the builder is AI or a human player). A wall/door's density doesn't flip until the build actually completes, so two AI builders evaluating would_block_passage() during each other's multi-second build window would otherwise both see the same pre-build turf state and both pass, even though the finished pair of walls jointly seals the hive - this registry is what lets one of them see the other's build as already "as good as built" instead. Counted (not boolean) so an edge-case double-reservation of the same turf can't be undone by one early unreserve.
+	var/list/turf/pending_build_reservations = list()
 
 	var/tier_slot_multiplier = 1
 	var/larva_gestation_multiplier = 1
@@ -662,10 +675,12 @@
 	// Every caste is manually defined here so you get
 	var/list/xeno_counts = list(
 		// Yes, Queen is technically considered to be tier 0
-		list(XENO_CASTE_LARVA = 0, "Queen" = 0),
-		list(XENO_CASTE_DRONE = 0, XENO_CASTE_RUNNER = 0, XENO_CASTE_SENTINEL = 0, XENO_CASTE_DEFENDER = 0),
+		list(XENO_CASTE_LARVA = 0, "Queen" = 0, XENO_CASTE_PREDALIEN_LARVA = 0, XENO_CASTE_HELLHOUND = 0),
+		list(XENO_CASTE_DRONE = 0, XENO_CASTE_RUNNER = 0, XENO_CASTE_SENTINEL = 0, XENO_CASTE_DEFENDER = 0, XENO_CASTE_PREDALIEN = 0),
 		list(XENO_CASTE_HIVELORD = 0, XENO_CASTE_BURROWER = 0, XENO_CASTE_CARRIER = 0, XENO_CASTE_LURKER = 0, XENO_CASTE_SPITTER = 0, XENO_CASTE_WARRIOR = 0),
-		list(XENO_CASTE_BOILER = 0, XENO_CASTE_CRUSHER = 0, XENO_CASTE_PRAETORIAN = 0, XENO_CASTE_RAVAGER = 0, XENO_CASTE_DESPOILER = 0)
+		list(XENO_CASTE_BOILER = 0, XENO_CASTE_CRUSHER = 0, XENO_CASTE_PRAETORIAN = 0, XENO_CASTE_RAVAGER = 0, XENO_CASTE_DESPOILER = 0),
+		// Tier 4 (King)
+		list(XENO_CASTE_KING = 0),
 	)
 
 	for(var/mob/living/carbon/xenomorph/X in totalXenos)
@@ -963,6 +978,24 @@
 	var/name_ref = initial(S.name)
 	hive_structures[name_ref] -= S
 	return TRUE
+
+/// Marks turf T as mid-build (called right before build_resin()'s do_after starts) - see pending_build_reservations' doc comment.
+/datum/hive_status/proc/reserve_build_turf(turf/T)
+	if(!T)
+		return
+	pending_build_reservations[T] = (pending_build_reservations[T] || 0) + 1
+
+/// Clears one reservation on T (called once, unconditionally, right after build_resin()'s do_after resolves - success or failure/interrupt both end the in-flight window the same way).
+/datum/hive_status/proc/unreserve_build_turf(turf/T)
+	if(!T || !pending_build_reservations[T])
+		return
+	if(pending_build_reservations[T] <= 1)
+		pending_build_reservations -= T
+	else
+		pending_build_reservations[T]--
+
+/datum/hive_status/proc/is_build_reserved(turf/T)
+	return T && pending_build_reservations[T] > 0
 
 /datum/hive_status/proc/has_special_structure(name_ref)
 	if(!name_ref || !LAZYLEN(hive_structures[name_ref]))

@@ -98,41 +98,21 @@
 	var/datum/action/xeno_action/ability = get_ranged_ability()
 	if(ability && ability.action_cooldown_check() && has_line_of_sight(current_target, allow_partial_cover = TRUE))
 		pilot.setDir(get_dir(pilot, current_target))
-		ability.use_ability(get_ranged_aim_point(ability, current_target))
+		// "Consider adjusting their aim instead of firing at the position the enemy was first in" -
+		// xeno_spit's shared use_ability() (general_powers.dm:766-831) snapshots spit_target once,
+		// before ammo.spit_windup's do_after() cast bar, and fires at that same captured turf
+		// afterward regardless of where the target's actually moved to by then - a real, presumably
+		// intentional player-facing "dodge the bombardment by moving during the tell" mechanic, not
+		// something to change by touching the shared ability. The AI-side fix belongs entirely in
+		// WHERE she aims: lead using the ammo's own real windup duration (ranged.dm's
+		// get_predictive_aim_point()). Spray Acid's ammo has no spit_windup at all - re-derives its
+		// target position live after its own separate delay instead (general_powers.dm's
+		// spray_acid/use_ability() calls get_turf(A)/get_line(X, A, ...) AFTER its own do_after(),
+		// not before) - no staleness to correct for there, so this only actually changes anything
+		// for an ammo type that genuinely has a windup (delay 0 otherwise leaves current_target
+		// unchanged, per get_predictive_aim_point()'s own doc comment).
+		ability.use_ability(get_predictive_aim_point(current_target, pilot.ammo?.spit_windup))
 	ai_state = AI_STATE_APPROACHING // Always re-evaluate positioning next tick, win or lose - process_movement() below decides hide vs. hold vs. close in.
-
-/**
- * "Consider adjusting their aim instead of firing at the position the enemy
- * was first in" - Bombard's own windup (xeno_spit/use_ability(), general_powers.dm)
- * snapshots its aim turf once, before a genuine 5-second cast bar, and never
- * re-checks it once committed - a real, presumably intentional player-facing
- * "dodge the bombardment by moving during the tell" mechanic, not something
- * to change for players by touching the shared ability. The AI-side fix
- * belongs entirely in WHERE she aims, not in the ability itself: lead the
- * shot using the target's most recent heading (last_seen_turf, already
- * tracked every process_movement() tick) instead of firing at exactly where
- * they're standing the instant she commits. Spray Acid re-derives its target
- * position live after its own delay (general_powers.dm's spray_acid/use_ability()
- * calls get_turf(A)/get_line(X, A, ...) AFTER the do_after(), not before) -
- * no staleness to correct for there, so this only actually changes anything
- * for Bombard.
- */
-/datum/xeno_ai_controller/ranged/boiler/proc/get_ranged_aim_point(datum/action/xeno_action/ability, atom/target)
-	var/turf/current_turf = get_turf(target)
-	if(!istype(ability, /datum/action/xeno_action/activable/xeno_spit/bombard) || !current_turf || !last_seen_turf || last_seen_turf == current_turf)
-		return current_turf // Nothing to lead with - already-correct ability, no turf, or target hasn't moved since we last looked.
-
-	var/lead_dir = get_dir(last_seen_turf, current_turf)
-	if(!lead_dir)
-		return current_turf
-
-	var/turf/lead_turf = current_turf
-	for(var/i in 1 to AI_BOILER_BOMBARD_LEAD_TILES)
-		var/turf/next_step = get_step(lead_turf, lead_dir)
-		if(!next_step || next_step.density)
-			break
-		lead_turf = next_step
-	return lead_turf
 
 /**
  * "Attack ranged, hide, then come out to attack again once the ability has

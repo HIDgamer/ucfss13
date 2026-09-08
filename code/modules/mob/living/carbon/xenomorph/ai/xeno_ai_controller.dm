@@ -278,7 +278,12 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 			// would unwind straight out of ai_loop() and end the coroutine
 			// for good, leaving a living, non-deleted mob with nothing left
 			// to ever tick it again.
-			stack_trace("xeno_ai_controller/tick() error for [pilot] ([pilot?.type]): [error]")
+			// error.file/error.line were never logged before - the message alone
+			// (e.g. "Cannot read null._status_traits") gives no way to find the
+			// actual crash site once caught, since DM's try/catch unwinds the
+			// original stack before this handler runs. Logging them turns the
+			// next occurrence into a direct answer instead of another guess.
+			stack_trace("xeno_ai_controller/tick() error for [pilot] ([pilot?.type]): [error] at [error.file],[error.line]")
 		sleep((ai_state == AI_STATE_IDLE) ? ai_idle_heartbeat : ai_heartbeat)
 
 /**
@@ -998,8 +1003,33 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	pilot.emit_pheromones(desired, AI_XENO_PHEROMONE_COST)
 	return TRUE
 
+/**
+ * Snow (`/turf/open/snow`, `/turf/open/auto_turf/snow`) makes its own tile completely
+ * NOT_WEEDABLE while `bleed_layer > 0` (turf.dm:639, auto_turf.dm:178-179) - clearing it is
+ * already a fully-built claw-attack interaction for player xenos
+ * (`/turf/open/auto_turf/snow/attack_alien()`, auto_turf.dm:204-219: a do_after() loop that
+ * decrements bleed_layer to 0), gated on `a_intent` being anything but HELP (no-op) or HARM
+ * ("missed slash" - a combat swing shouldn't double as digging). AI xenos always fight with
+ * HARM intent, so without this override they'd never trigger it at all - `attempt_plant_weeds()`
+ * below would just silently no-op on a snowed-over tile forever. Swap intent only for this one
+ * call, matching what a player would set before clicking, then restore it.
+ */
+/datum/xeno_ai_controller/proc/attempt_clear_snow()
+	if(!pilot)
+		return FALSE
+	var/turf/open/pilot_turf = get_turf(pilot)
+	if(!istype(pilot_turf) || !pilot_turf.bleed_layer)
+		return FALSE
+	var/old_intent = pilot.a_intent
+	pilot.a_intent = INTENT_DISARM
+	pilot_turf.attack_alien(pilot)
+	pilot.a_intent = old_intent
+	return TRUE
+
 /// Shared by drone_worker.dm and queen.dm - calls the real plant_weeds ability directly. Its own internal checks (weedable ground, not already weeded enough, hive ownership) handle rejection silently if the current tile isn't suitable, same as a player clicking it somewhere bad, so this is safe to roll speculatively.
 /datum/xeno_ai_controller/proc/attempt_plant_weeds()
+	if(attempt_clear_snow())
+		return TRUE
 	var/datum/action/xeno_action/onclick/plant_weeds/action = get_ability(/datum/action/xeno_action/onclick/plant_weeds)
 	if(!action)
 		return FALSE
@@ -1132,13 +1162,31 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		return pick(fallback_candidates)
 	return null
 
-/// Site check shared by both phases of attempt_build_human_cap() - open ground, not already sitting on another special hive structure or a working door.
+/**
+ * Site check shared by both phases of attempt_build_human_cap() - open ground, not already
+ * sitting on another special hive structure or a working door.
+ *
+ * The human_cap structure (/obj/effect/alien/resin/special/nest/human_cap) is dense once built,
+ * but it's built through a completely different path than the plain-wall/fort-line resin system
+ * (attempt_cap_drag_victim(), not build_resin()) - it never went through is_valid_ai_build_site()'s
+ * anti-trap gate at all, since that gate requires a /datum/resin_construction this structure
+ * doesn't have. Reusing the same three underlying sub-checks directly (rather than the full
+ * wrapper) closes that gap without needing a fake construction datum: a Drone/Hivelord could
+ * otherwise drop a dense human-cap in a corridor with zero path-sanity checking - the one build
+ * type in this whole system that previously had none.
+ */
 /datum/xeno_ai_controller/proc/is_valid_human_cap_site(turf/candidate)
 	if(!candidate || candidate.density)
 		return FALSE
 	if(locate(/obj/effect/alien/resin/special) in candidate)
 		return FALSE
 	if(locate(/obj/structure/machinery/door) in candidate)
+		return FALSE
+	if(would_trap_pilot(candidate))
+		return FALSE
+	if(would_block_passage(candidate))
+		return FALSE
+	if(would_seal_known_gate(candidate))
 		return FALSE
 	return TRUE
 
@@ -1299,6 +1347,8 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	// existing door tile (resin or airlock) - the AI needs its own gate.
 	if(locate(/obj/structure/machinery/door) in candidate)
 		return FALSE
+	if(pilot?.hive?.is_build_reserved(candidate))
+		return FALSE // Another builder hive-wide already has an in-flight build_resin() do_after running on this exact tile.
 	if(is_gate_tile)
 		return TRUE
 	if(would_trap_pilot(candidate))
@@ -1307,7 +1357,29 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		return FALSE
 	if(would_seal_known_gate(candidate))
 		return FALSE
+	if(too_many_nearby_constructions(candidate))
+		return FALSE
 	return TRUE
+
+/**
+ * Hive-wide density cap, AI-only (range_between_constructions in resin_constructions.dm is the
+ * shared per-type spacing check, and is deliberately left unset for plain walls/doors so player
+ * building stays unrestricted - this is a separate, AI-only gate). Drone/Hivelord's can_rest()
+ * always returns FALSE and every idle tick rolls AI_BUILDER_FORT_LINE_START_CHANCE to start a
+ * fresh line with zero coordination between simultaneously-building xenos, so without some cap
+ * plain wall/door count only ever grows across a round, never tapers off.
+ */
+/datum/xeno_ai_controller/proc/too_many_nearby_constructions(turf/candidate)
+	var/nearby = 0
+	for(var/turf/closed/wall/resin/wall in orange(AI_BUILD_DENSITY_RADIUS, candidate))
+		nearby++
+		if(nearby >= AI_BUILD_DENSITY_MAX)
+			return TRUE
+	for(var/obj/structure/mineral_door/resin/door in orange(AI_BUILD_DENSITY_RADIUS, candidate))
+		nearby++
+		if(nearby >= AI_BUILD_DENSITY_MAX)
+			return TRUE
+	return FALSE
 
 /// Cheap, direct self-trap check: would placing a wall on candidate leave the pilot's own current tile with zero other open (non-dense) cardinal exits? The pilot is always within max_build_dist (<=1) of candidate, so this one tile is the case most likely to matter - no search needed.
 /datum/xeno_ai_controller/proc/would_trap_pilot(turf/candidate)
@@ -1330,12 +1402,19 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
  * passing through candidate itself. If one isn't, candidate is a
  * chokepoint - a doorway/corridor tile, not open ground - and building
  * here would seal a real route rather than just filling in a wall.
+ *
+ * Treats any hive-reserved turf (pending_build_reservations - see its doc
+ * comment on hive_status.dm) the same as an already-dense one, both as a
+ * neighbor worth protecting and as a BFS traversal step: a tile someone
+ * else's build_resin() is mid-do_after on isn't dense yet, but it will be
+ * by the time that build finishes, so a route that only survives by
+ * passing through it isn't a route this check should trust either.
  */
 /datum/xeno_ai_controller/proc/would_block_passage(turf/candidate)
 	var/list/turf/open_neighbors = list()
 	for(var/dir_option in list(NORTH, SOUTH, EAST, WEST))
 		var/turf/neighbor = get_step(candidate, dir_option)
-		if(neighbor && !neighbor.density)
+		if(neighbor && !neighbor.density && !pilot?.hive?.is_build_reserved(neighbor))
 			open_neighbors += neighbor
 	if(length(open_neighbors) < 2)
 		return FALSE // At most one approach - can't be the only route between two things.
@@ -1355,7 +1434,7 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		for(var/turf/current in frontier)
 			for(var/dir_option in list(NORTH, SOUTH, EAST, WEST))
 				var/turf/neighbor = get_step(current, dir_option)
-				if(!neighbor || neighbor.density || visited[neighbor])
+				if(!neighbor || neighbor.density || visited[neighbor] || pilot?.hive?.is_build_reserved(neighbor))
 					continue
 				visited[neighbor] = TRUE
 				next_frontier += neighbor
@@ -1751,11 +1830,20 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
  * broadcast_hive_alert() (which points at the threat, not at her/him) -
  * "the Queen must be escorted when in combat by no less than 5 and up to
  * 10 daughters," same standing-call-for-backup reasoning applied to King.
+ *
+ * Previously only ever fired while already fighting (current_target) or heavy_siege - a Queen/King
+ * walking through danger with nothing having landed a hit yet never called for an escort until
+ * the first hit did. Now also fires at a standing baseline whenever not safely mounted (Queen) -
+ * King has no throne to be safe on, so he's covered by the current_target/heavy_siege cases plus
+ * this baseline whenever he's not already fighting either - so a loose formation actually
+ * accompanies her/him while just moving around, not only once already engaged for a tick.
  */
 /datum/xeno_ai_controller/proc/broadcast_escort_call(mob/living/carbon/xenomorph/boss_pilot, heavy_siege)
 	if(!boss_pilot.hive)
 		return
-	if(!current_target && !heavy_siege)
+	var/mob/living/carbon/xenomorph/queen/queen_boss = boss_pilot
+	var/standing_baseline = !istype(queen_boss) || !queen_boss.ovipositor
+	if(!current_target && !heavy_siege && !standing_baseline)
 		return
 	if(count_nearby_escorts(boss_pilot, AI_QUEEN_ESCORT_RADIUS) >= AI_QUEEN_ESCORT_MAX)
 		return
@@ -1850,6 +1938,14 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(pilot.hive.assault_alert_turf && world.time - pilot.hive.assault_alert_time <= AI_XENO_HIVE_ALERT_WINDOW)
 		var/turf/assault_turf = pilot.hive.assault_alert_turf
 		if(get_dist(pilot, assault_turf) > 3)
+			// "Once the LZ is chosen all AI xenos flock to the landing zone... gets them farmed by
+			// the early round turrets" - this was completely unbounded, unlike the regular hive
+			// alert response just below (which caps responders specifically so the whole hive
+			// doesn't pile into one spot). A real assault should still draw broadly from the hive,
+			// just not literally every single idle xeno on the map converging on the same fixed,
+			// likely-defended point simultaneously and getting mowed down in one mass wave.
+			if(count_nearby_hive_members(assault_turf, AI_XENO_HIVE_ALERT_RESPONDER_RADIUS) >= AI_XENO_ASSAULT_MAX_RESPONDERS)
+				return FALSE
 			travel_to_broadcast_turf(assault_turf)
 			return TRUE
 
@@ -2098,6 +2194,17 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	var/turf/pilot_turf = get_turf(pilot)
 	if(!pilot_turf)
 		return
+
+	// True focus-fire - prefer the hive's shared high-priority lead (broadcast_focus_target()) over
+	// independently picking our own nearest candidate below, so a cluster of marines collapses onto
+	// one target at a time instead of drawing one xeno each. Still bounded by attack_distance (the
+	// same scan range the independent search uses) and is_valid_target() - this only ever redirects
+	// toward something this pilot could have found on her own anyway, just prioritized correctly.
+	var/atom/movable/shared_focus = pilot.hive?.focus_target
+	if(shared_focus && world.time - pilot.hive.focus_target_time <= AI_FOCUS_TARGET_WINDOW && is_valid_target(shared_focus) && get_dist(pilot, shared_focus) <= attack_distance)
+		acquire_target(shared_focus, "focus")
+		return
+
 	if(!turf_block || !length(turf_block) || !turf_block_origin || get_dist(pilot_turf, turf_block_origin) > AI_XENO_TARGET_SCAN_REFRESH_DISTANCE)
 		var/scaled_attack_distance = round(attack_distance * GLOB.ai_distance_multiplier)
 		turf_block = block(
@@ -2314,6 +2421,24 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(ambush_turf)
 		end_ambush_hide() // Real prey beats a staged ambush - un-hides for free if attempt_ambush_hide() had her tucked away, same reasoning as standing up from resting above.
 	attempt_combat_pheromones()
+	broadcast_focus_target(target)
+
+/**
+ * True focus-fire: check_pack_staging() already synchronizes *arrival timing* once multiple xenos
+ * are already chasing the same current_target, but process_target()'s own independent nearest-scan
+ * meant a cluster of marines standing together drew one xeno each instead of the hive collapsing
+ * onto one at a time. Broadcasting a notably dangerous newly-acquired target here - any xeno's, not
+ * just Queen/King's - lets other idle/scanning hivemates prefer it over their own nearest pick (see
+ * process_target()'s own check). Deliberately not gated on faction/tier of the acquiring pilot -
+ * any real threat is worth the hive noticing.
+ */
+/datum/xeno_ai_controller/proc/broadcast_focus_target(atom/movable/target)
+	if(!pilot?.hive || !target)
+		return
+	if(get_target_priority(target) < AI_FOCUS_TARGET_MIN_PRIORITY)
+		return
+	pilot.hive.focus_target = target
+	pilot.hive.focus_target_time = world.time
 
 /**
  * "Anything that attacks the AI should become an enemy too." last_damage_data
@@ -2370,6 +2495,37 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 				return
 
 	acquire_target(living_attacker, "retaliation")
+	broadcast_local_retaliation(living_attacker)
+
+	// Lets an engaged daughter fighting something else entirely notice the Queen/King is taking a
+	// real hit and break off to help - see check_nearby_threats()'s own use of this field. No
+	// separate living_xeno_king field exists the way living_xeno_queen does, so istype is the only
+	// reliable "is this pilot a boss worth this signal" check for King specifically.
+	if(pilot.hive && (pilot == pilot.hive.living_xeno_queen || istype(pilot, /mob/living/carbon/xenomorph/king)))
+		var/mob/living/carbon/xenomorph/boss_pilot = pilot
+		pilot.hive.boss_under_attack = living_attacker
+		pilot.hive.boss_under_attack_source = boss_pilot
+		pilot.hive.boss_under_attack_time = world.time
+
+/**
+ * Small addition modeled on a pattern found in the external SectorPatrolDev comparison research
+ * (its retaliate.dm - a damage-triggered peer-broadcast of "who hit me" to nearby same-faction
+ * mobs) - a fast, local "the pack flinches together" reaction distinct from
+ * broadcast_focus_target() above: unconditional (no priority threshold) but tightly radius-capped,
+ * and pushes directly into nearby idle hivemates' own targeting instead of a hint they poll on
+ * their own schedule. A real ambush a few tiles away should have every nearby sister notice
+ * immediately, not just the one who actually got hit.
+ */
+/datum/xeno_ai_controller/proc/broadcast_local_retaliation(mob/living/attacker)
+	if(!pilot?.hive || !attacker)
+		return
+	for(var/mob/living/carbon/xenomorph/nearby_xeno in orange(AI_LOCAL_RETALIATION_RADIUS, pilot))
+		if(nearby_xeno == pilot || nearby_xeno.hivenumber != pilot.hivenumber || !nearby_xeno.ai_controller)
+			continue
+		var/datum/xeno_ai_controller/nearby_controller = nearby_xeno.ai_controller
+		if(nearby_controller.current_target || !nearby_controller.is_valid_target(attacker))
+			continue
+		nearby_controller.acquire_target(attacker, "pack_alert")
 
 /**
  * Valid targets are living marines, active sentry turrets (xenos should
@@ -2463,6 +2619,18 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 			best_priority = candidate_priority
 			best_candidate = candidate
 
+	// A daughter already fighting something of her own previously had no way to notice the
+	// Queen/King taking a real hit nearby - respond_to_queen_escort()/respond_to_hive_alert() are
+	// only ever reachable from patrol(), itself only reached with no current_target at all.
+	// Folding the boss's live attacker into this same priority comparison (DELTA-tier, same as an
+	// actively-firing turret) lets an engaged daughter genuinely break off to defend her/him.
+	var/datum/hive_status/hive = pilot.hive
+	if(hive?.boss_under_attack && pilot != hive.boss_under_attack_source && world.time - hive.boss_under_attack_time <= AI_BOSS_THREAT_RESPONSE_WINDOW)
+		var/mob/living/boss_attacker = hive.boss_under_attack
+		if(!QDELETED(boss_attacker) && is_valid_target(boss_attacker) && get_dist(pilot, boss_attacker) <= attack_distance && AI_PRIORITY_DELTA > best_priority)
+			best_priority = AI_PRIORITY_DELTA
+			best_candidate = boss_attacker
+
 	if(!best_candidate)
 		return
 	// A fresh player-ordered attack (xeno_ai_orders.dm) is protected from
@@ -2518,6 +2686,28 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 			. += AI_PRIORITY_HUMAN_FACTOR_WEIGHT
 		if(human_candidate.wear_suit)
 			. += AI_PRIORITY_HUMAN_FACTOR_WEIGHT
+
+		// Value-target and isolation bonuses - additive on top of the threat factors above, not a
+		// replacement. A moving, armed, isolated medic should score highest of all; "isolated"
+		// alone shouldn't outrank a real armed threat still backed by their squad.
+		if(human_candidate.job in JOB_MEDIC_ROLES_LIST)
+			. += AI_PRIORITY_VALUE_TARGET_WEIGHT
+
+		// Bounty system (user's idea) - a marine who's proven they can kill hivemates draws the
+		// hive's attention over an equally-close nobody, scaling with confirmed kills up to a cap.
+		. += min(human_candidate.xeno_kills * AI_PRIORITY_BOUNTY_PER_KILL, AI_PRIORITY_BOUNTY_MAX)
+
+		var/nearby_allies = 0
+		for(var/mob/living/carbon/human/ally in orange(AI_PRIORITY_ISOLATION_RADIUS, human_candidate))
+			if(ally == human_candidate || ally.stat == DEAD || !ally.faction || ally.faction != human_candidate.faction)
+				continue
+			nearby_allies++
+			if(nearby_allies >= AI_PRIORITY_ISOLATION_ALLY_CAP)
+				break
+		if(nearby_allies == 0)
+			. += AI_PRIORITY_ISOLATION_WEIGHT
+		else if(nearby_allies == 1)
+			. += AI_PRIORITY_ISOLATION_WEIGHT * 0.5
 
 	var/dist = get_dist(pilot, candidate)
 	if(dist >= 0 && dist < AI_PRIORITY_DISTANCE_TAPER)

@@ -35,11 +35,35 @@ GLOBAL_LIST_INIT(ai_evolve_priority_castes, list(
 		return null
 
 	var/mob/living/carbon/xenomorph/new_xeno = new mob_type(spawn_turf, null, hivenumber)
+	spawner_apply_young_reinforcement_debuff(new_xeno)
 	if(!attach_xeno_ai(new_xeno, anchor_override || spawn_turf))
 		new_xeno.free_for_ghosts(TRUE) // Attach refused (almost always a full per-caste cap) - still claimable directly by a ghost.
 		return new_xeno // Mob exists but AI attach failed; hand back the plain mob rather than leaking it.
 
 	return new_xeno
+
+/**
+ * Applies a temporary, proportional health/damage debuff to a freshly-spawned reinforcement that
+ * wears off after a short maturation window - she starts noticeably weaker and visibly "grows up"
+ * into full strength, instead of being combat-ready the instant she appears.
+ */
+/proc/spawner_apply_young_reinforcement_debuff(mob/living/carbon/xenomorph/xeno)
+	if(!istype(xeno) || !xeno.caste)
+		return
+	var/health_amount = xeno.caste.max_health * XENO_SPAWNER_YOUNG_STAT_FRACTION
+	var/damage_amount = (xeno.caste.melee_damage_lower + xeno.caste.melee_damage_upper) * 0.5 * XENO_SPAWNER_YOUNG_STAT_FRACTION
+	xeno.health_modifier -= health_amount
+	xeno.damage_modifier -= damage_amount
+	xeno.recalculate_everything()
+	addtimer(CALLBACK(GLOBAL_PROC, GLOBAL_PROC_REF(spawner_clear_young_reinforcement_debuff), xeno, health_amount, damage_amount), XENO_SPAWNER_MATURATION_TIME)
+
+/// Reverses spawner_apply_young_reinforcement_debuff() by the exact amount it originally subtracted, rather than recomputing from caste values a second time - safe even if the mob's caste/stats changed (evolved, strain applied) in the meantime.
+/proc/spawner_clear_young_reinforcement_debuff(mob/living/carbon/xenomorph/xeno, health_amount, damage_amount)
+	if(!istype(xeno) || QDELETED(xeno) || xeno.stat == DEAD)
+		return
+	xeno.health_modifier += health_amount
+	xeno.damage_modifier += damage_amount
+	xeno.recalculate_everything()
 
 /**
  * Composes a fresh AI controller onto an existing, clientless xenomorph and starts
@@ -278,6 +302,8 @@ GLOBAL_LIST_INIT(ai_evolve_priority_castes, list(
 			return /datum/xeno_ai_controller/carrier
 		if(XENO_CASTE_SPITTER)
 			return /datum/xeno_ai_controller/ranged/spitter
+		if(XENO_CASTE_DESPOILER)
+			return /datum/xeno_ai_controller/ranged/despoiler
 		if(XENO_CASTE_SENTINEL)
 			return /datum/xeno_ai_controller/ranged/sentinel
 		if(XENO_CASTE_BOILER)
@@ -300,6 +326,6 @@ GLOBAL_LIST_INIT(ai_evolve_priority_castes, list(
 			return /datum/xeno_ai_controller/predalien
 		if(XENO_CASTE_FACEHUGGER)
 			return /datum/xeno_ai_controller/facehugger
-		if(XENO_CASTE_LARVA)
+		if(XENO_CASTE_LARVA, XENO_CASTE_PREDALIEN_LARVA)
 			return /datum/xeno_ai_controller/larva
 	return /datum/xeno_ai_controller

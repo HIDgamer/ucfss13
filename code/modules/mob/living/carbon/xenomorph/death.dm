@@ -11,6 +11,15 @@ GLOBAL_VAR_INIT(total_dead_xenos, 0)
 
 	GLOB.living_xeno_list -= src
 
+	// Bounty system - a marine who's proven they can kill hivemates should draw the hive's
+	// attention, not just whoever's closest (get_target_priority()'s bounty bonus,
+	// xeno_ai_controller.dm). last_damage_data (not the cause param above) is the same
+	// reliable "who actually did this" resolution check_retaliation() already relies on.
+	var/mob/killer = last_damage_data?.resolve_mob()
+	if(ishuman(killer))
+		var/mob/living/carbon/human/human_killer = killer
+		human_killer.xeno_kills++
+
 	// detach_xeno_ai() otherwise only ever fired from Destroy() - the actual
 	// object deletion, which for a corpse can be the rest of the round away
 	// (DELETE_TIME/gibbing, not death itself). Until then the dead mob's

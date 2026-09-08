@@ -96,6 +96,7 @@ SUBSYSTEM_DEF(xeno_spawner)
 			if(HIVE_PHASE_BUILDUP)
 				hive_phase = HIVE_PHASE_ASSAULT
 				phase_ends_at = world.time + rand(XENO_SPAWNER_ASSAULT_MIN, XENO_SPAWNER_ASSAULT_MAX) * pacing_mult
+				attempt_rollback_frontier(hive)
 			if(HIVE_PHASE_ASSAULT)
 				hive_phase = HIVE_PHASE_LULL
 				phase_ends_at = world.time + XENO_SPAWNER_LULL_DURATION / pacing_mult
@@ -143,6 +144,28 @@ SUBSYSTEM_DEF(xeno_spawner)
 	hive.frontier_turf_time = world.time
 	if(GLOB.ai_debug_pathing)
 		log_debug("XENO SPAWNER FRONTIER ADVANCE: hive [hive.hivenumber] banked ([held_turf.x],[held_turf.y]) as new frontier_turf.")
+
+/**
+ * Counterweight to attempt_bank_frontier_advance() above - frontier_turf previously only ever
+ * advanced toward the marines with nothing that ever pulled it back, so reinforcement anchor
+ * points (attach_xeno_ai(), xeno_ai_lifecycle.dm) ratcheted forward across a whole round with no
+ * way to actually lose ground. Checked at the start of each new assault cycle: if marines are now
+ * actively holding the previously-banked frontier again, the hive lost that ground - clear it so
+ * future reinforcements anchor back at their plain spawn points instead of a foothold that isn't
+ * actually held anymore.
+ */
+/datum/controller/subsystem/xeno_spawner/proc/attempt_rollback_frontier(datum/hive_status/hive)
+	if(!hive.frontier_turf)
+		return
+	for(var/mob/living/carbon/human/marine as anything in GLOB.alive_human_list)
+		if(marine.faction != FACTION_MARINE || marine.stat == DEAD)
+			continue
+		if(get_dist(marine, hive.frontier_turf) <= XENO_FRONTIER_CONTEST_RADIUS)
+			hive.frontier_turf = null
+			hive.frontier_turf_time = world.time
+			if(GLOB.ai_debug_pathing)
+				log_debug("XENO SPAWNER FRONTIER ROLLED BACK: hive [hive.hivenumber] lost contested ground, reinforcements anchor at spawn points again.")
+			return
 
 /// Admin override (AdminAIDifficulty UI): jump straight to a phase; the normal rhythm resumes from there.
 /datum/controller/subsystem/xeno_spawner/proc/force_hive_phase(new_phase)
@@ -235,9 +258,15 @@ GLOBAL_LIST_INIT(xeno_spawner_caste_weights, list(
 		return
 
 	var/target = spawner_target_population(hive)
+	// Was counting GLOB.ai_xeno_list (AI-piloted mobs only) - once a ghost claims a spawned xeno,
+	// detach_xeno_ai() (xeno_ai_lifecycle.dm) drops it from that list but NOT from hive.totalXenos,
+	// so this would top the AI count right back up to target on the very next fire, net-adding a
+	// xeno to the round with no corresponding decrement anywhere. hive.totalXenos is the real,
+	// already-correctly-maintained whole-hive roster (add_xeno()/remove_xeno(), hive_status.dm) -
+	// counting against it makes a ghost takeover a lateral transfer instead of a ratchet.
 	var/current = 0
-	for(var/mob/living/carbon/xenomorph/xeno as anything in GLOB.ai_xeno_list)
-		if(xeno.hivenumber == hive.hivenumber && xeno.counts_for_slots)
+	for(var/mob/living/carbon/xenomorph/xeno as anything in hive.totalXenos)
+		if(xeno.counts_for_slots)
 			current++
 	if(current >= target)
 		return // Never touches an existing xeno - this early-return, plus the Core gate above, are the only population ceiling.
@@ -256,7 +285,7 @@ GLOBAL_LIST_INIT(xeno_spawner_caste_weights, list(
 	// against every GLOB.human_mob_list marine from scratch, up to 6 times back-to-back.
 	var/list/spawn_candidates = spawner_build_spawn_candidates()
 	while(current < target && spawned_this_fire < max_per_fire)
-		var/caste_type = spawner_pick_caste()
+		var/caste_type = spawner_pick_caste(hive)
 		if(!caste_type)
 			break
 		var/turf/spawn_turf = spawner_pick_spawn_turf(spawn_candidates)
@@ -350,13 +379,35 @@ GLOBAL_LIST_INIT(xeno_spawner_caste_weights, list(
 	var/marines_awake = get_active_player_count(TRUE, TRUE, TRUE, FACTION_MARINE)
 	var/target = XENO_SPAWNER_BASE_POP + round(marines_awake * XENO_SPAWNER_POP_PER_MARINE * GLOB.ai_difficulty_multiplier)
 	if(hive)
-		target += hive.count_active_human_caps()
+		target += round(hive.count_active_human_caps() * XENO_SPAWNER_HUMAN_CAP_WEIGHT)
 	return min(target, XENO_SPAWNER_MAX_POP)
 
-/// Flat weighted-random caste pick against GLOB.xeno_spawner_caste_weights, skipping any caste already at its admin-set per-caste cap (GLOB.ai_xeno_max_per_caste, untouched/orthogonal to this Spawner).
-/proc/spawner_pick_caste()
+/**
+ * Flat weighted-random caste pick against GLOB.xeno_spawner_caste_weights, skipping any caste
+ * already at its admin-set per-caste cap (GLOB.ai_xeno_max_per_caste, untouched/orthogonal to this
+ * Spawner) - and now also skipping tier-3 castes once the hive's tier-3 population share is
+ * already at the same 20% ratio cap can_evolve() (Evolution.dm) enforces on normal player
+ * evolution. Without this the Spawner could freely field a tier-3-heavy hive (~15% combined
+ * weight applies unconditionally, even round-start) that the real economy would never allow.
+ */
+/proc/spawner_pick_caste(datum/hive_status/hive)
 	var/list/available = list()
+
+	var/tier_3_blocked = FALSE
+	if(hive)
+		var/burrowed_factor = min(hive.stored_larva, sqrt(4 * hive.stored_larva))
+		var/total_xeno_count = floor(burrowed_factor)
+		for(var/mob/living/carbon/xenomorph/xeno as anything in hive.totalXenos)
+			if(xeno.counts_for_slots)
+				total_xeno_count++
+		if(total_xeno_count && ((length(hive.tier_3_xenos) / total_xeno_count) * hive.tier_slot_multiplier) >= 0.20)
+			tier_3_blocked = TRUE
+
 	for(var/caste_type in GLOB.xeno_spawner_caste_weights)
+		if(tier_3_blocked)
+			var/datum/caste_datum/caste_datum = GLOB.xeno_datum_list[caste_type]
+			if(caste_datum && caste_datum.tier >= 3)
+				continue
 		var/ai_cap = GLOB.ai_xeno_max_per_caste[caste_type]
 		if(ai_cap && count_active_ai_xenos_of_caste(caste_type) >= ai_cap)
 			continue

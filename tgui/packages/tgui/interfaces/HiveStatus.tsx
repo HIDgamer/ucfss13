@@ -41,6 +41,16 @@ type TierSlot = {
   guaranteed_slots: Record<string, number>;
 };
 
+type StructureCount = {
+  count: number;
+  max: number;
+};
+
+type StatModifier = {
+  multiplier: number;
+  flat: number;
+};
+
 type Data = {
   total_xenos: number;
   xeno_counts: Array<Record<string, number>>;
@@ -57,6 +67,10 @@ type Data = {
   user_ref: string;
   hive_color?: string;
   hive_name: string;
+  structures: Record<string, StructureCount>;
+  active_buffs: string[];
+  stat_modifiers: Record<string, StatModifier>;
+  viewer_role: string;
 };
 
 type XenoEntry = {
@@ -171,6 +185,10 @@ export const HiveStatus = (props) => {
           <XenoCounts />
         </XenoCollapsible>
         <Divider />
+        <XenoCollapsible title="Structures & Buffs">
+          <StructuresAndBuffs />
+        </XenoCollapsible>
+        <Divider />
         <XenoCollapsible title="Hive Xenomorph List">
           <XenoList />
         </XenoCollapsible>
@@ -188,10 +206,14 @@ const GeneralInformation = (props) => {
     burrowed_larva,
     evilution_level,
     pylon_status,
+    viewer_role,
   } = data;
 
   return (
     <Flex direction="column" align="center">
+      <Flex.Item textAlign="center" mb={1}>
+        <i>Viewing as: {viewer_role}</i>
+      </Flex.Item>
       {queen_location === null ? (
         <Flex.Item textAlign="center">
           <h3 className="whiteTitle">The Hive has no Queen!</h3>
@@ -248,7 +270,7 @@ const XenoCounts = (props) => {
               <Flex.Item>
                 <center>
                   <h1 className="whiteTitle">Tier {tier}</h1>
-                  {tier >= 2 && (
+                  {tier >= 2 && tier_slots[tier_str] && (
                     <i>
                       <div>
                         <span
@@ -318,6 +340,53 @@ const XenoCounts = (props) => {
           </Flex.Item>
         );
       })}
+    </Flex>
+  );
+};
+
+const StructuresAndBuffs = (props) => {
+  const { data } = useBackend<Data>();
+  const { structures, active_buffs, stat_modifiers } = data;
+  const structure_types = Object.keys(structures || {});
+  const modifier_types = Object.keys(stat_modifiers || {});
+
+  return (
+    <Flex direction="column">
+      <Flex.Item>
+        <h3 className="whiteTitle">Structures</h3>
+        {structure_types.length === 0 ? (
+          <i>None built.</i>
+        ) : (
+          structure_types.map((structure_type) => (
+            <div key={structure_type}>
+              {structure_type}: {structures[structure_type].count}/
+              {structures[structure_type].max}
+            </div>
+          ))
+        )}
+      </Flex.Item>
+      <Flex.Item mt={2}>
+        <h3 className="whiteTitle">Active Hive Buffs</h3>
+        {!active_buffs || active_buffs.length === 0 ? (
+          <i>None active.</i>
+        ) : (
+          active_buffs.map((buff_name, i) => <div key={i}>{buff_name}</div>)
+        )}
+      </Flex.Item>
+      {modifier_types.length > 0 && (
+        <Flex.Item mt={2}>
+          <h3 className="whiteTitle">Hive Stat Modifiers</h3>
+          {modifier_types.map((stat_name) => {
+            const mod = stat_modifiers[stat_name];
+            return (
+              <div key={stat_name}>
+                {stat_name}: x{mod.multiplier}
+                {mod.flat !== 0 && (mod.flat > 0 ? ` +${mod.flat}` : ` ${mod.flat}`)}
+              </div>
+            );
+          })}
+        </Flex.Item>
+      )}
     </Flex>
   );
 };

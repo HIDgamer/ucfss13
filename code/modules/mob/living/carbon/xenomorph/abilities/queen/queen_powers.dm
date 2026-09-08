@@ -82,7 +82,7 @@
 
 	if(X.action_busy)
 		return
-	var/answer = alert(X, "Are you sure you want to remove your ovipositor? (5min cooldown to grow a new one)", , "Yes", "No")
+	var/answer = tgui_alert(X, "Are you sure you want to remove your ovipositor? (5min cooldown to grow a new one)", "Remove Ovipositor", list("Yes", "No"))
 	if(answer != "Yes")
 		return
 	if(!X.check_state())

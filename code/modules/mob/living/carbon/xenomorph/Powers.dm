@@ -122,8 +122,10 @@
 	alien_weeds.secreting = TRUE
 	alien_weeds.update_icon()
 
+	hive?.reserve_build_turf(current_turf)
 	if(!do_after(src, wait_time, INTERRUPT_NO_NEEDHAND|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD, alien_weeds))
 		succeeded = FALSE
+	hive?.unreserve_build_turf(current_turf)
 
 	qdel(warning)
 

@@ -16,6 +16,27 @@
 /datum/xeno_ai_controller/ranged/proc/get_ranged_ability()
 	return null
 
+/datum/xeno_ai_controller/ranged/proc/get_predictive_aim_point(atom/target, delay_deciseconds = 0)
+	var/turf/current_turf = get_turf(target)
+	if(!current_turf || !last_seen_turf || last_seen_turf == current_turf || delay_deciseconds <= 0)
+		return current_turf // Nothing to lead with - no turf, target hasn't moved since we last looked, or this ability doesn't need leading at all.
+
+	var/lead_dir = get_dir(last_seen_turf, current_turf)
+	if(!lead_dir)
+		return current_turf
+
+	var/observed_tiles = get_dist(last_seen_turf, current_turf)
+	var/lead_tiles = round(observed_tiles * (delay_deciseconds / max(1, ai_heartbeat)))
+	lead_tiles = clamp(lead_tiles, 0, AI_PREDICTIVE_AIM_MAX_LEAD_TILES)
+
+	var/turf/lead_turf = current_turf
+	for(var/i in 1 to lead_tiles)
+		var/turf/next_step = get_step(lead_turf, lead_dir)
+		if(!next_step || next_step.density)
+			break
+		lead_turf = next_step
+	return lead_turf
+
 /**
  * Decides whether retreating to cover on ability cooldown is still worth it -
  * a ranged caste's actual priority ("know when to go out of cover or stay

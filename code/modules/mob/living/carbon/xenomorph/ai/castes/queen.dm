@@ -64,6 +64,8 @@
 	var/next_mount_attempt = 0
 	/// world.time she can next use expand_weeds from the throne - throttles attempt_expand_weeds().
 	var/next_expand_weeds_attempt = 0
+	/// world.time until which tick()'s distant-engagement gate is skipped entirely once she's committed to a fight - see tick()'s own doc comment on the flicker this prevents.
+	var/distant_engage_committed_until = 0
 
 /datum/xeno_ai_controller/queen/New(mob/living/carbon/xenomorph/new_pilot)
 	. = ..()
@@ -129,9 +131,19 @@
 		// beyond the self-defense ring must fight back, not stand there
 		// tanking rounds while "on economy."
 		var/being_hurt = queen_pilot.maxHealth && queen_pilot.health < queen_pilot.maxHealth * 0.95
+		// Commit window - this decision used to be re-litigated fresh every single tick she has a
+		// distant target, so a fight sitting right at the self-defense-range boundary (or an escort
+		// count that only marginally qualifies) could flicker between "engage" and "abandon" tick
+		// to tick - live-reported as "kept walking up to humans and retreating, no one came to her
+		// aid" (repeatedly dropping and instantly re-acquiring the same nearest target via
+		// process_target()). Once she actually commits, she stays committed for a real window
+		// instead of being second-guessed on the very next tick.
+		if(world.time < distant_engage_committed_until)
+			return ..()
 		if(!being_hurt && get_dist(queen_pilot, current_target) > AI_QUEEN_SELF_DEFENSE_RANGE && !hive_strong_enough_to_attack())
 			drop_target()
 		else
+			distant_engage_committed_until = world.time + AI_QUEEN_DISTANT_ENGAGE_COMMIT_TIME
 			return ..() // Hand off to the shared approach/attack/leash state machine - she defends herself and the hive normally once committed.
 
 	if(should_flee())
@@ -196,6 +208,17 @@
  * with, and use_ability() already no-ops safely if it isn't ready).
  */
 /// Whether the hive can afford its mother marching to a distant, optional fight: population near the Spawner's live target AND an actual escort of daughters nearby. See tick()'s economy gate.
+/**
+ * Reverted the combat-tier-specific escort requirement this proc briefly had - live testing found
+ * it made this FALSE far more often than the plain headcount check ever did (any nearby daughter
+ * counted before; requiring a specific T2+ combat caste nearby is a much harder bar in practice),
+ * and since tick() re-evaluates this every single tick she has a distant target, failing it more
+ * often meant far more frequent drop_target() calls - "kept walking up to humans and retreating"
+ * was this: approach, edge just outside self-defense range or lose the marginal escort for one
+ * tick, drop, re-acquire the same nearest target next tick via process_target(), repeat. Back to
+ * the plain any-ally headcount check; see tick()'s own new commit-window guard for the actual fix
+ * to the underlying re-evaluate-every-tick flicker.
+ */
 /datum/xeno_ai_controller/queen/proc/hive_strong_enough_to_attack()
 	if(count_nearby_hive_allies(AI_QUEEN_ATTACK_ESCORT_RADIUS) < AI_QUEEN_ATTACK_MIN_ESCORT)
 		return FALSE
@@ -326,6 +349,12 @@
 	if(respond_to_hive_alert())
 		idle_activity = IDLE_ACTIVITY_ALERT
 		return
+	// Side effects only, side by side with everything else patrol() already tries - a real hive
+	// commander tends to nearby daughters (heal/plasma) and designates a lieutenant (leader) while
+	// otherwise going about her business, not as its own dedicated idle state.
+	attempt_queen_heal()
+	attempt_queen_give_plasma()
+	attempt_promote_leader()
 	if(prob(AI_QUEEN_BUILD_CHANCE) && attempt_plant_weeds())
 		idle_activity = IDLE_ACTIVITY_BUILD
 		return
@@ -524,6 +553,71 @@
 			return TRUE
 
 	return attempt_tail_stab(target)
+
+/// Cast on the most badly hurt nearby daughter within AI_QUEEN_SUPPORT_RADIUS - queen_heal is a fully-built AoE heal-over-time centered on a turf, previously never used by the AI at all despite being a real, ready-made "care for my hive" tool.
+/datum/xeno_ai_controller/queen/proc/attempt_queen_heal()
+	if(!pilot)
+		return FALSE
+	var/datum/action/xeno_action/activable/queen_heal/heal = get_ability(/datum/action/xeno_action/activable/queen_heal)
+	if(!heal || !heal.action_cooldown_check())
+		return FALSE
+	var/mob/living/carbon/xenomorph/hurt_ally
+	var/lowest_fraction = 1
+	for(var/mob/living/carbon/xenomorph/nearby in range(AI_QUEEN_SUPPORT_RADIUS, pilot))
+		if(nearby == pilot || nearby.hivenumber != pilot.hivenumber || nearby.stat == DEAD || !nearby.maxHealth)
+			continue
+		var/fraction = nearby.health / nearby.maxHealth
+		if(fraction < AI_QUEEN_HEAL_TRIGGER_PERCENT && fraction < lowest_fraction)
+			lowest_fraction = fraction
+			hurt_ally = nearby
+	if(!hurt_ally)
+		return FALSE
+	heal.use_ability(hurt_ally)
+	return TRUE
+
+/// Cast on the most plasma-starved nearby daughter within AI_QUEEN_SUPPORT_RADIUS - queen_give_plasma was previously never used by the AI at all either.
+/datum/xeno_ai_controller/queen/proc/attempt_queen_give_plasma()
+	if(!pilot)
+		return FALSE
+	var/datum/action/xeno_action/activable/queen_give_plasma/give = get_ability(/datum/action/xeno_action/activable/queen_give_plasma)
+	if(!give || !give.action_cooldown_check())
+		return FALSE
+	var/mob/living/carbon/xenomorph/needy_ally
+	var/lowest_fraction = 1
+	for(var/mob/living/carbon/xenomorph/nearby in range(AI_QUEEN_SUPPORT_RADIUS, pilot))
+		if(nearby == pilot || nearby.hivenumber != pilot.hivenumber || nearby.stat == DEAD || !nearby.plasma_max)
+			continue
+		var/fraction = nearby.plasma_stored / nearby.plasma_max
+		if(fraction < AI_QUEEN_PLASMA_GIVE_TRIGGER_PERCENT && fraction < lowest_fraction)
+			lowest_fraction = fraction
+			needy_ally = nearby
+	if(!needy_ally)
+		return FALSE
+	give.use_ability(needy_ally)
+	return TRUE
+
+/**
+ * AI Queen promotes a worthy nearby combat-capable (T2+) daughter to Hive Leader once, if the
+ * hive currently has none - set_xeno_lead/add_hive_leader() (the real "designate a lieutenant"
+ * mechanic, hive_status.dm) was previously entirely player-driven, never touched by the AI, so an
+ * AI-piloted hive's leadership infrastructure sat permanently dormant.
+ */
+/datum/xeno_ai_controller/queen/proc/attempt_promote_leader()
+	if(!pilot?.hive)
+		return FALSE
+	if(length(pilot.hive.open_xeno_leader_positions) < pilot.hive.queen_leader_limit)
+		return FALSE // Already has at least one leader - don't keep promoting more every idle tick.
+	var/mob/living/carbon/xenomorph/best_candidate
+	for(var/mob/living/carbon/xenomorph/nearby in range(AI_QUEEN_SUPPORT_RADIUS, pilot))
+		if(nearby == pilot || nearby.hivenumber != pilot.hivenumber || nearby.stat == DEAD || nearby.hive_pos != NORMAL_XENO)
+			continue
+		if(!nearby.caste || nearby.caste.tier < 2)
+			continue
+		best_candidate = nearby
+		break
+	if(!best_candidate)
+		return FALSE
+	return pilot.hive.add_hive_leader(best_candidate)
 
 // broadcast_hive_alert()/count_nearby_escorts()/broadcast_escort_call() now
 // live on the base controller (xeno_ai_controller.dm) - promoted there so

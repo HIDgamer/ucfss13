@@ -475,7 +475,8 @@ SPECIAL EGG USED WHEN WEEDS LOST
 
 	var/my_turf = get_turf(src)
 	if(my_turf)
-		RegisterSignal(my_turf, COMSIG_WEEDNODE_GROWTH, PROC_REF(on_weed_growth))
+		// override = TRUE because the host's own weed_food component may already have an independent, legitimate handler registered on this same turf.
+		RegisterSignal(my_turf, COMSIG_WEEDNODE_GROWTH, PROC_REF(on_weed_growth), override = TRUE)
 
 /// SIGNAL_HANDLER for COMSIG_WEEDNODE_GROWTH to potentially restore this orphan
 /obj/effect/alien/egg/carrier_egg/orphan/proc/on_weed_growth()

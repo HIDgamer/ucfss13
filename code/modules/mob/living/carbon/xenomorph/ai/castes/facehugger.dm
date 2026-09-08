@@ -44,7 +44,8 @@
 /datum/xeno_ai_controller/facehugger/patrol()
 	if(attempt_cover_tuck())
 		return
-	attempt_hide()
+	attempt_hide() // Base identity - no-ops via get_ability() for the Watcher strain (xenohide removed).
+	attempt_long_range() // Watcher-only replacement - no-ops via get_ability() for a base Facehugger.
 	return ..()
 
 /datum/xeno_ai_controller/facehugger/proc/attempt_hide()
@@ -52,6 +53,19 @@
 		return
 	var/datum/action/xeno_action/onclick/xenohide/hide = get_ability(/datum/action/xeno_action/onclick/xenohide)
 	hide?.use_ability(pilot)
+
+/**
+ * Watcher strain trades hiding for long-range sight - but her own on_life() (watcher.dm) saps her
+ * health every tick she's standing, off weeds, AND not zoomed, the exact inverse of a passive buff:
+ * more a "stay zoomed or take chip damage" nudge than an optional toggle. handles_movement/
+ * should_delay are both FALSE on the facehugger variant specifically (facehugger_abilities.dm), so
+ * there's no windup or movement penalty to weigh - safe to just keep this on essentially always.
+ */
+/datum/xeno_ai_controller/facehugger/proc/attempt_long_range()
+	if(!pilot || pilot.is_zoomed)
+		return
+	var/datum/action/xeno_action/onclick/toggle_long_range/facehugger/long_range = get_ability(/datum/action/xeno_action/onclick/toggle_long_range/facehugger)
+	long_range?.use_ability(pilot)
 
 /**
  * "Can hide under tables and items to ambush" - seeks a nearby table/rack
@@ -86,6 +100,7 @@
  */
 /datum/xeno_ai_controller/facehugger/process_target()
 	. = ..()
+	attempt_long_range() // Kept up mid-hunt too, not just while idle - see its own doc comment.
 	if(!pilot)
 		return
 	if(current_target && ishuman(current_target))

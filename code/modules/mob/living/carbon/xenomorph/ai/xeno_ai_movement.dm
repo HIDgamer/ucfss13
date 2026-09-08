@@ -262,7 +262,13 @@
 /datum/xeno_ai_controller/proc/attempt_dig_through_stuck(atom/approach_goal)
 	if(!pilot?.resin_build_order || !length(pilot.resin_build_order))
 		return FALSE
-	var/atom/blocking_obstacle = get_blocking_obstacle(approach_goal)
+	// allow_friendly_walls = TRUE: this only runs after AI_XENO_STUCK_GIVEUP_TICKS of zero
+	// progress - if the hive's own construction is what's trapping this xeno (every exit
+	// sealed), no AI xeno would otherwise ever dig itself back out, since normal travel
+	// obstacle-forcing always refuses to smash an own-hive wall (see get_blocking_obstacle()'s
+	// doc comment). A last-resort escalation, not the normal path, so it doesn't undermine that
+	// rule for a teammate's still-relevant deliberate seal.
+	var/atom/blocking_obstacle = get_blocking_obstacle(approach_goal, allow_friendly_walls = TRUE)
 	if(!blocking_obstacle)
 		return FALSE
 	attack_blocking_obstacle(blocking_obstacle)
@@ -326,6 +332,14 @@
 		ai_state = AI_STATE_ATTACKING
 		blocked_attempts = 0
 		path_queue = null
+		// Fire immediately instead of waiting for tick()'s own ATTACKING dispatch next tick -
+		// against a target that's actively moving, the shot opportunity (line-of-sight, still
+		// inside the kiting band) can evaporate in that single-tick gap, so process_attack() would
+		// find nothing to do and she'd revert to repositioning having never actually fired -
+		// reported live as "keeps canceling and moving as the target moves around." process_attack()
+		// already sets ai_state back to APPROACHING itself once it's done, so nothing further reads
+		// AI_STATE_ATTACKING again this same tick after this call returns.
+		process_attack()
 		return
 
 	if(travel_to(target, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_COVER_CHECK))
@@ -652,7 +666,17 @@
 		// around an entire building is a real computed route rather than
 		// invisible past the bounded box. The bounded local solve stays as
 		// the fallback for hosts whose DLL predates the persistent grid.
-		path_queue = compute_path_global(goal_turf) || compute_path(goal_turf)
+		// The native global grid (compute_path_global(), a compiled Rust library) has no concept
+		// of fire at all - only the bounded local solver below treats a burning tile as blocked.
+		// Since the global grid succeeds the overwhelming majority of the time, a route through it
+		// was routinely walking straight across active fire. Reject a global route that crosses
+		// fire and fall through to the fire-aware local solver instead, same as a genuine solve
+		// failure would.
+		path_queue = compute_path_global(goal_turf)
+		if(path_queue && (path_has_fire(path_queue) || path_has_toxic_water(path_queue)))
+			path_queue = null
+		if(!path_queue)
+			path_queue = compute_path(goal_turf)
 		path_goal = goal_turf
 		if(!path_queue || !length(path_queue))
 			path_failed = TRUE
@@ -714,6 +738,25 @@
 	if(!length(waypoints))
 		return null
 	return waypoints
+
+/// Whether any turf in a computed route is currently on fire - see advance_along_path()'s doc comment on why the global grid's own result needs this checked externally rather than baked into the native solver.
+/datum/xeno_ai_controller/proc/path_has_fire(list/turf/queue)
+	for(var/turf/step in queue)
+		if(locate(/obj/flamer_fire) in step)
+			return TRUE
+	return FALSE
+
+/// Same idea as path_has_fire() above, for Desert Dam's toxic water (/obj/effect/blocker/toxic_water,
+/// filtration.dm) - it deals 34 burn to a xenomorph per contact, more than a human takes, with no
+/// avoidance signal anywhere before this. Checks the live `toxic` var rather than mere presence of
+/// the blocker object, since it's a dynamically toggleable hazard (filtration.dm's dispersal system
+/// can turn a given stretch of water safe) - a currently-safe stretch shouldn't be avoided.
+/datum/xeno_ai_controller/proc/path_has_toxic_water(list/turf/queue)
+	for(var/turf/step in queue)
+		for(var/obj/effect/blocker/toxic_water/hazard in step)
+			if(hazard.toxic)
+				return TRUE
+	return FALSE
 
 /**
  * Builds a bounded local grid around the pilot and goal (only turf density
@@ -779,6 +822,12 @@
 			// still needs a route in/out of it.
 			if(!tile_blocked && T && T != pilot_turf && T != goal_turf && (locate(/obj/flamer_fire) in T))
 				tile_blocked = TRUE
+			// Same treatment as fire above, for Desert Dam's toxic water - see path_has_toxic_water()'s
+			// doc comment for why this checks the live `toxic` var rather than mere presence.
+			if(!tile_blocked && T && T != pilot_turf && T != goal_turf)
+				var/obj/effect/blocker/toxic_water/hazard = locate() in T
+				if(hazard?.toxic)
+					tile_blocked = TRUE
 			blocked += tile_blocked ? "1" : "0"
 
 	var/grid_desc = "[width],[height],[pilot_turf.x - min_x],[pilot_turf.y - min_y],[goal_turf.x - min_x],[goal_turf.y - min_y]"
@@ -1329,7 +1378,7 @@
 			return TRUE
 	return FALSE
 
-/datum/xeno_ai_controller/proc/get_blocking_obstacle(atom/goal)
+/datum/xeno_ai_controller/proc/get_blocking_obstacle(atom/goal, allow_friendly_walls = FALSE)
 	if(!pilot || !goal)
 		return null
 
@@ -1402,7 +1451,12 @@
 		// is above.
 		if(!wall_candidate && istype(next_turf, /turf/closed/wall))
 			var/turf/closed/wall/candidate_wall = next_turf
-			if(!(candidate_wall.turf_flags & TURF_HULL) && pilot.claw_type >= candidate_wall.claws_minimum && !(candidate_wall.acided_hole && pilot.mob_size < MOB_SIZE_BIG) && !is_friendly_resin_wall(candidate_wall))
+			// allow_friendly_walls is TRUE only from attempt_dig_through_stuck()'s last-resort
+			// escalation (check_movement_progress()) - after being stuck long enough that it's
+			// clearly a real trap (e.g. the hive's own construction sealed every exit), not a
+			// deliberate, temporary seal a same-hive teammate is still actively using. Normal
+			// travel obstacle-forcing keeps respecting is_friendly_resin_wall() unconditionally.
+			if(!(candidate_wall.turf_flags & TURF_HULL) && pilot.claw_type >= candidate_wall.claws_minimum && !(candidate_wall.acided_hole && pilot.mob_size < MOB_SIZE_BIG) && (allow_friendly_walls || !is_friendly_resin_wall(candidate_wall)))
 				wall_candidate = candidate_wall
 				wall_candidate_dir = candidate_dir
 
