@@ -1,7 +1,6 @@
 
 // Personal Computer - a real, addressed, read/unread-tracked mail system between every instance
-// of this console. Previously just a static, read-only display of pre-written lore flavor text
-// with no real sender/recipient - that content is preserved below as pre-seeded "SYSTEM" mail.
+// of this console. Pre-written lore flavor text is preserved below as pre-seeded "SYSTEM" mail.
 
 GLOBAL_LIST_EMPTY_TYPED(personal_computers, /obj/structure/machinery/computer/emails)
 
@@ -188,6 +187,9 @@ GLOBAL_LIST_EMPTY_TYPED(personal_computers, /obj/structure/machinery/computer/em
 			var/subject = sanitize_text(params["subject"], "")
 			var/html = params["html"]
 			if(!recipient_address || !html)
+				return
+			if(length(html) > PAPER_SANITIZER_MAX_LEN)
+				to_chat(user, SPAN_WARNING("Your message is too long to send - trim it down and try again."))
 				return
 
 			var/obj/structure/machinery/computer/emails/target

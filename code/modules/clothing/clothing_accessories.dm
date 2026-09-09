@@ -27,8 +27,6 @@
 	return istype(src, /obj/item/clothing/accessory/storage)
 
 /obj/item/clothing/accessory/get_mob_overlay(mob/user_mob, slot, default_bodytype = "Default")
-	if(!istype(loc,/obj/item/clothing)) //don't need special handling if it's worn as normal item.
-		return ..()
 	var/bodytype = default_bodytype
 	if(ishuman(user_mob))
 		var/mob/living/carbon/human/user_human = user_mob
@@ -51,8 +49,18 @@
 
 		if(icon_override && ("[tmp_icon_state]_mob" in icon_states(icon_override)))
 			return overlay_image(icon_override, "[tmp_icon_state]_mob", color, RESET_COLOR)
-		else
+		if(use_sprite_sheet)
 			return overlay_image(use_sprite_sheet, tmp_icon_state, color, RESET_COLOR)
+
+	// No proper onmob sprite sheet for this slot (e.g. worn bare via flags_equip_slot, with no host
+	// garment) - fall back to the item's own inv_overlay, via species.get_offset_overlay_image() like
+	// /obj/item/get_mob_overlay() (objs.dm) does.
+	if(inv_overlay)
+		if(ishuman(user_mob))
+			var/mob/living/carbon/human/user_human = user_mob
+			return user_human.species.get_offset_overlay_image(FALSE, inv_overlay.icon, inv_overlay.icon_state, color, slot)
+		return overlay_image(inv_overlay.icon, inv_overlay.icon_state, color, RESET_COLOR)
+	return ..()
 
 /obj/item/clothing/attackby(obj/item/I, mob/user)
 	if(istype(I, /obj/item/clothing/accessory))

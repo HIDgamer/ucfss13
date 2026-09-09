@@ -256,6 +256,7 @@
 	desc = "Designed to be worn over a jumpsuit rather than clipped on."
 	icon_state = "webbing"
 	item_state = "webbing"
+	valid_accessory_slots = list(ACCESSORY_SLOT_PONCHO)
 	allowed = list(
 		/obj/item/weapon/baton,
 		/obj/item/restraint/handcuffs,
@@ -302,6 +303,7 @@
 	item_icons = list(
 		WEAR_JACKET = 'icons/mob/humans/onmob/clothing/suits/vests_aprons.dmi'
 	)
+	valid_accessory_slots = list(ACCESSORY_SLOT_PONCHO)
 	allowed = list(
 		/obj/item/weapon/baton,
 		/obj/item/restraint/handcuffs,

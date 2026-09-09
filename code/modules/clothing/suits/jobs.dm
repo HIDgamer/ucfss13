@@ -290,7 +290,7 @@
 		/obj/item/device/motiondetector,
 	)
 	flags_armor_protection = BODY_FLAG_CHEST
-	valid_accessory_slots = list(ACCESSORY_SLOT_MEDAL)
+	valid_accessory_slots = list(ACCESSORY_SLOT_MEDAL, ACCESSORY_SLOT_PONCHO)
 	item_icons = list(
 		WEAR_JACKET = 'icons/mob/humans/onmob/clothing/suits/vests_aprons.dmi',
 	)

@@ -14,7 +14,9 @@
 // are excised (tag and contents) before the general pass since their contents could otherwise
 // confuse a naive tag walk.
 
-#define PAPER_SANITIZER_MAX_LEN 8000
+// PAPER_SANITIZER_MAX_LEN moved to code/__DEFINES/text.dm - needs to be visible to callers
+// (paper.dm, emails.dm) that may be preprocessed before this file in colonialmarines.dme's
+// include order, which a #define declared here would not be.
 
 /proc/sanitize_paper_html(html, iscrayon = FALSE)
 	if(!html)
@@ -58,7 +60,14 @@
 	while(tag_re.Find(html, pos))
 		var/match_start = tag_re.index
 		var/match_text = tag_re.match
-		result += html_encode(copytext(html, pos, match_start))
+		// html_decode() before re-encoding: "plain text between tags" here is the browser's own
+		// innerHTML serialization, which already entity-encodes text content (a typed "<" arrives as
+		// the literal string "&lt;") - html_encode() alone re-escapes that into "&amp;lt;", rendering
+		// back out as the literal text "&lt;" instead of "<". Decoding first normalizes back to the
+		// real characters before the single safe re-encode, so legitimate escaped input round-trips
+		// correctly while a maliciously-crafted raw entity payload (bypassing the browser entirely)
+		// still gets safely neutralized rather than passed through raw.
+		result += html_encode(html_decode(copytext(html, pos, match_start)))
 
 		var/replacement = "" // unrecognized tags are dropped outright (their own text was already handled above)
 		if(tagname_re.Find(match_text))
@@ -104,7 +113,7 @@
 			break // guard against a degenerate/zero-length match looping forever
 		pos = next_pos
 
-	result += html_encode(copytext(html, pos))
+	result += html_encode(html_decode(copytext(html, pos)))
 	return result
 
 // Resolves the placeholder markers the editor inserts for [sign]/[date] into the same text
@@ -113,8 +122,13 @@
 /proc/resolve_paper_placeholders(html, mob/user)
 	var/signfont = "Times New Roman" // matches /obj/item/paper's own default signfont
 
-	var/static/regex/sign_re = regex(@{"<span class="paper_sign_placeholder"></span>"}, "g")
-	var/static/regex/date_re = regex(@{"<span class="paper_date_placeholder"></span>"}, "g")
+	// Non-greedy .*? tolerates (and discards) whatever the browser stuck inside an otherwise-empty
+	// placeholder span - contentEditable surfaces commonly inject a <br>, whitespace, or a
+	// zero-width space into an empty inline element, especially at end-of-line (exactly where
+	// "Signed: [signature]" always sits). These placeholder spans are never nested, so non-greedy
+	// can't over-match.
+	var/static/regex/sign_re = regex(@{"<span class="paper_sign_placeholder">.*?</span>"}, "g")
+	var/static/regex/date_re = regex(@{"<span class="paper_date_placeholder">.*?</span>"}, "g")
 
 	html = sign_re.Replace(html, "<font face=\"[signfont]\"><i>[user ? user.real_name : "Anonymous"]</i></font>")
 	html = date_re.Replace(html, "<font face=\"[signfont]\"><i>[time2text(REALTIMEOFDAY, "Day DD Month [GLOB.game_year]")]</i></font>")

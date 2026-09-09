@@ -438,14 +438,20 @@
 			var/iscrayon = istype(active, /obj/item/toy/crayon)
 			var/obj/item/tool/pen/pen = HAS_TRAIT(active, TRAIT_TOOL_PEN) ? active : null
 			if(!iscrayon && !pen)
+				to_chat(user, SPAN_WARNING("You need a pen or crayon in your active hand to commit what you've written."))
 				return
 
 			// if paper is not in usr, then it must be near them, or in a clipboard, noticeboard or folder, which must be in or near usr
 			if(loc != user && !Adjacent(user) && !((istype(loc, /obj/item/clipboard) || istype(loc, /obj/structure/noticeboard) || istype(loc, /obj/item/folder)) && (loc.loc == user || loc.Adjacent(user))))
+				to_chat(user, SPAN_WARNING("[src] is no longer close enough to write on."))
 				return
 
 			var/html = params["html"]
 			if(!html)
+				to_chat(user, SPAN_WARNING("Nothing to commit - the page appears to be empty."))
+				return
+			if(length(html) > PAPER_SANITIZER_MAX_LEN)
+				to_chat(user, SPAN_WARNING("What you've written is too long to fit on this paper - trim it down and try again."))
 				return
 
 			var/shortened = copytext(html, 1, 100)

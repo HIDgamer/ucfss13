@@ -1125,3 +1125,97 @@
 /obj/item/storage/box/whitebeet/fill_preset_inventory()
 	for(var/i in 1 to 7)
 		new /obj/item/reagent_container/food/snacks/grown/whitebeet(src)
+
+// Wood boxes - for storing stuff on a pallet (see code/game/objects/structures/crates_lockers/pallets.dm).
+// can_hold/bypass_w_limit are set wide so most gear can be manually stocked into them.
+/obj/item/storage/box/wood
+	name = "wooden box"
+	desc = "A simple wooden box."
+	icon_state = "wood"
+	storage_slots = null
+	foldable = null
+	max_storage_space = 15
+	w_class = SIZE_HUGE
+	can_hold = list(/obj/item/clothing, /obj/item/tool, /obj/item/reagent_container, /obj/item/storage/belt, /obj/item/device, /obj/item/explosive, /obj/item/storage/pill_bottle, /obj/item/storage/pouch, /obj/item/storage/backpack, /obj/item/storage/firstaid, /obj/item/storage/fancy, /obj/item/book)
+	bypass_w_limit = list(/obj/item/clothing, /obj/item/tool, /obj/item/reagent_container, /obj/item/storage/belt, /obj/item/device, /obj/item/explosive, /obj/item/storage/pill_bottle, /obj/item/storage/pouch, /obj/item/storage/backpack, /obj/item/storage/firstaid, /obj/item/storage/fancy, /obj/item/book)
+	ground_offset_x = 7
+	ground_offset_y = 6
+
+/obj/item/storage/box/wood/med
+	name = "wooden medical box"
+	desc = "A wooden box packed with medical supplies."
+	icon_state = "med"
+	can_hold = list(/obj/item/tool, /obj/item/reagent_container, /obj/item/stack, /obj/item/storage/firstaid, /obj/item/device, /obj/item/storage/pill_bottle, /obj/item/storage/belt, /obj/item/storage/pouch, /obj/item/storage/backpack)
+	bypass_w_limit = list(/obj/item/tool, /obj/item/reagent_container, /obj/item/stack, /obj/item/storage/firstaid, /obj/item/device, /obj/item/storage/pill_bottle, /obj/item/storage/belt, /obj/item/storage/pouch, /obj/item/storage/backpack)
+
+/obj/item/storage/box/wood/med/fill_preset_inventory()
+	new /obj/item/storage/firstaid/regular(src)
+	new /obj/item/stack/medical/bruise_pack(src)
+	new /obj/item/stack/medical/ointment(src)
+
+/obj/item/storage/box/wood/med/full
+	name = "wooden medical box (full)"
+
+/obj/item/storage/box/wood/med/full/fill_preset_inventory()
+	new /obj/item/storage/firstaid/adv(src)
+	new /obj/item/stack/medical/advanced/bruise_pack(src)
+	new /obj/item/stack/medical/advanced/ointment(src)
+	new /obj/item/device/healthanalyzer(src)
+
+/obj/item/storage/box/wood/engi
+	name = "wooden engineering box"
+	desc = "A wooden box packed with basic tools."
+	icon_state = "engi"
+	can_hold = list(/obj/item/tool, /obj/item/cell, /obj/item/reagent_container, /obj/item/device, /obj/item/storage/belt, /obj/item/stack, /obj/item/storage/pouch, /obj/item/storage/backpack)
+	bypass_w_limit = list(/obj/item/tool, /obj/item/cell, /obj/item/reagent_container, /obj/item/device, /obj/item/storage/belt, /obj/item/stack, /obj/item/storage/pouch, /obj/item/storage/backpack)
+
+/obj/item/storage/box/wood/engi/fill_preset_inventory()
+	new /obj/item/tool/wrench(src)
+	new /obj/item/tool/screwdriver(src)
+	new /obj/item/tool/wirecutters(src)
+
+/obj/item/storage/box/wood/engi/full
+	name = "wooden engineering box (full)"
+
+/obj/item/storage/box/wood/engi/full/fill_preset_inventory()
+	new /obj/item/storage/toolbox/mechanical(src)
+	new /obj/item/cell/high(src)
+	new /obj/item/tool/weldingtool(src)
+
+/obj/item/storage/box/wood/food
+	name = "wooden food box"
+	desc = "A wooden box packed with rations."
+	icon_state = "food"
+	can_hold = list(/obj/item/reagent_container, /obj/item/storage/box/MRE, /obj/item/storage/backpack, /obj/item/storage/box/pizza)
+	bypass_w_limit = list(/obj/item/reagent_container, /obj/item/storage/box/MRE, /obj/item/storage/backpack, /obj/item/storage/box/pizza)
+
+/obj/item/storage/box/wood/food/fill_preset_inventory()
+	new /obj/item/storage/box/MRE(src)
+	new /obj/item/storage/box/MRE(src)
+
+/obj/item/storage/box/wood/food/groceries
+	name = "wooden box of groceries"
+
+/obj/item/storage/box/wood/food/groceries/fill_preset_inventory()
+	new /obj/item/storage/box/donkpockets(src)
+	new /obj/item/storage/box/pizza(src)
+
+/obj/item/storage/box/wood/weapon
+	name = "wooden weapon box"
+	desc = "A wooden box packed with a sidearm and spare magazines."
+	icon_state = "guncase"
+	can_hold = list(/obj/item/weapon, /obj/item/explosive, /obj/item/storage/pouch, /obj/item/storage/backpack, /obj/item/storage/large_holster)
+	bypass_w_limit = list(/obj/item/weapon, /obj/item/explosive, /obj/item/storage/pouch, /obj/item/storage/backpack, /obj/item/storage/large_holster)
+
+/obj/item/storage/box/wood/weapon/fill_preset_inventory()
+	new /obj/item/weapon/gun/pistol/m4a3(src)
+	new /obj/item/ammo_magazine/pistol(src)
+	new /obj/item/ammo_magazine/pistol(src)
+
+/obj/item/storage/box/wood/weapon/mk1
+	name = "wooden MK1 rifle box"
+
+/obj/item/storage/box/wood/weapon/mk1/fill_preset_inventory()
+	new /obj/item/weapon/gun/rifle/m41aMK1(src)
+	new /obj/item/ammo_magazine/rifle/m41aMK1(src)
+	new /obj/item/ammo_magazine/rifle/m41aMK1(src)

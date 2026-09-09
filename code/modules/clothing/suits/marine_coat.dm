@@ -249,6 +249,21 @@
 	desc = "A refurbished jacket liner tailor made for a senior officer. This liner has become more of a proper piece of attire, with a new layer of fabric, wrist cuffs, front pockets, and a custom embroidered falcon on the back. This jacket will keep its wearer warm no matter the circumstance, from a cool Sunday drive to chilly autumn's eve."
 	icon_state = "co_falcon"
 
+/obj/item/clothing/suit/storage/jacket/marine/dress/fur_lined_trench_coat
+	name = "\improper expensive fur-lined trench-coat"
+	desc = "A luxurious fur-lined, antique-styled trench coat that exudes classic noir elegance. This exquisite garment is far beyond the average person's budget, accessible only to high-level executives and elite military personnel."
+	icon = 'icons/obj/items/clothing/suits/suits_by_faction/WY.dmi'
+	item_icons = list(
+		WEAR_JACKET = 'icons/mob/humans/onmob/clothing/suits/suits_by_faction/WY.dmi'
+	)
+	icon_state = "wy_expensive_fur_trenchcoat"
+	item_state = "wy_expensive_fur_trenchcoat"
+	uniform_restricted = null
+
+/obj/item/clothing/suit/storage/jacket/marine/dress/fur_lined_trench_coat/alt
+	icon_state = "wy_expensive_fur_trenchcoat_alt"
+	item_state = "wy_expensive_fur_trenchcoat_alt"
+
 /obj/item/clothing/suit/storage/jacket/marine/dress/general
 	name = "general's jacket"
 	desc = "A black trench coat with gold metallic trim. Flashy, highly protective, and over-the-top. Fit for a king - or, in this case, a General. Has quite a few pockets."
@@ -396,6 +411,7 @@
 	)
 	flags_atom = NO_GAMEMODE_SKIN
 	has_buttons = FALSE
+	valid_accessory_slots = list(ACCESSORY_SLOT_ARMBAND, ACCESSORY_SLOT_RANK, ACCESSORY_SLOT_DECOR, ACCESSORY_SLOT_MEDAL, ACCESSORY_SLOT_PONCHO)
 
 /obj/item/clothing/suit/storage/jacket/marine/vest/tan
 	name = "tan vest"

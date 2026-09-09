@@ -576,6 +576,8 @@
 	desc = "The standard USCM poncho has variations for every climate. Custom fitted to be attached to standard USCM armor variants it is comfortable, warming or cooling as needed, and well-fit. A marine couldn't ask for more. Affectionately referred to as a \"woobie\"."
 	icon_state = "poncho"
 	slot = ACCESSORY_SLOT_PONCHO
+	// Allows this to be worn bare in the suit slot, in addition to being attached as an accessory over armor.
+	flags_equip_slot = SLOT_OCLOTHING
 
 /obj/item/clothing/accessory/poncho/Initialize()
 	. = ..()

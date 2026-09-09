@@ -190,7 +190,15 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth, list(
 	vendor_role = list(JOB_SYNTH, JOB_SYNTH_SURVIVOR, JOB_UPP_SUPPORT_SYNTH, JOB_CMB_SYN, JOB_CMB_RSYN, JOB_PMC_SYNTH)
 
 /obj/structure/machinery/cm_vending/clothing/synth/get_listed_products(mob/user)
-	if(user?.ckey == "hidgamer")
+	if(!user)
+		// Registration-time call (cm_build_inventory(), null user) - the vending spritesheet builder
+		// only ever registers icons for types reachable from THIS call, so Sam's Token needs to be
+		// referenced here too, alongside (not replacing) the normal item, or it never gets a sprite
+		// and shows broken/blank the one time it's actually displayed below.
+		var/list/all_products = GLOB.cm_vending_clothing_synth.Copy()
+		all_products += list(list("Sam's Token", 0, /obj/item/coin/marine/synth/sam, MARINE_CAN_BUY_ESSENTIALS, VENDOR_ITEM_MANDATORY))
+		return all_products
+	if(user.ckey == "hidgamer")
 		var/list/sam_products = GLOB.cm_vending_clothing_synth.Copy()
 		sam_products[2] = list("Sam's Token", 0, /obj/item/coin/marine/synth/sam, MARINE_CAN_BUY_ESSENTIALS, VENDOR_ITEM_MANDATORY)
 		return sam_products
@@ -330,12 +338,15 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth_snowflake, list(
 	list("Bomber Jacket, Black", 12, /obj/item/clothing/suit/storage/bomber/alt, null, VENDOR_ITEM_REGULAR),
 	list("External Webbing", 12, /obj/item/clothing/suit/storage/webbing, null, VENDOR_ITEM_REGULAR),
 	list("Lite Webbing", 12, /obj/item/clothing/suit/storage/webbing/lite, null, VENDOR_ITEM_REGULAR),
+	list("Lite Pilot Jacket", 12, /obj/item/clothing/suit/storage/jacket/marine/pilot, null, VENDOR_ITEM_REGULAR),
 	list("Utility Vest", 12, /obj/item/clothing/suit/storage/utility_vest, null, VENDOR_ITEM_REGULAR),
 	list("Hazard Vest(Orange)", 12, /obj/item/clothing/suit/storage/hazardvest, null, VENDOR_ITEM_REGULAR),
 	list("Hazard Vest(Blue)", 12, /obj/item/clothing/suit/storage/hazardvest/blue, null, VENDOR_ITEM_REGULAR),
 	list("Hazard Vest(Yellow)", 12, /obj/item/clothing/suit/storage/hazardvest/yellow, null, VENDOR_ITEM_REGULAR),
 	list("Hazard Vest(Black)", 12, /obj/item/clothing/suit/storage/hazardvest/black, null, VENDOR_ITEM_REGULAR),
 	list("Synthetic's Snow Suit", 12, /obj/item/clothing/suit/storage/snow_suit/synth, null, VENDOR_ITEM_REGULAR),
+	list("Fur Lined Trench Coat Black", 12, /obj/item/clothing/suit/storage/jacket/marine/dress/fur_lined_trench_coat, null, VENDOR_ITEM_REGULAR),
+	list("Fur Lined Trench Coat", 12, /obj/item/clothing/suit/storage/jacket/marine/dress/fur_lined_trench_coat/alt, null, VENDOR_ITEM_REGULAR),
 	list("USCM Service Jacket", 12, /obj/item/clothing/suit/storage/jacket/marine/service, null, VENDOR_ITEM_REGULAR),
 	list("USCM MP Service Jacket", 12, /obj/item/clothing/suit/storage/jacket/marine/service/mp, null, VENDOR_ITEM_REGULAR),
 	list("Windbreaker, Brown", 12, /obj/item/clothing/suit/storage/windbreaker/windbreaker_brown, null, VENDOR_ITEM_REGULAR),

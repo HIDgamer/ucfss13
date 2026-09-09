@@ -66,6 +66,17 @@ const FIELD_HTML = '<span class="paper_field"></span>';
 const SIGN_HTML = '<span class="paper_sign_placeholder"></span>';
 const DATE_HTML = '<span class="paper_date_placeholder"></span>';
 
+// A fixed palette, not a free-form picker - every value here is a plain color name, which
+// paper_sanitizer.dm's color_re already allow-lists (also accepts #RRGGBB hex, but a preset list
+// keeps this simple and avoids needing any client-side hex validation).
+const TEXT_COLORS = [
+  { label: 'Black', value: 'black' },
+  { label: 'Blue', value: 'blue' },
+  { label: 'Red', value: 'red' },
+  { label: 'Green', value: 'green' },
+  { label: 'Purple', value: 'purple' },
+];
+
 export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
   (props, forwardedRef) => {
     const {
@@ -137,6 +148,32 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
         sel.addRange(range);
       }
       document.execCommand('insertHTML', false, html);
+    };
+
+    // Not execCommand('foreColor', ...) - Chromium emits <span style="color:...">, which the
+    // sanitizer's span-handling branch doesn't allow-list at all and would silently strip the
+    // color entirely on commit. <font color="..."> is what paper_sanitizer.dm actually accepts
+    // (it's also what whole-paper pen-color tinting already produces), so this wraps the saved
+    // selection in one directly instead.
+    const applyTextColorAtSavedSelection = (color: string) => {
+      surfaceRef.current?.focus();
+      const sel = window.getSelection();
+      const range = savedRangeRef.current;
+      if (!sel || !range || range.collapsed) {
+        return;
+      }
+      sel.removeAllRanges();
+      sel.addRange(range);
+      const font = document.createElement('font');
+      font.setAttribute('face', mode === 'crayon' ? 'Comic Sans MS' : 'Verdana');
+      font.setAttribute('color', color);
+      font.appendChild(range.extractContents());
+      range.insertNode(font);
+      sel.removeAllRanges();
+      const after = document.createRange();
+      after.setStartAfter(font);
+      after.collapse(true);
+      sel.addRange(after);
     };
 
     return (
@@ -279,6 +316,21 @@ export const RichTextEditor = forwardRef<RichTextEditorHandle, Props>(
                     tooltip="Insert Date"
                     {...toolbarButtonProps}
                     onClick={() => insertHtml(DATE_HTML)}
+                  />
+                </Stack.Item>
+                <Stack.Item>
+                  <Dropdown
+                    icon="palette"
+                    displayText="Text Color"
+                    tooltip="Select text first, then pick a color"
+                    selected={null}
+                    options={TEXT_COLORS.map((c) => c.label)}
+                    onSelected={(label) => {
+                      const color = TEXT_COLORS.find((c) => c.label === label);
+                      if (color) {
+                        applyTextColorAtSavedSelection(color.value);
+                      }
+                    }}
                   />
                 </Stack.Item>
                 {logos.length > 0 && (
