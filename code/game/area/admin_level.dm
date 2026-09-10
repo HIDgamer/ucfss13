@@ -5,6 +5,14 @@
 	ceiling = CEILING_METAL
 	base_lighting_alpha = 255
 
+/area/adminlevel/blackfoot_test
+	name = "\improper Blackfoot Test Area"
+	icon_state = "thunder"
+	requires_power = FALSE
+	statistic_exempt = TRUE
+	flags_area = AREA_NOTUNNEL
+	ceiling = CEILING_NONE //standalone VTOL test room - a protected ceiling would block start_takeoff()'s fits_in_turf() check
+
 /area/adminlevel/bunker01
 	icon_state = "thunder"
 	requires_power = FALSE

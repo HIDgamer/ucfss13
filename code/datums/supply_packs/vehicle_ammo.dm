@@ -176,3 +176,27 @@
 	containertype = /obj/structure/closet/crate/ammo
 	containername = "M24-RC1 Remote Cannon ammo crate"
 	group = "Vehicle Ammo"
+
+/datum/supply_packs/blackfoot_ammo
+	name = "Chimera Launchers ammunition (x4)"
+	contains = list(
+		/obj/item/ammo_magazine/hardpoint/chimera_launchers_ammo,
+		/obj/item/ammo_magazine/hardpoint/chimera_launchers_ammo,
+		/obj/item/ammo_magazine/hardpoint/chimera_launchers_ammo,
+		/obj/item/ammo_magazine/hardpoint/chimera_launchers_ammo,
+	)
+	cost = 40
+	containertype = /obj/structure/closet/crate/weapon
+	containername = "blackfoot ammo crate"
+	group = "Vehicle Ammo"
+
+/datum/supply_packs/blackfoot_doorgun_ammo
+	name = "blackfoot doorgun ammunition (x2)"
+	contains = list(
+		/obj/item/ammo_magazine/hardpoint/doorgun_ammo,
+		/obj/item/ammo_magazine/hardpoint/doorgun_ammo,
+	)
+	cost = 60
+	containertype = /obj/structure/closet/crate/weapon
+	containername = "blackfoot ammo crate"
+	group = "Vehicle Ammo"

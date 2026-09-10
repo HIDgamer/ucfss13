@@ -65,3 +65,15 @@
 /datum/map_template/interior/humvee/humvee_requisition
 	name = "JTMV-Requisition"
 	interior_id = "humvee_requisition"
+
+/datum/map_template/interior/blackfoot
+	name = "blackfoot base"
+	interior_id = "blackfoot"
+
+/datum/map_template/interior/blackfoot_doorgun
+	name = "blackfoot doorgun"
+	interior_id = "blackfoot_doorgun"
+
+/datum/map_template/interior/blackfoot_transport
+	name = "blackfoot transport"
+	interior_id = "blackfoot_transport"
