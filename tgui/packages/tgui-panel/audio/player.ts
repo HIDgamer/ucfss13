@@ -10,49 +10,60 @@ const logger = createLogger('AudioPlayer');
 
 export class AudioPlayer {
   constructor() {
-    // Set up the HTMLAudioElement node
-    this.node = document.createElement('audio');
-    this.node.style.setProperty('display', 'none');
-    document.body.appendChild(this.node);
-    // Set up other properties
+    // A fresh Audio object is created per play() call below - reassigning .src on an
+    // already-used media element doesn't reliably re-fire a load in every embedded-webview
+    // context without an explicit .load() call.
+    this.node = null;
     this.playing = false;
     this.volume = 1;
     this.options = {};
     this.onPlaySubscribers = [];
     this.onStopSubscribers = [];
-    // Listen for playback start events
-    this.node.addEventListener('canplaythrough', () => {
-      logger.log('canplaythrough');
-      this.playing = true;
-      this.node.playbackRate = this.options.pitch || 1;
-      this.node.currentTime = this.options.start || 0;
-      this.node.volume = this.volume;
-      // play() returns a Promise that can reject silently (autoplay policy,
-      // load failure, etc.) — without this, playback can fail with zero
-      // feedback anywhere, including to the admin who triggered it.
-      this.node.play()?.catch((error) => {
-        logger.log('play() failed', error);
-        this.playing = false;
-      });
-      for (let subscriber of this.onPlaySubscribers) {
-        subscriber();
-      }
-    });
-    // Listen for playback stop events
-    this.node.addEventListener('ended', () => {
+    this.playbackInterval = null;
+  }
+
+  destroy() {
+    this.stop();
+  }
+
+  play(url, options = {}) {
+    this.stop();
+
+    this.options = options;
+    logger.log('playing', url, options);
+
+    const node = (this.node = new Audio(url));
+    node.volume = this.volume;
+    node.playbackRate = this.options.pitch || 1;
+    if (this.options.start) {
+      node.currentTime = this.options.start;
+    }
+
+    node.addEventListener('ended', () => {
       logger.log('ended');
       this.stop();
     });
-    // Listen for playback errors
-    this.node.addEventListener('error', (e) => {
-      if (this.playing) {
-        logger.log('playback error', e.error);
-        this.stop();
-      }
+    node.addEventListener('error', (e) => {
+      logger.log('playback error', e.error);
+      this.stop();
     });
+
+    // play() returns a Promise that can reject silently (autoplay policy,
+    // load failure, etc.) — without this, playback can fail with zero
+    // feedback anywhere, including to the admin who triggered it.
+    node.play()?.catch((error) => {
+      logger.log('play() failed', error);
+      this.stop();
+    });
+
+    this.playing = true;
+    for (let subscriber of this.onPlaySubscribers) {
+      subscriber();
+    }
+
     // Check every second to stop the playback at the right time
     this.playbackInterval = setInterval(() => {
-      if (!this.playing) {
+      if (!this.playing || !this.node) {
         return;
       }
       const shouldStop =
@@ -63,25 +74,9 @@ export class AudioPlayer {
     }, 1000);
   }
 
-  destroy() {
-    if (!this.node) {
-      return;
-    }
-    this.node.stop();
-    document.removeChild(this.node);
-    clearInterval(this.playbackInterval);
-  }
-
-  play(url, options = {}) {
-    if (!this.node) {
-      return;
-    }
-    logger.log('playing', url, options);
-    this.options = options;
-    this.node.src = url;
-  }
-
   stop() {
+    clearInterval(this.playbackInterval);
+    this.playbackInterval = null;
     if (!this.node) {
       return;
     }
@@ -92,28 +87,23 @@ export class AudioPlayer {
     }
     logger.log('stopping');
     this.playing = false;
-    this.node.src = '';
+    this.node.pause();
+    this.node = null;
   }
 
   setVolume(volume) {
+    this.volume = volume;
     if (!this.node) {
       return;
     }
-    this.volume = volume;
     this.node.volume = volume;
   }
 
   onPlay(subscriber) {
-    if (!this.node) {
-      return;
-    }
     this.onPlaySubscribers.push(subscriber);
   }
 
   onStop(subscriber) {
-    if (!this.node) {
-      return;
-    }
     this.onStopSubscribers.push(subscriber);
   }
 }

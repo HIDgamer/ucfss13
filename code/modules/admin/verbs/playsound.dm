@@ -45,61 +45,6 @@
 	.["last_status"] = last_status
 	.["is_playing"] = is_playing
 
-/datum/admin_sound_panel/proc/resolve_and_play(url, audience, target_ref, sound_type_flag, show_title)
-	last_error = ""
-	var/list/data = list()
-
-	var/list/datum/internet_media/media_players = list()
-	if (CONFIG_GET(string/invoke_youtubedl))
-		media_players += new /datum/internet_media/yt_dlp
-	if (CONFIG_GET(string/cobalt_base_api))
-		media_players += new /datum/internet_media/cobalt
-
-	if (!length(media_players))
-		last_error = "No web media players configured on this server."
-		SStgui.update_uis(src)
-		return
-
-	var/datum/media_response/response
-	for (var/datum/internet_media/player as anything in media_players)
-		response = player.get_media(url)
-		if (istype(response))
-			break
-
-	if (!istype(response))
-		var/errors = ""
-		for (var/datum/internet_media/player as anything in media_players)
-			errors += "\n  [player.type]: [player.error]"
-		last_error = "All media players failed:[errors]"
-		SStgui.update_uis(src)
-		return
-
-	data = response.get_list()
-	if (!data["url"])
-		last_error = "Media provider returned no usable URL."
-		SStgui.update_uis(src)
-		return
-
-	if (!findtext(data["url"], GLOB.is_http_protocol))
-		last_error = "BLOCKED: Content URL not using http(s) protocol."
-		SStgui.update_uis(src)
-		return
-
-	resolved_url = data["url"]
-	resolved_title = data["title"] || "Admin sound"
-
-	var/list/music_extra_data = list(
-		"link" = data["url"],
-		"start" = data["start_time"],
-		"end" = data["end_time"],
-		"title" = show_title ? resolved_title : "Admin sound",
-	)
-
-	broadcast_sound(audience, target_ref, music_extra_data, resolved_url, sound_type_flag, show_title, pending_asset_name)
-	is_playing = TRUE
-	last_status = "Playing: [resolved_title]"
-	SStgui.update_uis(src)
-
 /datum/admin_sound_panel/proc/broadcast_sound(audience, target_ref, list/music_extra_data, web_url, sound_type_flag, show_title, asset_name)
 	var/list/targets = list()
 	switch (audience)
@@ -128,17 +73,25 @@
 			continue
 		try
 			if (C.prefs?.toggles_sound & sound_type_flag)
-				if (asset_name)
-					SSassets.transport.send_assets(C, asset_name)
-				C.tgui_panel?.play_music(web_url, music_extra_data)
-				if (show_title)
-					to_chat(C, SPAN_BOLDANNOUNCE("An admin played: [adminscrub(music_extra_data["title"], 200)]"), confidential = TRUE)
+				if (asset_name && SSassets.transport.send_assets(C, asset_name))
+					// send_assets() only schedules the asset upload; asset_cache_update_json() finishes it
+					// ~1s later (asset_transport.dm), so playback must wait for that window before starting.
+					addtimer(CALLBACK(src, PROC_REF(start_playback), C, web_url, music_extra_data, show_title), 1.5 SECONDS)
+				else
+					start_playback(C, web_url, music_extra_data, show_title)
 			else
 				C.tgui_panel?.stop_music()
 		catch (var/exception/e)
-			// A single malformed field (bad title text, an unexpected client state, etc.) must not
-			// abort the loop and silently deny the sound to every client after this one.
+			// A single malformed field (bad title/artist/album text, an unexpected client state, etc.)
+			// must not abort the loop and silently deny the sound to every client after this one.
 			last_error = "Playback failed for one client: [e]"
+
+/datum/admin_sound_panel/proc/start_playback(client/C, web_url, list/music_extra_data, show_title)
+	if (QDELETED(C))
+		return
+	C.tgui_panel?.play_music(web_url, music_extra_data)
+	if (show_title)
+		to_chat(C, SPAN_BOLDANNOUNCE("An admin played: [adminscrub(music_extra_data["title"], 200)]"), confidential = TRUE)
 
 /datum/admin_sound_panel/proc/upload_and_play(audience, target_ref, sound_type, show_title)
 	var/soundfile = input(owner?.mob, "Choose a sound file to play", "Upload Sound") as null|file
@@ -179,56 +132,51 @@
 		return
 
 	switch (action)
-		if ("resolve_url")
-			var/url = trim(params["url"] || "")
-			if (!istext(url) || !length(url))
-				return
-			resolved_url = ""
-			resolved_title = ""
-			last_error = ""
+		if ("open_file_picker")
+			INVOKE_ASYNC(src, .proc/upload_and_play, params["audience"], params["target_ref"], params["sound_type"], params["show_title"])
+			return TRUE
 
-			var/list/datum/internet_media/media_players = list()
-			if (CONFIG_GET(string/invoke_youtubedl))
-				media_players += new /datum/internet_media/yt_dlp
-			if (CONFIG_GET(string/cobalt_base_api))
-				media_players += new /datum/internet_media/cobalt
-
-			if (!length(media_players))
-				last_error = "No web media players configured on this server."
+		if ("play_direct")
+			var/url = trim(sanitize_text(params["url"], ""))
+			if (!url || length(url) > 2048)
+				last_error = "BLOCKED: Missing or absurdly long content URL."
+				SStgui.update_uis(src)
+				return TRUE
+			if (!findtext(url, GLOB.is_http_protocol))
+				last_error = "BLOCKED: Content URL not using http(s) protocol."
 				SStgui.update_uis(src)
 				return TRUE
 
-			var/datum/media_response/response
-			for (var/datum/internet_media/player as anything in media_players)
-				response = player.get_media(url)
-				if (istype(response))
-					break
-
-			if (istype(response))
-				var/list/data = response.get_list()
-				resolved_title = data["title"] || url
-				last_status = "Title resolved: [resolved_title]"
-			else
-				last_error = "Could not resolve URL title."
-
-			SStgui.update_uis(src)
-			return TRUE
-
-		if ("play_web")
-			var/url = trim(params["url"] || "")
-			if (!url)
-				return
-			var/audience = params["audience"] || "Globally"
-			var/target_ref = params["target_ref"] || ""
+			var/audience = sanitize_inlist(params["audience"], list("Globally", "Xenos", "Marines", "Ghosts", "All In View Range", "Single Mob"), "Globally")
+			var/target_ref = sanitize_text(params["target_ref"], "")
 			var/sound_type_flag = (params["sound_type"] == "Atmospheric") ? SOUND_ADMIN_ATMOSPHERIC : SOUND_ADMIN_MEME
 			var/show_title = !!params["show_title"]
-			INVOKE_ASYNC(src, .proc/resolve_and_play, url, audience, target_ref, sound_type_flag, show_title)
-			log_admin("[key_name(ui.user)] queued admin web sound: [url] to [audience].")
-			message_admins("[key_name_admin(ui.user)] queued admin web sound: [url] to [audience].")
-			return TRUE
+			var/show_blurb = !!params["show_blurb"]
+			// These are free-typed admin text that end up in raw HTML (to_chat/show_blurb) - cap the length
+			// and drop them to a safe default rather than let a stray "<" or an oversized paste wedge the
+			// broadcast loop (see the try/catch in broadcast_sound()) or corrupt chat for every recipient.
+			var/title = copytext(trim(sanitize_text(params["title"], "")), 1, 100) || url
+			var/artist = copytext(trim(sanitize_text(params["artist"], "")), 1, 100) || "Unknown Artist"
+			var/album = copytext(trim(sanitize_text(params["album"], "")), 1, 100) || "Unknown Album"
 
-		if ("open_file_picker")
-			INVOKE_ASYNC(src, .proc/upload_and_play, params["audience"], params["target_ref"], params["sound_type"], params["show_title"])
+			resolved_url = url
+			resolved_title = title
+
+			var/list/music_extra_data = list(
+				"link" = url,
+				"title" = show_title ? title : "Admin sound",
+				"artist" = artist,
+				"album" = album,
+			)
+			broadcast_sound(audience, target_ref, music_extra_data, url, sound_type_flag, show_title, "")
+			if (show_blurb)
+				show_blurb_song(title = title, additional = "[artist] - [album]")
+
+			is_playing = TRUE
+			last_status = "Playing direct link: [title]"
+			log_admin("[key_name(ui.user)] played a direct-link admin sound: [url].")
+			message_admins("[key_name_admin(ui.user)] played a direct-link admin sound: [url].")
+			SStgui.update_uis(src)
 			return TRUE
 
 		if ("stop_all")
@@ -263,4 +211,9 @@
 
 	log_admin("[key_name(src)] stopped the currently playing web sounds.")
 	message_admins("[key_name_admin(src)] stopped the currently playing web sounds.")
+
+/// Shows a two-line song info blurb - title, then "Artist - Album" underneath. Used by the Direct Link source mode's optional on-screen blurb.
+/proc/show_blurb_song(title = "Song Name", additional = "Song Artist - Song Album")
+	var/message_to_display = "<b>[adminscrub(title, 100)]</b>\n[adminscrub(additional, 200)]"
+	show_blurb(GLOB.player_list, 10 SECONDS, "[message_to_display]", screen_position = "LEFT+0:16,BOTTOM+1:16", text_alignment = "left", text_color = "#FFFFFF", blurb_key = "song[title]", ignore_key = TRUE, speed = 1)
 

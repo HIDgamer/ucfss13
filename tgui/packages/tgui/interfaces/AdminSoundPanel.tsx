@@ -44,8 +44,12 @@ export const AdminSoundPanel = () => {
   const { cliented_mobs, last_status, last_error, resolved_title, is_playing } =
     data;
 
-  const [sourceMode, setSourceMode] = useState<'web' | 'upload'>('web');
-  const [webUrl, setWebUrl] = useState('');
+  const [sourceMode, setSourceMode] = useState<'upload' | 'direct'>('direct');
+  const [directUrl, setDirectUrl] = useState('');
+  const [directTitle, setDirectTitle] = useState('');
+  const [directArtist, setDirectArtist] = useState('');
+  const [directAlbum, setDirectAlbum] = useState('');
+  const [showBlurb, setShowBlurb] = useState(false);
   const [audience, setAudience] = useState('Globally');
   const [selectedMobKey, setSelectedMobKey] = useState('');
   const [soundType, setSoundType] = useState('Meme');
@@ -58,23 +62,22 @@ export const AdminSoundPanel = () => {
       : ''
     : '';
 
-  const handleFetchTitle = () => {
-    if (!webUrl.trim()) return;
-    act('resolve_url', { url: webUrl.trim() });
-  };
-
   const handlePlay = () => {
     const target_ref =
       audience === 'Single Mob'
         ? cliented_mobs.find((m) => m.key === selectedMobKey)?.ref ?? ''
         : '';
-    if (sourceMode === 'web') {
-      act('play_web', {
-        url: webUrl.trim(),
+    if (sourceMode === 'direct') {
+      act('play_direct', {
+        url: directUrl.trim(),
+        title: directTitle.trim(),
+        artist: directArtist.trim(),
+        album: directAlbum.trim(),
         audience,
         target_ref,
         sound_type: soundType,
         show_title: showTitle,
+        show_blurb: showBlurb,
       });
     } else {
       act('play_upload', {
@@ -99,15 +102,6 @@ export const AdminSoundPanel = () => {
               <Stack mb={1}>
                 <Stack.Item>
                   <Button
-                    icon="globe"
-                    selected={sourceMode === 'web'}
-                    onClick={() => setSourceMode('web')}
-                  >
-                    Web URL
-                  </Button>
-                </Stack.Item>
-                <Stack.Item>
-                  <Button
                     icon="upload"
                     selected={sourceMode === 'upload'}
                     onClick={() => setSourceMode('upload')}
@@ -115,28 +109,62 @@ export const AdminSoundPanel = () => {
                     Upload File
                   </Button>
                 </Stack.Item>
+                <Stack.Item>
+                  <Button
+                    icon="link"
+                    selected={sourceMode === 'direct'}
+                    onClick={() => setSourceMode('direct')}
+                  >
+                    Direct Link
+                  </Button>
+                </Stack.Item>
               </Stack>
 
-              {sourceMode === 'web' ? (
-                <Stack align="center">
-                  <Stack.Item grow>
+              {sourceMode === 'direct' ? (
+                <Stack vertical>
+                  <Stack.Item>
                     <Input
                       fluid
-                      placeholder="https://… (YouTube, SoundCloud, etc.)"
-                      value={webUrl}
-                      onInput={(e, value) => setWebUrl(value)}
-                      onEnter={() => handleFetchTitle()}
+                      placeholder="https://…direct audio file link (no extraction, played as-is)"
+                      value={directUrl}
+                      onInput={(e, value) => setDirectUrl(value)}
                     />
                   </Stack.Item>
                   <Stack.Item>
-                    <Button
-                      icon="search"
-                      disabled={!webUrl.trim()}
-                      onClick={handleFetchTitle}
-                      tooltip="Resolve title from URL"
-                    >
-                      Fetch
-                    </Button>
+                    <LabeledList>
+                      <LabeledList.Item label="Title">
+                        <Input
+                          fluid
+                          placeholder="(optional)"
+                          value={directTitle}
+                          onInput={(e, value) => setDirectTitle(value)}
+                        />
+                      </LabeledList.Item>
+                      <LabeledList.Item label="Artist">
+                        <Input
+                          fluid
+                          placeholder="(optional)"
+                          value={directArtist}
+                          onInput={(e, value) => setDirectArtist(value)}
+                        />
+                      </LabeledList.Item>
+                      <LabeledList.Item label="Album">
+                        <Input
+                          fluid
+                          placeholder="(optional)"
+                          value={directAlbum}
+                          onInput={(e, value) => setDirectAlbum(value)}
+                        />
+                      </LabeledList.Item>
+                      <LabeledList.Item label="On-Screen Blurb">
+                        <Button.Checkbox
+                          checked={showBlurb}
+                          onClick={() => setShowBlurb(!showBlurb)}
+                        >
+                          Show title/artist blurb on players' screens
+                        </Button.Checkbox>
+                      </LabeledList.Item>
+                    </LabeledList>
                   </Stack.Item>
                 </Stack>
               ) : (
@@ -227,7 +255,7 @@ export const AdminSoundPanel = () => {
                 <Button.Confirm
                   icon="play"
                   color="good"
-                  disabled={sourceMode === 'web' && !webUrl.trim()}
+                  disabled={sourceMode === 'direct' && !directUrl.trim()}
                   confirmContent={`Play to ${audience}?`}
                   onClick={handlePlay}
                 >
