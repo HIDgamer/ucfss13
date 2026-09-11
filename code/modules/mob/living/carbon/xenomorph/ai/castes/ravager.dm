@@ -97,7 +97,7 @@
 		drop_target()
 		return
 
-	last_seen_turf = get_turf(current_target)
+	note_last_seen(get_turf(current_target), current_target)
 
 	// "Ravagers are pretty aggressive and should behave just like
 	// Praetorian" - retreating in combat instead of only at low health.

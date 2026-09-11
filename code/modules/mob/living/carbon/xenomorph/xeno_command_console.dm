@@ -82,6 +82,12 @@
 	data["hive_name"] = hive?.name
 	data["has_rally_point"] = !!hive?.rally_turf
 
+	var/list/landing_zones = list()
+	for(var/lz_id in get_all_marine_lz_turfs())
+		var/obj/docking_port/stationary/dock = SSshuttle.getDock(lz_id)
+		landing_zones += list(list("id" = lz_id, "name" = dock?.name || lz_id))
+	data["landing_zones"] = landing_zones
+
 	// AI Difficulty (formerly the standalone /datum/admin_ai_difficulty
 	// panel, event_tab.dm) merged in here - "merge the AI difficulty panel
 	// with the command one, and make it an admin and AI only panel" -
@@ -201,7 +207,13 @@
 				to_chat(user, SPAN_WARNING("The hive has no living Queen to form on."))
 			return TRUE
 		if("order_attack_lz")
-			var/turf/lz_turf = get_active_lz_turf()
+			var/turf/lz_turf
+			var/requested_lz = params["lz"]
+			if(requested_lz)
+				var/list/all_lz = get_all_marine_lz_turfs()
+				lz_turf = all_lz[requested_lz]
+			else
+				lz_turf = get_active_lz_turf()
 			if(!lz_turf)
 				to_chat(user, SPAN_WARNING("No primary LZ has been designated yet."))
 				return TRUE

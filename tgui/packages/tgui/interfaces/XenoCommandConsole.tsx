@@ -1,7 +1,17 @@
+import { useState } from 'react';
+
 import { BooleanLike } from 'common/react';
 
 import { useBackend } from '../backend';
-import { Box, Button, NumberInput, Section, Stack, Table } from '../components';
+import {
+  Box,
+  Button,
+  Dropdown,
+  NumberInput,
+  Section,
+  Stack,
+  Table,
+} from '../components';
 import { Window } from '../layouts';
 
 type Xeno = {
@@ -23,6 +33,7 @@ type Data = {
   armed_order_type: string | null;
   hive_name: string;
   has_rally_point: number;
+  landing_zones: { id: string; name: string }[];
   roster: Xeno[];
   selected_count: number;
   ai_castes?: string[];
@@ -71,6 +82,7 @@ export const XenoCommandConsole = () => {
     armed_order_type,
     hive_name = 'Unknown',
     has_rally_point,
+    landing_zones = [],
     roster = [],
     selected_count = 0,
     ai_castes = [],
@@ -86,6 +98,9 @@ export const XenoCommandConsole = () => {
     spawner_phase = 'buildup',
     ai_debug_pathing = false,
   } = data;
+
+  const [selectedLz, setSelectedLz] = useState('');
+  const selectedLzEntry = landing_zones.find((lz) => lz.id === selectedLz);
 
   return (
     <Window
@@ -181,9 +196,36 @@ export const XenoCommandConsole = () => {
                 <Stack.Item>
                   <Stack>
                     <Stack.Item grow>
-                      <Button fluid onClick={() => act('order_attack_lz')}>
-                        Attack the LZ
-                      </Button>
+                      <Stack>
+                        {landing_zones.length > 1 && (
+                          <Stack.Item grow>
+                            <Dropdown
+                              width="100%"
+                              selected={selectedLzEntry?.name || 'Designated LZ'}
+                              options={landing_zones.map((lz) => lz.name)}
+                              onSelected={(name) => {
+                                const entry = landing_zones.find(
+                                  (lz) => lz.name === name,
+                                );
+                                setSelectedLz(entry?.id || '');
+                              }}
+                            />
+                          </Stack.Item>
+                        )}
+                        <Stack.Item grow>
+                          <Button
+                            fluid
+                            onClick={() =>
+                              act(
+                                'order_attack_lz',
+                                selectedLz ? { lz: selectedLz } : {},
+                              )
+                            }
+                          >
+                            Attack the LZ
+                          </Button>
+                        </Stack.Item>
+                      </Stack>
                     </Stack.Item>
                     <Stack.Item grow>
                       <Button fluid onClick={() => act('order_gather_here')}>

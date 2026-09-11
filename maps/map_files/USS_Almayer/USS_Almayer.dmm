@@ -2386,6 +2386,12 @@
 /obj/effect/spawner/random/tool,
 /turf/open/floor/almayer,
 /area/almayer/lifeboat_pumps/north1)
+"anN" = (
+/obj/structure/machinery/conveyor{
+	id = "Orbital Cannon"
+	},
+/turf/open/floor/plating/almayer,
+/area/almayer/shipboard/weapon_room)
 "anO" = (
 /turf/open/floor/almayer/orange/west,
 /area/almayer/engineering/upper_engineering)
@@ -12256,7 +12262,7 @@
 /area/almayer/squads/req)
 "bGz" = (
 /obj/structure/machinery/conveyor{
-	id = "belt"
+	id = "Orbital Cannon"
 	},
 /obj/structure/plasticflaps,
 /turf/open/floor/almayer,
@@ -13315,7 +13321,7 @@
 /area/almayer/engineering/upper_engineering/starboard)
 "bNN" = (
 /obj/structure/machinery/conveyor{
-	id = "belt2"
+	id = "Orbital Cannon"
 	},
 /turf/open/floor/almayer/green,
 /area/almayer/squads/req)
@@ -13324,11 +13330,16 @@
 /turf/open/floor/almayer/uscm/directional/logo_c/west,
 /area/almayer/squads/req)
 "bNQ" = (
-/obj/structure/machinery/conveyor{
-	id = "belt"
+/obj/effect/decal/warning_stripes{
+	icon_state = "N";
+	pixel_y = 1
 	},
-/turf/open/floor/almayer/green,
-/area/almayer/squads/req)
+/obj/structure/machinery/conveyor{
+	id = "Orbital Cannon";
+	dir = 4
+	},
+/turf/open/floor/almayer/plate,
+/area/almayer/shipboard/weapon_room)
 "bNS" = (
 /obj/structure/machinery/prop/almayer/computer{
 	dir = 1
@@ -13343,6 +13354,10 @@
 /area/almayer/shipboard/weapon_room)
 "bOs" = (
 /obj/structure/pipes/standard/simple/hidden/supply{
+	dir = 4
+	},
+/obj/structure/machinery/conveyor{
+	id = "Orbital Cannon";
 	dir = 4
 	},
 /turf/open/floor/almayer/redcorner/east,
@@ -13408,6 +13423,10 @@
 /obj/structure/pipes/standard/simple/hidden/supply{
 	dir = 4
 	},
+/obj/structure/machinery/conveyor{
+	id = "Orbital Cannon";
+	dir = 4
+	},
 /turf/open/floor/almayer/red/north,
 /area/almayer/shipboard/weapon_room)
 "bON" = (
@@ -13417,6 +13436,10 @@
 /obj/structure/pipes/standard/simple/hidden/supply{
 	dir = 4
 	},
+/obj/structure/machinery/conveyor{
+	id = "Orbital Cannon";
+	dir = 4
+	},
 /turf/open/floor/almayer/red/north,
 /area/almayer/shipboard/weapon_room)
 "bOO" = (
@@ -13424,6 +13447,10 @@
 	pixel_y = 28
 	},
 /obj/structure/pipes/standard/simple/hidden/supply{
+	dir = 4
+	},
+/obj/structure/machinery/conveyor{
+	id = "Orbital Cannon";
 	dir = 4
 	},
 /turf/open/floor/almayer/red/north,
@@ -13614,6 +13641,10 @@
 /obj/effect/decal/warning_stripes{
 	icon_state = "NW-out";
 	pixel_y = 1
+	},
+/obj/structure/machinery/conveyor{
+	id = "Orbital Cannon";
+	dir = 10
 	},
 /turf/open/floor/almayer/plate,
 /area/almayer/shipboard/weapon_room)
@@ -16839,6 +16870,10 @@
 	},
 /obj/effect/decal/warning_stripes{
 	icon_state = "W"
+	},
+/obj/structure/machinery/conveyor{
+	id = "Orbital Cannon";
+	dir = 5
 	},
 /turf/open/floor/almayer/plate,
 /area/almayer/shipboard/weapon_room)
@@ -20688,7 +20723,7 @@
 /area/almayer/living/chapel)
 "egD" = (
 /obj/structure/machinery/conveyor{
-	id = "belt"
+	id = "Orbital Cannon"
 	},
 /turf/open/floor/almayer/green/east/northwest,
 /area/almayer/hallways/lower/port_midship_hallway)
@@ -20951,6 +20986,17 @@
 "elE" = (
 /turf/open/floor/hangar_airlock/inner/frame5,
 /area/almayer/hallways/hangar)
+"elG" = (
+/obj/effect/decal/warning_stripes{
+	icon_state = "N";
+	pixel_y = 1
+	},
+/obj/structure/machinery/conveyor{
+	id = "Orbital Cannon";
+	dir = 6
+	},
+/turf/open/floor/almayer/plate,
+/area/almayer/shipboard/weapon_room)
 "elR" = (
 /turf/closed/wall/almayer/research/containment/wall/corner{
 	dir = 1
@@ -22108,7 +22154,7 @@
 /area/almayer/lifeboat_pumps/north1)
 "eGq" = (
 /obj/structure/machinery/conveyor{
-	id = "belt2"
+	id = "Orbital Cannon"
 	},
 /turf/open/floor/almayer/green/east/northeast,
 /area/almayer/hallways/lower/port_midship_hallway)
@@ -24095,6 +24141,13 @@
 /obj/item/weapon/shield/riot,
 /turf/open/floor/plating/plating_catwalk,
 /area/almayer/shipboard/brig/armory)
+"fxW" = (
+/obj/structure/machinery/conveyor{
+	id = "belt";
+	dir = 4
+	},
+/turf/open/floor/almayer,
+/area/almayer/shipboard/weapon_room)
 "fxZ" = (
 /obj/structure/pipes/standard/manifold/hidden,
 /obj/effect/decal/medical_decals{
@@ -25745,6 +25798,9 @@
 /area/almayer/squads/charlie_delta_shared)
 "gls" = (
 /obj/structure/machinery/cm_vending/clothing/k9_synth/snowflake,
+/obj/structure/machinery/light{
+	dir = 8
+	},
 /turf/open/floor/almayer/cargo,
 /area/almayer/living/synthcloset)
 "glB" = (
@@ -43001,6 +43057,15 @@
 	},
 /turf/open/floor/almayer,
 /area/almayer/engineering/upper_engineering/starboard)
+"ngY" = (
+/obj/effect/decal/warning_stripes{
+	icon_state = "W"
+	},
+/obj/structure/machinery/conveyor{
+	id = "Orbital Cannon"
+	},
+/turf/open/floor/almayer/plate,
+/area/almayer/shipboard/weapon_room)
 "nhi" = (
 /obj/structure/bed/chair/comfy,
 /obj/structure/window/reinforced/ultra,
@@ -60731,6 +60796,12 @@
 	},
 /turf/open/floor/plating/plating_catwalk,
 /area/almayer/hallways/upper/fore_hallway)
+"ubw" = (
+/obj/structure/machinery/conveyor_switch{
+	id = "Orbital Cannon"
+	},
+/turf/open/floor/almayer,
+/area/almayer/shipboard/weapon_room)
 "ubA" = (
 /obj/effect/decal/warning_stripes{
 	icon_state = "E";
@@ -63251,7 +63322,7 @@
 "vbR" = (
 /obj/structure/plasticflaps,
 /obj/structure/machinery/conveyor{
-	id = "belt2"
+	id = "Orbital Cannon"
 	},
 /turf/open/floor/almayer,
 /area/almayer/squads/req)
@@ -81951,8 +82022,8 @@ bNl
 sSc
 sSc
 bDO
-bHP
-bPG
+anN
+elG
 hpk
 bBA
 yhZ
@@ -82155,7 +82226,7 @@ sSc
 sSc
 bDO
 bPn
-bPG
+bNQ
 ald
 gol
 sGK
@@ -82358,7 +82429,7 @@ sSc
 sSc
 bOq
 bPo
-bPG
+bNQ
 acs
 bBA
 xHX
@@ -82560,7 +82631,7 @@ ohA
 ohA
 ohA
 cFh
-bDW
+ngY
 bPJ
 iuz
 bBA
@@ -82763,7 +82834,7 @@ bNm
 bNm
 bNm
 bOs
-aqu
+ubw
 aqu
 bQz
 bBA
@@ -83576,7 +83647,7 @@ let
 bHq
 bFk
 bPq
-amg
+aqu
 rAD
 bBA
 sGK
@@ -83779,7 +83850,7 @@ bNt
 alU
 akb
 aoa
-amg
+aqu
 bQE
 bBA
 bME
@@ -83982,7 +84053,7 @@ bNS
 alU
 bPg
 bEx
-aqu
+fxW
 bQI
 bBA
 gsy
@@ -114024,7 +114095,7 @@ bxg
 bZr
 bKA
 abv
-bNQ
+bNN
 bGz
 egD
 oQn

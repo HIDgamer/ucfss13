@@ -128,7 +128,7 @@
 		drop_target()
 		return
 
-	last_seen_turf = get_turf(current_target)
+	note_last_seen(get_turf(current_target), current_target)
 
 	if(attempt_leap(current_target))
 		return

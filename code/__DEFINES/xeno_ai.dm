@@ -3,7 +3,7 @@
 
 /// Idle, no target, scanning at the slow idle heartbeat.
 #define AI_STATE_IDLE 1
-/// Named sub-states of AI_STATE_IDLE - "Idle" alone used to cover wandering, building, following, hiding, and patrolling all as one flat label with no memory between ticks. See patrol()/xeno_ai_controller.dm's idle_activity var.
+/// Named sub-states of AI_STATE_IDLE. See patrol()/xeno_ai_controller.dm's idle_activity var.
 #define IDLE_ACTIVITY_NONE "Idle"
 #define IDLE_ACTIVITY_ALERT "Responding to alert"
 #define IDLE_ACTIVITY_ESCORT "Escorting Queen"
@@ -39,43 +39,40 @@
 /// Ticks slept between ai_loop() iterations while actively engaged with a target. Deliberately as low as
 /// BYOND's sleep() grants (1 tick) - actual movement/attack pacing is already gated for free by the pilot's
 /// own next_move (same movement_delay()/attack cooldown a real player is bound by via step()/attack_alien()),
-/// so there's no reason to lay a second, slower artificial cadence on top of it. At 5 this was the real
-/// bottleneck behind "pathfinding far too slow" and "never walks and acts in the same window" - a fast
-/// caste's true move_delay could be well under 5 ticks, but tick() (and therefore any new step or attack)
-/// couldn't run again until the full 5 had passed regardless.
+/// so there's no reason to lay a second, slower artificial cadence on top of it.
 #define AI_XENO_DEFAULT_HEARTBEAT 1
 /// Ticks slept between ai_loop() iterations while idle/no target (cheaper than the engaged heartbeat, but still close enough to actual per-tile movement speed to look like continuous walking rather than "one step every few seconds" - see wander()'s doc comment). Lowering this raises server load roughly linearly with the size of the idle AI population - see AI_XENO_DORMANT_HEARTBEAT/dormant_until for how most of that population avoids paying this cost most of the time.
 #define AI_XENO_DEFAULT_IDLE_HEARTBEAT 6
-/// Health fraction (0-1) below which an AI xeno even considers disengaging - see should_flee() for the rest of the decision (target's own health, nearby backup). Lowered from 0.35 - "smarter, more scary, and over all ruthless"/"fight closer to death" - a hive that breaks off a third of the way through the fight doesn't read as a horror-movie threat. Still comfortably above AI_XENO_DESPERATE_HEALTH_PERCENT so a genuine last-ditch stand stays distinct from routine disengagement.
+/// Health fraction (0-1) below which an AI xeno even considers disengaging - see should_flee() for the rest of the decision (target's own health, nearby backup). Comfortably above AI_XENO_DESPERATE_HEALTH_PERCENT so a genuine last-ditch stand stays distinct from routine disengagement.
 #define AI_XENO_FLEE_HEALTH_PERCENT 0.22
-/// Queen-specific flee threshold, higher than the population default - "she is big and slow and easy to kill," a huge investment worth breaking off with sooner rather than overcommitting. Deliberately NOT lowered alongside the population default - her hive-economy role makes her worth preserving in a way the ruthlessness pass doesn't apply to.
+/// Queen-specific flee threshold, higher than the population default - big, slow, and a huge hive-economy investment worth breaking off with sooner rather than overcommitting.
 #define AI_QUEEN_FLEE_HEALTH_PERCENT 0.5
 /// Tiles within which a living same-hive AI xeno counts as "backup" for should_flee()'s decision.
 #define AI_XENO_FLEE_ALLY_RADIUS 7
-/// Nearby same-hive allies (see count_nearby_hive_allies()) at/above which a hurt xeno keeps fighting instead of disengaging - not fighting alone, so the hive's numbers carry it instead. Raised from 1 - a single other daughter happening to be nearby isn't real backup, it was just cancelling the flee decision almost every time.
+/// Nearby same-hive allies (see count_nearby_hive_allies()) at/above which a hurt xeno keeps fighting instead of disengaging - not fighting alone, so the hive's numbers carry it instead.
 #define AI_XENO_FLEE_ALLY_THRESHOLD 2
-/// Health fraction (0-1) below which no amount of nearby/engaged ally backup suppresses should_flee() - "I would engage, but as soon as I got low, I would retreat" even with an escort present. Below this, retreat-and-heal-on-weeds always wins over standing with the group. Lowered from 0.20 alongside the rest of the ruthlessness pass - a backed-up xeno now holds the line noticeably longer before even a real escort stops mattering.
+/// Health fraction (0-1) below which no amount of nearby/engaged ally backup suppresses should_flee(), even with an escort present. Below this, retreat-and-heal-on-weeds always wins over standing with the group.
 #define AI_XENO_FLEE_ALLY_SUPPRESS_FLOOR 0.10
 /// Tiles from anchor_turf within which a larva no longer bothers fleeing - see larva.dm's should_flee() doc comment for why "flee home" is a no-op this close to it already.
 #define AI_XENO_LARVA_SAFE_HOME_RADIUS 3
 /// Health fraction (0-1) below which a fleeing xeno gives up on running and turns to fight instead - "unless they are very desperate and want to live." Well below the flee threshold: by this point a parting hit while her back's turned is just as likely to kill her as standing and swinging, so running only pays off if she can actually reach safety, not just because she's hurt. Only relevant while already fleeing (return_to_anchor()) and only when there's still a real target adjacent to turn on.
 #define AI_XENO_DESPERATE_HEALTH_PERCENT 0.12
-/// Drone-specific flee threshold, higher than the population default - "many casts like... drones... dive to their deaths." She's a builder pressed into a fight, not a frontline unit, so she should break off sooner than a caste actually built to brawl. Lowered from 0.45 alongside the ruthlessness pass, but kept meaningfully above the new population default - the "builder, not a brawler" reasoning is unrelated to how death-defying combat castes should be.
+/// Drone-specific flee threshold, higher than the population default - she's a builder pressed into a fight, not a frontline unit, so she should break off sooner than a caste actually built to brawl.
 #define AI_DRONE_FLEE_HEALTH_PERCENT 0.32
-/// Hivelord-specific flee threshold - same "builder pressed into combat" reasoning as AI_DRONE_FLEE_HEALTH_PERCENT, lowered alongside it for the same reason.
+/// Hivelord-specific flee threshold - same "builder pressed into combat" reasoning as AI_DRONE_FLEE_HEALTH_PERCENT.
 #define AI_HIVELORD_FLEE_HEALTH_PERCENT 0.32
 /// King-specific flee threshold - deliberately far below Queen's and every other caste's. He has no hive-economic role worth preserving himself for the way Queen does, and the tier-4 boss pass ("a creature of destruction, can take armies on his own") means he should fight to near-death rather than break off like a caste worth protecting.
 #define AI_KING_FLEE_HEALTH_PERCENT 0.10
 /// Fraction of his own average melee damage update_enrage() adds back at 100% missing health (scaled linearly down to 0 at full health) - a real "gets worse to fight as he's dying" boss mechanic, not just a flat number.
 #define AI_KING_ENRAGE_DAMAGE_FRACTION 0.6
-/// Warrior-specific flee threshold, lower than the population default - a heavy brawler in the same "hardened, fights longer" spirit as AI_CRUSHER_FLEE_HEALTH_PERCENT. Lowered further alongside the ruthlessness pass.
+/// Warrior-specific flee threshold, lower than the population default - a heavy brawler in the same "hardened, fights longer" spirit as AI_CRUSHER_FLEE_HEALTH_PERCENT.
 #define AI_WARRIOR_FLEE_HEALTH_PERCENT 0.15
-/// Sentinel/Spitter-specific flee threshold, higher than the population default - both are ranged glass cannons with no armor investment, should disengage sooner than a melee caste. Lowered from 0.45 alongside the ruthlessness pass, but kept meaningfully above the new population default - the fragility reasoning is sound "smart" self-preservation, not just timidity.
+/// Sentinel/Spitter-specific flee threshold, higher than the population default - both are ranged glass cannons with no armor investment, should disengage sooner than a melee caste.
 #define AI_SENTINEL_FLEE_HEALTH_PERCENT 0.35
 #define AI_SPITTER_FLEE_HEALTH_PERCENT 0.35
-/// Lurker-specific flee threshold, higher than the population default - "fast but low-HP/no-armor, exactly the caste that should never just stand and trade" (lurker.dm's own header). Lowered from 0.45 alongside the ruthlessness pass, same fragility reasoning as Sentinel/Spitter above kept intact.
+/// Lurker-specific flee threshold, higher than the population default - fast but low-HP/no-armor, same fragility reasoning as Sentinel/Spitter above.
 #define AI_LURKER_FLEE_HEALTH_PERCENT 0.35
-/// Facehugger-specific flee threshold, deliberately much higher than every other caste's - a one-hit-fragile (XENO_HEALTH_LARVA) ambush predator that can't actually fight, so should_flee()'s override treats "took a real hit at all" as the trigger rather than a normal population-scale health fraction. Trimmed slightly from 0.8 alongside the ruthlessness pass, but kept high - this reasoning is unrelated to how death-defying combat castes should be, she genuinely has nothing to gain by staying.
+/// Facehugger-specific flee threshold, deliberately much higher than every other caste's - a one-hit-fragile (XENO_HEALTH_LARVA) ambush predator that can't actually fight, so should_flee()'s override treats "took a real hit at all" as the trigger rather than a normal population-scale health fraction.
 #define AI_FACEHUGGER_FLEE_HEALTH_PERCENT 0.7
 /// Radius (tiles) find_defensible_turf() searches for a corner/wall position with limited approach angles - "they should also consider corners and walls as defensive positions" for fleeing/kiting castes instead of always retreating across open ground.
 #define AI_XENO_DEFENSIBLE_SEARCH_RADIUS 6
@@ -95,7 +92,7 @@
 #define AI_PATHFIND_ESCALATED_MAX_MARGIN 22
 /// Multiplier on get_pathfind_cell_budget()'s normal result while escalated (see AI_PATHFIND_ESCALATION_THRESHOLD) - only ever spent after PATH_RETRY_COOLDOWN-throttled repeated failures against the same goal, not a per-tick cost, so a heavier one-off solve here is worth it.
 #define AI_PATHFIND_ESCALATED_BUDGET_MULTIPLIER 2
-/// Ceiling on compute_path()'s search margin, however much cell budget is left unused - "pathfinding cannot go around walls, only tries to go through them" was a flat margin of 2 regardless of budget, which almost never actually reached far enough sideways to include a real door/entrance for a typical room, so the solver came back "no path" and everything fell to the greedy walk-straight-at-the-wall-and-smash fallback instead. Capped rather than solved exactly for the budget so a close-together pilot/goal pair doesn't scan an enormous area just because the raw budget math would allow it.
+/// Ceiling on compute_path()'s search margin, however much cell budget is left unused - wide enough to reach a real door/entrance for a typical room. Capped rather than solved exactly for the budget so a close-together pilot/goal pair doesn't scan an enormous area just because the raw budget math would allow it.
 #define AI_PATHFIND_MAX_MARGIN 14
 /// Tiles a live target can drift from where a cached path was computed for before advance_along_path() throws it out and replans - keeps a moving target from forcing a fresh plan (and a fresh solver tie-break near corners) every single tick.
 #define PATH_GOAL_REPLAN_TOLERANCE 2
@@ -128,6 +125,10 @@
 #define XENO_PATHFIND_DECAY_EVERY_FIRES 3
 /// Threat cost added at a hive member's death tile (radius-2 falloff, native side) - each point is worth 1/10th of an open tile's step cost, so 24 makes the epicenter ~3.4x as expensive to route through until it decays. Starting point for playtesting, not final balance.
 #define AI_THREAT_DEATH_AMOUNT 24
+/// Cap on last_seen_history's length (xeno_ai_controller.dm's note_last_seen()) - a handful of recent sightings, not a growing log. Starting point for playtesting.
+#define AI_XENO_MEMORY_HISTORY_CAP 5
+/// Threat cost re-injected at each active sentry's tile (xeno_pathfinding.dm's refresh_turret_threat()) - smaller than AI_THREAT_DEATH_AMOUNT so a live sentry nudges routes toward flanking/cover rather than blocking a route outright the way a genuine kill zone does. Starting point for playtesting, not final balance.
+#define AI_THREAT_TURRET_AMOUNT 12
 /// Distance from the target at which an approaching pilot considers a pack-staging hold (see check_pack_staging()). Starting point for playtesting.
 #define AI_XENO_STAGE_RANGE 6
 /// Hard cap on how long a staging hold lasts before the pilot rushes alone anyway - never passive for long. Starting point for playtesting.
@@ -206,7 +207,7 @@
 #define AI_XENO_PATROL_CHANCE 33
 /// How long wander() commits to a single heading before picking a new one - see wander()'s doc comment for why this exists.
 #define AI_XENO_WANDER_COMMIT_TIME 6 SECONDS
-/// Percent chance, each time a committed heading expires, that a wandering xeno goes dormant for a while instead of picking a new one - "lag is an issue, moving as a player is painfully slow" plus "they need to stop at some point and rest or stay dormant if they have nothing to do" are the same fix: continuous per-tile stepping (wander()'s doc comment above) is only cheap in aggregate if a good chunk of the idle population isn't doing it at any given moment. A dormant xeno skips movement/pathing entirely (wander()'s own early return) but keeps scanning for targets at the normal idle rate - "completely idle, not attacking" was this cutting target-scan frequency too, not just movement, on top of an initial chance/duration tuned too high (they read as dead, not resting).
+/// Percent chance, each time a committed heading expires, that a wandering xeno goes dormant for a while instead of picking a new one - continuous per-tile stepping (wander()'s doc comment above) is only cheap in aggregate if a good chunk of the idle population isn't doing it at any given moment. A dormant xeno skips movement/pathing entirely (wander()'s own early return) but keeps scanning for targets at the normal idle rate.
 #define AI_XENO_DORMANT_CHANCE 20
 /// Shortest a dormant phase lasts.
 #define AI_XENO_DORMANT_MIN_DURATION 6 SECONDS
@@ -254,7 +255,7 @@
 #define FORT_LINE_PHASE_GATE "gate"
 /// How far an egg-carrying caste (Drone/Hivelord/Carrier) looks for a loose /obj/item/xeno_egg to pick up - see attempt_carry_egg().
 #define AI_XENO_EGG_SEARCH_RADIUS 9
-/// Percent chance per idle tick that a Drone/Hivelord bothers going to fetch a fresh egg, once nothing higher-priority (helping build the core, building defenses, weeding) rolled true first - "all they do is plant eggs, never building the hive" was attempt_carry_egg() being checked unconditionally ahead of every build/weed roll. Only gates picking a NEW egg up - once actually carrying one, she always finishes the delivery regardless of this roll (see is_carrying_egg()).
+/// Percent chance per idle tick that a Drone/Hivelord bothers going to fetch a fresh egg, once nothing higher-priority (helping build the core, building defenses, weeding) rolled true first. Only gates picking a NEW egg up - once actually carrying one, she always finishes the delivery regardless of this roll (see is_carrying_egg()).
 #define AI_XENO_EGG_CARRY_CHANCE 10
 /// How far any idle xeno looks for a slashable light or APC to darken/depower - see attempt_slash_infrastructure().
 #define AI_XENO_INFRASTRUCTURE_SEARCH_RADIUS 7
@@ -270,6 +271,14 @@
 #define AI_XENO_PLAYFUL_EMOTE_CHANCE 40
 /// Percent chance per idle tick that a Burrower actually burrows to ambush instead of wandering - kept low, same reasoning as AI_VENT_AMBUSH_CHANCE.
 #define AI_BURROWER_AMBUSH_CHANCE 5
+/// Chance per idle tick a Burrower starts digging a strategic tunnel (ai/castes/burrower.dm's attempt_dig_tunnel()) - kept well below the wall/weed build chances since a tunnel is a much bigger commitment (200 plasma, a permanent hive-network node) than a wall segment. Starting point for playtesting.
+#define AI_BURROWER_TUNNEL_DIG_CHANCE 3
+/// Hard cap on autonomous tunnel digging - counts every tunnel the hive has (player-built included), not just AI-built ones, so idle rolls can't spam an unbounded network on top of what players already dug. Starting point for playtesting.
+#define AI_TUNNEL_MAX_HIVE_TUNNELS 4
+/// Minimum distance a new autonomous tunnel site must keep from every existing hive tunnel (pick_tunnel_site()) - same anti-clustering role as AI_FORT_ANTI_CLUSTER_RADIUS, just larger since a tunnel network benefits more from spread than a wall line does. Starting point for playtesting.
+#define AI_TUNNEL_ANTI_CLUSTER_RADIUS 15
+/// Search radius (centered on the Burrower's own current position) for candidate tunnel sites - pick_tunnel_site(). Starting point for playtesting.
+#define AI_TUNNEL_SITE_SEARCH_RADIUS 12
 /// Percent chance per movement tick, while chasing a target still out of melee range, that a Burrower burrows in place to set up a tunnel-ambush instead of just walking the rest of the way over.
 #define AI_BURROWER_AMBUSH_ENGAGE_CHANCE 35
 /// Health fraction below which a Burrower starts actually weighing whether to retreat mid-fight, once the target's back up and still a real threat - "they should consider slashing until the enemy is up, and then they get to decide to flee or keep fighting," not a flat dice roll after every swing regardless of how the fight's going.
@@ -292,7 +301,7 @@
 #define AI_KITING_HOLD_BAND 2
 /// Distance a ranged xeno retreats to and holds at whenever every ranged ability it has is on cooldown - matches Boiler's own AI_BOILER_HIDE_DISTANCE reasoning ("attack ranged, hide, come back out") instead of holding the normal, much closer preferred band and getting walked down while it has nothing to fire.
 #define AI_XENO_RANGED_HIDE_DISTANCE 8
-/// How many tiles wider than the single closest option find_cover_turf() will still consider "tied" and pick randomly among - "too predictable, walking in the same 3 tiles over and over" was a deterministic nearest-cover pick with no variety; this keeps the choice genuinely close without it always resolving to the exact same tile.
+/// How many tiles wider than the single closest option find_cover_turf() will still consider "tied" and pick randomly among - keeps the choice genuinely close without it always resolving to the exact same tile.
 #define AI_XENO_COVER_VARIETY_TOLERANCE 2
 /// How long get_or_pick_cover_turf()/get_or_pick_flank_turf() (xeno_ai_movement.dm) stay committed to whatever cover/flank tile they last picked before allowing a fresh re-roll - find_cover_turf()'s own near-tied randomization (AI_XENO_COVER_VARIETY_TOLERANCE, above) re-picking every single uncached tick read as visibly oscillating in place. Shorter than AI_XENO_OBSTACLE_COMMIT_DURATION since a retreat/flank position should still adapt reasonably quickly to a real fight shifting, just not every tick.
 #define AI_XENO_COVER_COMMIT_DURATION 3 SECONDS
@@ -302,9 +311,9 @@
 #define AI_XENO_HIVE_ALERT_RESPONSE_RANGE 25
 /// Radius around a live hive-alert used to gauge how many same-hive xenos are already converging - see AI_XENO_HIVE_ALERT_MAX_RESPONDERS.
 #define AI_XENO_HIVE_ALERT_RESPONDER_RADIUS 10
-/// Once this many same-hive xenos are already near a live hive-alert, further idle xenos hold back and stay on their own business instead of also converging - "the queen ordering the other aliens shouldn't be the only way they behave, ultimately they'd scout, weed, take over sections of the map on their own." Unbounded participation also meant a Queen stuck on one bad/unreachable target (the "stall" report) could in principle pull the entire hive toward the same dead end - this caps the blast radius of that too.
+/// Once this many same-hive xenos are already near a live hive-alert, further idle xenos hold back and stay on their own business instead of also converging - keeps the rest of the hive scouting/weeding/holding territory on its own, and bounds how much of the hive a single stuck or unreachable target can pull in.
 #define AI_XENO_HIVE_ALERT_MAX_RESPONDERS 8
-/// Same responder-cap concept as AI_XENO_HIVE_ALERT_MAX_RESPONDERS, applied to the assault-phase LZ march specifically (respond_to_hive_alert()) - higher than the regular skirmish cap since an assault is meant to draw more broadly from the hive, but not literally unbounded ("all AI xenos flock to the landing zone... gets them farmed by the early round turrets" - it previously had no cap at all).
+/// Same responder-cap concept as AI_XENO_HIVE_ALERT_MAX_RESPONDERS, applied to the assault-phase LZ march specifically (respond_to_hive_alert()) - higher than the regular skirmish cap since an assault is meant to draw more broadly from the hive, but not literally unbounded.
 #define AI_XENO_ASSAULT_MAX_RESPONDERS 15
 
 // player_order_type (xeno_ai_orders.dm) - a Hive Leader/admin command console
@@ -331,7 +340,7 @@
 /// There's only ever one Queen at a time, so she can afford a much wider awareness radius than population-scale castes.
 #define AI_QUEEN_ATTACK_DISTANCE 18
 #define AI_QUEEN_RETURN_DISTANCE 28
-/// King is the same kind of solo boss unit as Queen (one per round, not a population-budgeted caste) - "should be as deadly if not more deadly than the Queen," but had no override at all and was stuck on the flat population-default radius, noticing threats far later and giving up chases far sooner than she does.
+/// King is the same kind of solo boss unit as Queen (one per round, not a population-budgeted caste), so he gets the same wide awareness radius rather than the flat population-default one.
 #define AI_KING_ATTACK_DISTANCE 18
 #define AI_KING_RETURN_DISTANCE 28
 /// Radius around the Queen used to count how many same-hive daughters already count as her escort.
@@ -371,11 +380,11 @@
 #define AI_RANGED_HOLD_GROUP_RADIUS 3
 /// Minimum clustered hostiles (the primary target plus this many more) before a target counts as "a group" for should_hold_and_fight() - a single, nearly-beaten marine doesn't justify hiding from.
 #define AI_RANGED_HOLD_GROUP_THRESHOLD 2
-/// Health fraction below which a Crusher disengages - lower than the population-wide default since it's meant to be the hive's tank, not a caste that breaks off early, but not so low she has no margin left to actually reach safety - "crusher... dive to their deaths." Lowered further from 0.18 alongside the ruthlessness pass.
+/// Health fraction below which a Crusher disengages - lower than the population-wide default since it's meant to be the hive's tank, not a caste that breaks off early, but not so low she has no margin left to actually reach safety.
 #define AI_CRUSHER_FLEE_HEALTH_PERCENT 0.12
 /// Percent chance after a Ravager's attack that it sidesteps to a flanking tile instead of standing still - the behavioral stand-in for its "nimble/evasive" identity (there's no actual dodge/evasion stat on the caste).
 #define AI_RAVAGER_REPOSITION_CHANCE 25
-/// Same damage-reactive-plus-baseline-roll reposition pattern as AI_RAVAGER_REPOSITION_CHANCE, applied to Warrior/Burrower/Hivelord/Predalien in Phase 3 - none of them had any post-attack repositioning at all before this. Starting point for playtesting.
+/// Same damage-reactive-plus-baseline-roll reposition pattern as AI_RAVAGER_REPOSITION_CHANCE, applied to Warrior/Burrower/Hivelord/Predalien. Starting point for playtesting.
 #define AI_WARRIOR_REPOSITION_CHANCE 25
 /// Living hostiles within melee range at/above which a Predalien's Frenzy (Eviscerate/Devastate) is considered too risky to use - it roots her in place (TRAIT_IMMOBILIZED) for the full windup, so firing it into a clustered group self-traps her instead of the intended lone-target execute.
 #define AI_PREDALIEN_FRENZY_MAX_TARGETS 1
@@ -395,17 +404,17 @@
 #define AI_LURKER_RETREAT_DURATION 5 SECONDS
 /// Percent chance per plain melee swing (Assassinate not currently up) that a Lurker retreats to re-cloak instead of continuing to trade blows in the open.
 #define AI_LURKER_RETREAT_CHANCE 20
-/// Health fraction below which a Runner flees - higher than the population default since she's the hive's glass cannon (lowest HP, no armor), meant to hit and run rather than trade hits. Lowered from 0.4 alongside the ruthlessness pass.
+/// Health fraction below which a Runner flees - higher than the population default since she's the hive's glass cannon (lowest HP, no armor), meant to hit and run rather than trade hits.
 #define AI_RUNNER_FLEE_HEALTH_PERCENT 0.3
-/// "Runners are way too difficult, able to attack 2 people alone and win the fight... calmer to give players a chance." Baseline chance (outside a damage-reactive dodge, same pattern as Ravager's AI_RAVAGER_REPOSITION_CHANCE) that she sidesteps after landing an attack - higher than Ravager's 25 since constant motion is core to her identity, just no longer guaranteed every single tick. Starting point for playtesting.
+/// Baseline chance (outside a damage-reactive dodge, same pattern as Ravager's AI_RAVAGER_REPOSITION_CHANCE) that she sidesteps after landing an attack - higher than Ravager's 25 since constant motion is core to her identity. Starting point for playtesting.
 #define AI_RUNNER_REPOSITION_CHANCE 40
-/// Chance Runner actually commits to her Pounce opener once it's off cooldown/in range, instead of just walking in via the normal approach chain - was firing unconditionally the instant it was available, landing a free knockdown every ~3s with no counterplay window. Starting point for playtesting.
+/// Chance Runner actually commits to her Pounce opener once it's off cooldown/in range, instead of just walking in via the normal approach chain. Starting point for playtesting.
 #define AI_RUNNER_POUNCE_CHANCE 60
 /// Minimum valid targets already adjacent before a Defender uses Tail Sweep instead of a plain melee swing.
 #define AI_DEFENDER_SWEEP_MIN_TARGETS 2
 /// Boiler's own scan/leash radius - wider than the population default so she notices and starts bombarding from well outside melee range instead of needing a target to wander close first.
 #define AI_BOILER_ATTACK_DISTANCE 14
-/// Health fraction below which a Boiler flees - higher than the population default since she's fire-vulnerable and low on melee damage, and getting run down is close to a worst case for this caste. Lowered from 0.4 alongside the ruthlessness pass.
+/// Health fraction below which a Boiler flees - higher than the population default since she's fire-vulnerable and low on melee damage, and getting run down is close to a worst case for this caste.
 #define AI_BOILER_FLEE_HEALTH_PERCENT 0.32
 /// Distance a Boiler retreats to while both her ranged abilities are on cooldown ("attack ranged, hide, then come out again once recharged") - wider than the plain ranged kiting band so she's actually out of easy melee reach while waiting, not just standing at the edge of it.
 #define AI_BOILER_HIDE_DISTANCE 8
@@ -413,7 +422,7 @@
 #define AI_PREDICTIVE_AIM_MAX_LEAD_TILES 4
 /// Percent chance per idle tick that a Hivelord attempts a build action - higher than a Drone's own AI_DRONE_BUILD_CHANCE since her build_time_mult (0.5x) makes her genuinely more efficient at it, not just eager.
 #define AI_HIVELORD_BUILD_CHANCE 12
-/// Health fraction below which a Carrier disengages - higher than the population default since she has no offensive tools to actually win a fight she's already losing. Trimmed slightly from 0.4 alongside the ruthlessness pass, but kept meaningfully above the new population default - this reasoning ("has no real tools to win a fight") is unrelated to how death-defying combat castes should be.
+/// Health fraction below which a Carrier disengages - higher than the population default since she has no offensive tools to actually win a fight she's already losing.
 #define AI_CARRIER_FLEE_HEALTH_PERCENT 0.35
 /// How long an AI Despoiler holds her Acid Barrage charge before firing - well under the ability's own 3-second max charge (despoiler_abilities.dm) so she stays responsive to a moving fight instead of always committing to the longest possible windup.
 #define AI_DESPOILER_BARRAGE_CHARGE_TIME 2 SECONDS
@@ -463,13 +472,13 @@
 #define XENO_SPAWNER_LULL_DURATION 60 SECONDS
 /// Tiles around the assault turf checked for a living, hostile marine before update_hive_phase() banks it as frontier_turf on the ASSAULT -> LULL transition - "the goal is always to take over the colony... not just staying in their spawn positions." Ground still actively contested doesn't get banked as won.
 #define XENO_FRONTIER_CONTEST_RADIUS 10
-/// A spawn-point landmark closer than this to a living marine is skipped entirely - "weighted near marines" should put new xenos near the action, not directly in someone's face. Raised from 6 as part of the rebalance pass - reinforcements landing right on top of the fight was a big part of what made the Spawner feel unfair.
+/// A spawn-point landmark closer than this to a living marine is skipped entirely - puts new xenos near the action without landing directly on top of the fight.
 #define XENO_SPAWNER_PLACEMENT_MIN_MARINE_DIST 10
-/// How many tiles wider than the single nearest-to-a-marine spawn point spawner_pick_spawn_turf() still considers "tied" and picks randomly among - same reasoning as find_cover_turf()'s AI_XENO_COVER_VARIETY_TOLERANCE, avoids every spawn landing on the exact same landmark. Widened from 8 alongside the rebalance pass - spreads reinforcements across a much wider band of landmarks instead of clustering tightly on whichever is closest to the fight.
+/// How many tiles wider than the single nearest-to-a-marine spawn point spawner_pick_spawn_turf() still considers "tied" and picks randomly among - same reasoning as find_cover_turf()'s AI_XENO_COVER_VARIETY_TOLERANCE, spreads reinforcements across a wider band of landmarks instead of clustering on whichever is closest to the fight.
 #define XENO_SPAWNER_PLACEMENT_VARIETY_TOLERANCE 16
 /// Weight applied to hive.count_active_human_caps() before it's added to spawner_target_population() - softens the direct feedback loop ("marines already losing people to caps face a bigger spawn target as a direct consequence") without removing the mechanic entirely.
 #define XENO_SPAWNER_HUMAN_CAP_WEIGHT 0.5
-/// Percent chance the Spawner also assigns a random strain (from the caste's own available_strains) to a freshly-spawned AI xeno, on top of just picking its caste - "special AI per strains for each alien" needs some AI xenos to actually carry a strain first, since nothing ever assigned one before this. Starting point for playtesting, not final balance.
+/// Percent chance the Spawner also assigns a random strain (from the caste's own available_strains) to a freshly-spawned AI xeno, on top of just picking its caste. Starting point for playtesting, not final balance.
 #define XENO_SPAWNER_STRAIN_CHANCE 35
 /// Fraction of a freshly-spawned reinforcement's health/damage temporarily withheld at spawn (spawner_apply_young_reinforcement_debuff(), xeno_ai_lifecycle.dm) - the "instant full army" fix. She starts noticeably weaker and reaches full strength once XENO_SPAWNER_MATURATION_TIME passes, instead of being combat-ready the instant she appears.
 #define XENO_SPAWNER_YOUNG_STAT_FRACTION 0.35

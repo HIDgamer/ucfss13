@@ -146,13 +146,9 @@ SUBSYSTEM_DEF(xeno_spawner)
 		log_debug("XENO SPAWNER FRONTIER ADVANCE: hive [hive.hivenumber] banked ([held_turf.x],[held_turf.y]) as new frontier_turf.")
 
 /**
- * Counterweight to attempt_bank_frontier_advance() above - frontier_turf previously only ever
- * advanced toward the marines with nothing that ever pulled it back, so reinforcement anchor
- * points (attach_xeno_ai(), xeno_ai_lifecycle.dm) ratcheted forward across a whole round with no
- * way to actually lose ground. Checked at the start of each new assault cycle: if marines are now
- * actively holding the previously-banked frontier again, the hive lost that ground - clear it so
- * future reinforcements anchor back at their plain spawn points instead of a foothold that isn't
- * actually held anymore.
+ * Counterweight to attempt_bank_frontier_advance() above. Checked at the start of each new assault
+ * cycle: if marines are now actively holding the banked frontier_turf again, the hive has lost that
+ * ground, so it's cleared and future reinforcements anchor back at their plain spawn points.
  */
 /datum/controller/subsystem/xeno_spawner/proc/attempt_rollback_frontier(datum/hive_status/hive)
 	if(!hive.frontier_turf)
@@ -183,6 +179,14 @@ SUBSYSTEM_DEF(xeno_spawner)
 	if(!mode || !mode.active_lz)
 		return null
 	return get_turf(mode.active_lz)
+
+/// Every known ground marine LZ, keyed by dock id (DROPSHIP_LZ1/DROPSHIP_LZ2) - unlike get_active_lz_turf() above, not tied to whichever one command designated. Lets a Hive Leader/Queen aim the "Attack the LZ" order (xeno_command_console.dm) at whichever LZ marines actually landed at, even if it differs from the designated one.
+/proc/get_all_marine_lz_turfs()
+	. = list()
+	for(var/lz_id in list(DROPSHIP_LZ1, DROPSHIP_LZ2))
+		var/obj/docking_port/stationary/dock = SSshuttle.getDock(lz_id)
+		if(dock)
+			.[lz_id] = get_turf(dock)
 
 /**
  * The turf of the living ground-side marine closest to all living
@@ -258,12 +262,9 @@ GLOBAL_LIST_INIT(xeno_spawner_caste_weights, list(
 		return
 
 	var/target = spawner_target_population(hive)
-	// Was counting GLOB.ai_xeno_list (AI-piloted mobs only) - once a ghost claims a spawned xeno,
-	// detach_xeno_ai() (xeno_ai_lifecycle.dm) drops it from that list but NOT from hive.totalXenos,
-	// so this would top the AI count right back up to target on the very next fire, net-adding a
-	// xeno to the round with no corresponding decrement anywhere. hive.totalXenos is the real,
-	// already-correctly-maintained whole-hive roster (add_xeno()/remove_xeno(), hive_status.dm) -
-	// counting against it makes a ghost takeover a lateral transfer instead of a ratchet.
+	// Counts against hive.totalXenos, the real whole-hive roster (add_xeno()/remove_xeno(),
+	// hive_status.dm), not GLOB.ai_xeno_list - so a ghost claiming a spawned xeno stays a lateral
+	// transfer instead of a net population add.
 	var/current = 0
 	for(var/mob/living/carbon/xenomorph/xeno as anything in hive.totalXenos)
 		if(xeno.counts_for_slots)

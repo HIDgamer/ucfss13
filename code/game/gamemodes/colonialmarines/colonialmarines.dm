@@ -543,7 +543,29 @@
 		if(hive.living_xeno_queen && !should_block_game_interaction(hive.living_xeno_queen.loc))
 			//Some Queen is alive, we shouldn't end the game yet
 			.[2]++
+		else if(hive_can_reinforce(hive))
+			// No living Queen right now, but the hive can still reinforce
+			// (Core stands, or a sister is already ascending) - a transient
+			// on-map wipe during a spawner pacing lull isn't a real defeat.
+			// check_queen_status()'s own 10-minute grace period is the
+			// authoritative "is this hive actually finished" check, not this
+			// ~10s poll - this only stops the poll from beating that check
+			// to the punch.
+			.[2]++
 	return .
+
+/**
+ * Whether this hive can still come back with no living Queen right now - the Core stands, or a
+ * sister is already ascending. Same signal recover_hive_from_no_queen() (below) uses.
+ */
+/datum/game_mode/colonialmarines/proc/hive_can_reinforce(datum/hive_status/hive)
+	if(!hive)
+		return FALSE
+	if(hive.has_structure(XENO_STRUCTURE_CORE))
+		return TRUE // Core stands - spawner_ensure_queen() (never gated behind Lull pacing) will requeen this hive.
+	if(hive.evolving_to_queen && !QDELETED(hive.evolving_to_queen) && hive.evolving_to_queen.stat != DEAD)
+		return TRUE // A sister is already mid-ascension.
+	return FALSE
 
 /datum/game_mode/colonialmarines/check_queen_status(hivenumber, immediately = FALSE)
 	if(!(flags_round_type & MODE_INFESTATION))

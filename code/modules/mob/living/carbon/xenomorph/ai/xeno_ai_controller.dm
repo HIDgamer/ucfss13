@@ -54,6 +54,8 @@
 	var/drag_start_health = 0
 	/// Last known turf of a target that escaped rather than died - drives AI_STATE_SEARCHING instead of instantly forgetting about it.
 	var/turf/last_seen_turf
+	/// Bounded history of recent sightings (turf/time/target), most-recent-last, capped at AI_XENO_MEMORY_HISTORY_CAP - last_seen_turf above is always history[history.len]["turf"] when non-empty. Kept as a separate var from last_seen_turf since every existing consumer (process_search(), drop_target()) already reads that directly; this only exists so a caste that wants more than "the single latest sighting" has real data to opt into. Nothing currently reads this - see note_last_seen()'s doc comment.
+	var/list/last_seen_history = list()
 	/// world.time the current search began, to bound how long SEARCHING lasts.
 	var/search_started_at = 0
 	/// Cached native-pathfinder route (remaining waypoint turfs, nearest first). Null whenever there's no live plan - the old greedy step_towards() handles movement whenever this is empty, so a host without the native pathfinding library behaves exactly as before.
@@ -278,11 +280,7 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 			// would unwind straight out of ai_loop() and end the coroutine
 			// for good, leaving a living, non-deleted mob with nothing left
 			// to ever tick it again.
-			// error.file/error.line were never logged before - the message alone
-			// (e.g. "Cannot read null._status_traits") gives no way to find the
-			// actual crash site once caught, since DM's try/catch unwinds the
-			// original stack before this handler runs. Logging them turns the
-			// next occurrence into a direct answer instead of another guess.
+			// Includes error.file/error.line since DM's try/catch unwinds the original stack before this handler runs.
 			stack_trace("xeno_ai_controller/tick() error for [pilot] ([pilot?.type]): [error] at [error.file],[error.line]")
 		sleep((ai_state == AI_STATE_IDLE) ? ai_idle_heartbeat : ai_heartbeat)
 
@@ -1023,7 +1021,8 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	var/old_intent = pilot.a_intent
 	pilot.a_intent = INTENT_DISARM
 	pilot_turf.attack_alien(pilot)
-	pilot.a_intent = old_intent
+	if(pilot) // attack_alien()'s do_after() loop can run long enough for the pilot to die mid-clear - don't write to it if it just did.
+		pilot.a_intent = old_intent
 	return TRUE
 
 /// Shared by drone_worker.dm and queen.dm - calls the real plant_weeds ability directly. Its own internal checks (weedable ground, not already weeded enough, hive ownership) handle rejection silently if the current tile isn't suitable, same as a player clicking it somewhere bad, so this is safe to roll speculatively.
@@ -1168,12 +1167,9 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
  *
  * The human_cap structure (/obj/effect/alien/resin/special/nest/human_cap) is dense once built,
  * but it's built through a completely different path than the plain-wall/fort-line resin system
- * (attempt_cap_drag_victim(), not build_resin()) - it never went through is_valid_ai_build_site()'s
- * anti-trap gate at all, since that gate requires a /datum/resin_construction this structure
- * doesn't have. Reusing the same three underlying sub-checks directly (rather than the full
- * wrapper) closes that gap without needing a fake construction datum: a Drone/Hivelord could
- * otherwise drop a dense human-cap in a corridor with zero path-sanity checking - the one build
- * type in this whole system that previously had none.
+ * (attempt_cap_drag_victim(), not build_resin()), so it doesn't go through is_valid_ai_build_site()'s
+ * anti-trap gate (which requires a /datum/resin_construction this structure doesn't have). Reuses
+ * the same three underlying sub-checks directly instead, without needing a fake construction datum.
  */
 /datum/xeno_ai_controller/proc/is_valid_human_cap_site(turf/candidate)
 	if(!candidate || candidate.density)
@@ -1831,12 +1827,9 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
  * "the Queen must be escorted when in combat by no less than 5 and up to
  * 10 daughters," same standing-call-for-backup reasoning applied to King.
  *
- * Previously only ever fired while already fighting (current_target) or heavy_siege - a Queen/King
- * walking through danger with nothing having landed a hit yet never called for an escort until
- * the first hit did. Now also fires at a standing baseline whenever not safely mounted (Queen) -
- * King has no throne to be safe on, so he's covered by the current_target/heavy_siege cases plus
- * this baseline whenever he's not already fighting either - so a loose formation actually
- * accompanies her/him while just moving around, not only once already engaged for a tick.
+ * Also fires at a standing baseline whenever not safely mounted (Queen) or not already fighting
+ * (King), not just while already engaged (current_target) or under heavy_siege - so a loose
+ * formation accompanies her/him while just moving around too.
  */
 /datum/xeno_ai_controller/proc/broadcast_escort_call(mob/living/carbon/xenomorph/boss_pilot, heavy_siege)
 	if(!boss_pilot.hive)
@@ -1938,12 +1931,7 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(pilot.hive.assault_alert_turf && world.time - pilot.hive.assault_alert_time <= AI_XENO_HIVE_ALERT_WINDOW)
 		var/turf/assault_turf = pilot.hive.assault_alert_turf
 		if(get_dist(pilot, assault_turf) > 3)
-			// "Once the LZ is chosen all AI xenos flock to the landing zone... gets them farmed by
-			// the early round turrets" - this was completely unbounded, unlike the regular hive
-			// alert response just below (which caps responders specifically so the whole hive
-			// doesn't pile into one spot). A real assault should still draw broadly from the hive,
-			// just not literally every single idle xeno on the map converging on the same fixed,
-			// likely-defended point simultaneously and getting mowed down in one mass wave.
+			// Caps how many idle xenos respond to a single assault-alert point, same as the regular hive alert response below.
 			if(count_nearby_hive_members(assault_turf, AI_XENO_HIVE_ALERT_RESPONDER_RADIUS) >= AI_XENO_ASSAULT_MAX_RESPONDERS)
 				return FALSE
 			travel_to_broadcast_turf(assault_turf)
@@ -2401,12 +2389,27 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(pilot?.pulling)
 		pilot.stop_pulling()
 
+/**
+ * Sets last_seen_turf and records it in last_seen_history - every caste's
+ * process_movement()/acquire_target() calls this instead of assigning
+ * last_seen_turf directly, so every sighting gets recorded the same way no
+ * matter which caste-specific override is in play. Bounded at
+ * AI_XENO_MEMORY_HISTORY_CAP; nothing currently reads the history.
+ */
+/datum/xeno_ai_controller/proc/note_last_seen(turf/seen_turf, atom/movable/seen_target = null)
+	last_seen_turf = seen_turf
+	if(!seen_turf)
+		return
+	last_seen_history += list(list("turf" = seen_turf, "time" = world.time, "target" = seen_target))
+	if(length(last_seen_history) > AI_XENO_MEMORY_HISTORY_CAP)
+		last_seen_history.Cut(1, 2)
+
 /// Shared "found something worth fighting" tail - used by process_target()'s own scan and check_retaliation() alike, so noticing a target the normal way and getting jumped by one it wouldn't otherwise have scanned both settle into the exact same state.
 /datum/xeno_ai_controller/proc/acquire_target(atom/movable/target, reason = "scan")
 	if(GLOB.ai_debug_pathing)
 		log_debug("XENO AI TARGET ACQUIRED: [pilot] ([pilot.type]) acquired [target] ([reason]) at [get_turf(target)] - [get_ai_debug_snapshot()]")
 	current_target = target
-	last_seen_turf = get_turf(target)
+	note_last_seen(get_turf(target), target)
 	turf_block = null
 	blocked_attempts = 0
 	last_progress_distance = null
@@ -2424,13 +2427,10 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	broadcast_focus_target(target)
 
 /**
- * True focus-fire: check_pack_staging() already synchronizes *arrival timing* once multiple xenos
- * are already chasing the same current_target, but process_target()'s own independent nearest-scan
- * meant a cluster of marines standing together drew one xeno each instead of the hive collapsing
- * onto one at a time. Broadcasting a notably dangerous newly-acquired target here - any xeno's, not
- * just Queen/King's - lets other idle/scanning hivemates prefer it over their own nearest pick (see
- * process_target()'s own check). Deliberately not gated on faction/tier of the acquiring pilot -
- * any real threat is worth the hive noticing.
+ * Broadcasts a notably dangerous newly-acquired target hive-wide (any xeno's, not just Queen/King's)
+ * so idle/scanning hivemates prefer it over their own nearest pick (see process_target()'s own
+ * check). Distinct from check_pack_staging(), which only synchronizes arrival timing once multiple
+ * xenos are already chasing the same current_target.
  */
 /datum/xeno_ai_controller/proc/broadcast_focus_target(atom/movable/target)
 	if(!pilot?.hive || !target)
@@ -2508,13 +2508,9 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		pilot.hive.boss_under_attack_time = world.time
 
 /**
- * Small addition modeled on a pattern found in the external SectorPatrolDev comparison research
- * (its retaliate.dm - a damage-triggered peer-broadcast of "who hit me" to nearby same-faction
- * mobs) - a fast, local "the pack flinches together" reaction distinct from
- * broadcast_focus_target() above: unconditional (no priority threshold) but tightly radius-capped,
- * and pushes directly into nearby idle hivemates' own targeting instead of a hint they poll on
- * their own schedule. A real ambush a few tiles away should have every nearby sister notice
- * immediately, not just the one who actually got hit.
+ * Fast, local "pack flinches together" reaction distinct from broadcast_focus_target() above -
+ * unconditional (no priority threshold) but tightly radius-capped, and pushes directly into nearby
+ * idle hivemates' own targeting instead of a hint they poll on their own schedule.
  */
 /datum/xeno_ai_controller/proc/broadcast_local_retaliation(mob/living/attacker)
 	if(!pilot?.hive || !attacker)
@@ -2619,11 +2615,10 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 			best_priority = candidate_priority
 			best_candidate = candidate
 
-	// A daughter already fighting something of her own previously had no way to notice the
-	// Queen/King taking a real hit nearby - respond_to_queen_escort()/respond_to_hive_alert() are
-	// only ever reachable from patrol(), itself only reached with no current_target at all.
-	// Folding the boss's live attacker into this same priority comparison (DELTA-tier, same as an
-	// actively-firing turret) lets an engaged daughter genuinely break off to defend her/him.
+	// Folds the boss's live attacker into this same priority comparison (DELTA-tier, same as an
+	// actively-firing turret) so an engaged daughter can still break off to defend her/him -
+	// respond_to_queen_escort()/respond_to_hive_alert() are only reachable from patrol(), which
+	// requires no current_target at all.
 	var/datum/hive_status/hive = pilot.hive
 	if(hive?.boss_under_attack && pilot != hive.boss_under_attack_source && world.time - hive.boss_under_attack_time <= AI_BOSS_THREAT_RESPONSE_WINDOW)
 		var/mob/living/boss_attacker = hive.boss_under_attack
@@ -2693,8 +2688,8 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		if(human_candidate.job in JOB_MEDIC_ROLES_LIST)
 			. += AI_PRIORITY_VALUE_TARGET_WEIGHT
 
-		// Bounty system (user's idea) - a marine who's proven they can kill hivemates draws the
-		// hive's attention over an equally-close nobody, scaling with confirmed kills up to a cap.
+		// Bounty system - a marine who's proven they can kill hivemates draws the hive's attention
+		// over an equally-close nobody, scaling with confirmed kills up to a cap.
 		. += min(human_candidate.xeno_kills * AI_PRIORITY_BOUNTY_PER_KILL, AI_PRIORITY_BOUNTY_MAX)
 
 		var/nearby_allies = 0

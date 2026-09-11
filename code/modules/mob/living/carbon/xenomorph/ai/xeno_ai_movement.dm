@@ -95,7 +95,7 @@
 		drop_target() // Target actually died/became invalid - nothing to go investigate.
 		return
 
-	last_seen_turf = get_turf(current_target)
+	note_last_seen(get_turf(current_target), current_target)
 
 	if(get_dist(pilot, current_target) <= 1 && pilot.Adjacent(current_target))
 		ai_state = AI_STATE_ATTACKING
@@ -112,6 +112,15 @@
 		if(flank_turf)
 			approach_goal = flank_turf
 
+	// Checked before check_movement_progress() below, not after - that check's
+	// distance sampling assumes get_dist() returns a real same-z number, which
+	// it doesn't for a cross-z goal (see attempt_cross_z_pursuit()'s own doc
+	// comment) - a cross-z chase needs to be fully handled here instead of
+	// ever reaching that sampling while still crossing.
+	if(attempt_cross_z_pursuit(get_turf(approach_goal)))
+		blocked_attempts = 0
+		return
+
 	if(check_movement_progress(approach_goal))
 		return
 
@@ -122,6 +131,45 @@
 	blocked_attempts++
 	if(blocked_attempts >= get_pathfind_giveup_attempts())
 		drop_target(TRUE) // Couldn't force through - go investigate where it was last seen instead of forgetting it outright.
+
+/**
+ * Cross-z-level pursuit of an actively-chased target - compute_path_global()
+ * only ever solves same-z routes (it bails immediately on a z mismatch), so a
+ * same-hive focus broadcast or shared target that happens to be on another z
+ * would otherwise just fail travel_to() every tick until blocked_attempts
+ * gives up on it. Reuses the exact hop-based mechanism process_search()
+ * already uses to close a z gap while investigating a lost target - a tunnel
+ * shortcut first, then the nearest connecting ladder - just applied to an
+ * actively-chased target instead of only a lost one. Returns FALSE
+ * immediately when already on the goal's z (the normal same-z path handles
+ * that), so this is a no-op for the overwhelming majority of chases. Returns
+ * TRUE while handling movement/travel for this tick.
+ *
+ * Must be checked (see process_movement()'s call site) before
+ * check_movement_progress() ever samples get_dist() against a cross-z goal -
+ * get_dist() returns -1 for a cross-z pair (attempt_tunnel_shortcut() already
+ * relies on this), and a -1 reading can never register as "improvement" once
+ * a real same-z distance follows it, which would otherwise falsely trip the
+ * stuck-giveup while a ladder/tunnel crossing is still genuinely in progress.
+ */
+/datum/xeno_ai_controller/proc/attempt_cross_z_pursuit(turf/goal_turf)
+	if(!pilot || !goal_turf)
+		return FALSE
+	var/turf/pilot_turf = get_turf(pilot)
+	if(!pilot_turf || pilot_turf.z == goal_turf.z)
+		return FALSE
+
+	if(attempt_tunnel_shortcut(goal_turf))
+		return TRUE
+
+	var/obj/structure/ladder/target_ladder = find_ladder_towards(goal_turf.z)
+	if(!target_ladder)
+		return FALSE // No ladder on this z connects toward the goal's - nothing more to try this tick.
+	if(get_dist(pilot, target_ladder) <= 0)
+		target_ladder.ai_use(pilot, (goal_turf.z > pilot_turf.z) ? "up" : "down")
+	else
+		travel_to(target_ladder, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_AVOID_MOBS)
+	return TRUE
 
 /**
  * Coordinated pack assault: a pilot that reaches staging range of her target
@@ -260,15 +308,29 @@
  * up exactly as before, rather than every caste turning into a wall-smasher.
  */
 /datum/xeno_ai_controller/proc/attempt_dig_through_stuck(atom/approach_goal)
-	if(!pilot?.resin_build_order || !length(pilot.resin_build_order))
+	if(!pilot)
+		return FALSE
+	var/is_builder = pilot.resin_build_order && length(pilot.resin_build_order)
+	// Melee/smash castes (Warrior/Crusher/Ravager-tier - pilot.wall_smash, the
+	// same flag should_smash_instead_of_climb() uses to mean "tears through
+	// obstacles instead of routing around them") get the same last-resort
+	// fallback instead of just giving up on the target - a combat caste
+	// smashing a genuinely-blocking hostile obstacle is reasonable "make a
+	// path" behavior. allow_friendly_walls (below) stays scoped to actual
+	// builder castes only - see its own comment.
+	if(!is_builder && !pilot.wall_smash)
 		return FALSE
 	// allow_friendly_walls = TRUE: this only runs after AI_XENO_STUCK_GIVEUP_TICKS of zero
-	// progress - if the hive's own construction is what's trapping this xeno (every exit
-	// sealed), no AI xeno would otherwise ever dig itself back out, since normal travel
-	// obstacle-forcing always refuses to smash an own-hive wall (see get_blocking_obstacle()'s
-	// doc comment). A last-resort escalation, not the normal path, so it doesn't undermine that
-	// rule for a teammate's still-relevant deliberate seal.
-	var/atom/blocking_obstacle = get_blocking_obstacle(approach_goal, allow_friendly_walls = TRUE)
+	// progress (or the router's own wider-search escalation, advance_along_path()) - if the
+	// hive's own construction is what's trapping this xeno (every exit sealed), no AI xeno
+	// would otherwise ever dig itself back out, since normal travel obstacle-forcing always
+	// refuses to smash an own-hive wall (see get_blocking_obstacle()'s doc comment). A
+	// last-resort escalation, not the normal path, so it doesn't undermine that rule for a
+	// teammate's still-relevant deliberate seal. Scoped to actual builder castes only - a
+	// wall_smash-only combat caste smashing a hostile barricade is reasonable; the same caste
+	// smashing its own hive's deliberate resin seal is not, and it has no business doing so
+	// just because it happens to also be stuck.
+	var/atom/blocking_obstacle = get_blocking_obstacle(approach_goal, allow_friendly_walls = is_builder)
 	if(!blocking_obstacle)
 		return FALSE
 	attack_blocking_obstacle(blocking_obstacle)
@@ -332,13 +394,10 @@
 		ai_state = AI_STATE_ATTACKING
 		blocked_attempts = 0
 		path_queue = null
-		// Fire immediately instead of waiting for tick()'s own ATTACKING dispatch next tick -
-		// against a target that's actively moving, the shot opportunity (line-of-sight, still
-		// inside the kiting band) can evaporate in that single-tick gap, so process_attack() would
-		// find nothing to do and she'd revert to repositioning having never actually fired -
-		// reported live as "keeps canceling and moving as the target moves around." process_attack()
-		// already sets ai_state back to APPROACHING itself once it's done, so nothing further reads
-		// AI_STATE_ATTACKING again this same tick after this call returns.
+		// Fires immediately instead of waiting for tick()'s own ATTACKING dispatch next tick, since
+		// the shot opportunity against a moving target can evaporate in a single-tick gap.
+		// process_attack() already sets ai_state back to APPROACHING itself once it's done, so
+		// nothing further reads AI_STATE_ATTACKING again this same tick after this call returns.
 		process_attack()
 		return
 
@@ -666,12 +725,10 @@
 		// around an entire building is a real computed route rather than
 		// invisible past the bounded box. The bounded local solve stays as
 		// the fallback for hosts whose DLL predates the persistent grid.
-		// The native global grid (compute_path_global(), a compiled Rust library) has no concept
-		// of fire at all - only the bounded local solver below treats a burning tile as blocked.
-		// Since the global grid succeeds the overwhelming majority of the time, a route through it
-		// was routinely walking straight across active fire. Reject a global route that crosses
-		// fire and fall through to the fire-aware local solver instead, same as a genuine solve
-		// failure would.
+		// The native global grid (compute_path_global(), a compiled Rust library) has no concept of
+		// fire at all - only the bounded local solver below treats a burning tile as blocked. Reject
+		// a global route that crosses fire and fall through to the fire-aware local solver instead,
+		// same as a genuine solve failure would.
 		path_queue = compute_path_global(goal_turf)
 		if(path_queue && (path_has_fire(path_queue) || path_has_toxic_water(path_queue)))
 			path_queue = null
@@ -682,6 +739,17 @@
 			path_failed = TRUE
 			path_fail_streak++ // See compute_path()'s doc comment - past AI_PATHFIND_ESCALATION_THRESHOLD consecutive failures against this same goal, the next attempt searches a wider local grid instead of giving up at the same fixed margin every time.
 			next_path_attempt = world.time + PATH_RETRY_COOLDOWN
+			// The router itself just gave up on a WIDER search against this same
+			// goal - a much stronger "no path exists" signal than waiting out
+			// check_movement_progress()'s separate blind distance-stall timer.
+			// Give a capable caste a chance to dig/smash through right away
+			// instead of waiting out that timer too. Same one-shot-per-episode
+			// guard as check_movement_progress() - whichever trips it first
+			// wins, the other just finds dig_attempted_this_stuck already set.
+			if(path_fail_streak >= AI_PATHFIND_ESCALATION_THRESHOLD && !dig_attempted_this_stuck)
+				dig_attempted_this_stuck = TRUE
+				if(attempt_dig_through_stuck(goal))
+					return TRUE
 			return FALSE
 		path_failed = FALSE
 		path_fail_streak = 0
@@ -747,10 +815,9 @@
 	return FALSE
 
 /// Same idea as path_has_fire() above, for Desert Dam's toxic water (/obj/effect/blocker/toxic_water,
-/// filtration.dm) - it deals 34 burn to a xenomorph per contact, more than a human takes, with no
-/// avoidance signal anywhere before this. Checks the live `toxic` var rather than mere presence of
-/// the blocker object, since it's a dynamically toggleable hazard (filtration.dm's dispersal system
-/// can turn a given stretch of water safe) - a currently-safe stretch shouldn't be avoided.
+/// filtration.dm) - checks the live `toxic` var rather than mere presence of the blocker object,
+/// since it's a dynamically toggleable hazard (filtration.dm's dispersal system can turn a given
+/// stretch of water safe) - a currently-safe stretch shouldn't be avoided.
 /datum/xeno_ai_controller/proc/path_has_toxic_water(list/turf/queue)
 	for(var/turf/step in queue)
 		for(var/obj/effect/blocker/toxic_water/hazard in step)
@@ -1611,7 +1678,8 @@
 			pilot.next_move = world.time + XENO_MELEE_ATTACK_DELAY
 			return
 	if(attempt_acid_on_obstacle(target_obstacle))
-		pilot.next_move = world.time + XENO_MELEE_ATTACK_DELAY
+		if(pilot) // attempt_acid_on_obstacle() can retaliate/kill the pilot the same way attack_alien() can below - don't write to it if it just died.
+			pilot.next_move = world.time + XENO_MELEE_ATTACK_DELAY
 		return
 	pilot.a_intent = INTENT_HARM
 	target_obstacle.attack_alien(pilot)

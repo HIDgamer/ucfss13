@@ -270,6 +270,9 @@ const DestinationSelector = (props: DestinationProps) => {
     <>
       {props.options
         .filter((x) => (props.applyFilter === false ? true : x.available === 1))
+        .sort((a, b) =>
+          a.id === data.primary_lz ? -1 : b.id === data.primary_lz ? 1 : 0,
+        )
         .map((x) => (
           <Stack.Item key={x.id}>
             <Flex align="center">
@@ -287,6 +290,12 @@ const DestinationSelector = (props: DestinationProps) => {
                 <Button
                   disabled={
                     props.availableOnly === false ? false : x.available === 0
+                  }
+                  color={x.id === data.primary_lz ? 'good' : undefined}
+                  tooltip={
+                    x.id === data.primary_lz
+                      ? 'Designated primary landing zone'
+                      : undefined
                   }
                   icon={x.id === data.primary_lz ? 'home' : undefined}
                   iconPosition="right"
@@ -550,10 +559,7 @@ const WINDOW_CHROME = 60; // titlebar + Window.Content padding
 const SECTION_CHROME = 40; // one Section's title/border overhead
 const ROW_HEIGHT = 34; // one destination/door/ship row
 
-// Mirrors RenderScreen's own conditions exactly, so the window is sized for what's actually
-// about to render instead of guessing off a single unrelated field (see git history - this used
-// to be a two-state ternary on `airlock_data` alone, which never accounted for AutopilotConfig,
-// DropshipSelector, or DropshipDoorControl, all of which can inflate content independently of it).
+// Mirrors RenderScreen's own conditions exactly, so the window is sized for what's actually about to render.
 const getWindowHeight = (data: DropshipNavigationProps) => {
   let height = WINDOW_CHROME;
 

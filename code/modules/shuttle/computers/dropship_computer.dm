@@ -62,10 +62,7 @@ GLOBAL_LIST_EMPTY(dropship_flight_consoles)
 		if(istype(dock, /obj/docking_port/stationary/marine_dropship/crash_site))
 			continue
 		if(istype(dock, /obj/docking_port/stationary/marine_dropship/airlock/inner))
-			continue // only reachable by physically coming up through this airlock's own outer dock and
-			// raising - see ceremony_satisfied_for() and canDock() on /obj/docking_port/mobile/marine_dropship,
-			// which is what actually enforces this now (as of this cache and the register/unregister
-			// duality both being fixed - a returning ship targets the outer dock instead, below)
+			continue // only reachable by physically coming up through this airlock's own outer dock and raising - see ceremony_satisfied_for() and canDock() on /obj/docking_port/mobile/marine_dropship, which enforces this.
 		. += list(dock)
 
 /obj/structure/machinery/computer/shuttle/dropship/flight/proc/get_linked_airlock()
@@ -573,6 +570,11 @@ GLOBAL_LIST_EMPTY(dropship_flight_consoles)
 			if(dock_reserved)
 				to_chat(user, SPAN_WARNING("\The [dock] is currently in use."))
 				return TRUE
+			var/primary_lz = SSticker.mode?.active_lz?.linked_lz
+			if(primary_lz && (dock.id == DROPSHIP_LZ1 || dock.id == DROPSHIP_LZ2) && dock.id != primary_lz)
+				var/confirm_wrong_lz = tgui_alert(usr, "\The [dock] is NOT the designated primary landing zone. Launch anyway?", "Confirm Landing Zone", list("Yes", "No"))
+				if(confirm_wrong_lz != "Yes")
+					return TRUE
 			SSshuttle.moveShuttle(shuttle.id, dock.id, TRUE)
 			to_chat(user, SPAN_NOTICE("You begin the launch sequence to [dock]."))
 			if(shuttle.faction == FACTION_MARINE)

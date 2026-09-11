@@ -131,7 +131,7 @@
 		drop_target()
 		return
 
-	last_seen_turf = get_turf(current_target)
+	note_last_seen(get_turf(current_target), current_target)
 	attempt_boiler_trap(current_target) // Trapper-only, side effect only - never blocks anything below.
 	attempt_shift_spits(current_target) // Base-kit-only (Trapper has no shift_spits, removed by the strain), side effect only.
 	var/dist = get_dist(pilot, current_target)

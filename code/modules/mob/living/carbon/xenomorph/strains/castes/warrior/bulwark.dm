@@ -188,7 +188,7 @@
 		return
 
 	if(!HAS_TRAIT(xeno_player, TRAIT_ABILITY_ENCLOSED_PLATES))
-		xeno_player.throw_atom(get_step_towards(carbon_target, xeno_player), 2, SPEED_SLOW, xeno_player, tracking=TRUE)
+		xeno_player.throw_atom(get_step_towards(carbon_target, xeno_player), 2, SPEED_SLOW, xeno_player, spin = TRUE)
 	if(!xeno_player.Adjacent(carbon_target))
 		on_cooldown_end()
 		return

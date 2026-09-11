@@ -131,13 +131,7 @@
 		// beyond the self-defense ring must fight back, not stand there
 		// tanking rounds while "on economy."
 		var/being_hurt = queen_pilot.maxHealth && queen_pilot.health < queen_pilot.maxHealth * 0.95
-		// Commit window - this decision used to be re-litigated fresh every single tick she has a
-		// distant target, so a fight sitting right at the self-defense-range boundary (or an escort
-		// count that only marginally qualifies) could flicker between "engage" and "abandon" tick
-		// to tick - live-reported as "kept walking up to humans and retreating, no one came to her
-		// aid" (repeatedly dropping and instantly re-acquiring the same nearest target via
-		// process_target()). Once she actually commits, she stays committed for a real window
-		// instead of being second-guessed on the very next tick.
+		// Commit window - once engaged, stays committed for AI_QUEEN_DISTANT_ENGAGE_COMMIT_TIME rather than re-evaluating every tick.
 		if(world.time < distant_engage_committed_until)
 			return ..()
 		if(!being_hurt && get_dist(queen_pilot, current_target) > AI_QUEEN_SELF_DEFENSE_RANGE && !hive_strong_enough_to_attack())
@@ -149,34 +143,21 @@
 	if(should_flee())
 		return ..() // Critically wounded/on fire and not the hive's last defender - let the base flee-and-resist logic run even though she's not mounted.
 
-	// "Build her hive before going to ovi" - she still won't mount at all
-	// until the Hive Core actually exists (should_mount_ovipositor() below
-	// checks this too), so the throne is something she's earned, not an
-	// escape hatch from an unfinished hive. This is the objective: no core,
-	// no throne, and the new Spawner (xeno_spawner.dm) refuses to reinforce
-	// the hive at all until this exists. No time cap on these build gates
-	// either - "does not wait for [plasma] to regenerate to continue
-	// building" was the previous cap giving up and abandoning the attempt;
-	// now she just keeps building for as long as it takes, checking plasma
-	// properly each time instead of giving up on it.
+	// She won't mount the ovipositor at all until the Hive Core actually exists (should_mount_ovipositor()
+	// below checks this too), and the Spawner (xeno_spawner.dm) refuses to reinforce the hive until it
+	// exists either. No time cap on these build gates - she keeps building for as long as it takes,
+	// checking plasma properly each time.
 	if(queen_pilot.hive && !queen_pilot.hive.has_structure(XENO_STRUCTURE_CORE))
 		idle_activity = IDLE_ACTIVITY_BUILD
-		// "Queen needs to weed, she is trying to build without weeds" - weed
-		// her own tile first if it isn't hers yet, only attempt the actual
-		// core once she's standing on real hive weeds.
+		// Weed her own tile first if it isn't hers yet, only attempt the actual core once she's
+		// standing on real hive weeds.
 		var/obj/effect/alien/weeds/own_weeds = locate(/obj/effect/alien/weeds) in get_turf(queen_pilot)
 		if(!own_weeds || own_weeds.linked_hive.hivenumber != queen_pilot.hivenumber)
 			attempt_plant_weeds()
 			return
-		// "She is unable to finish building the hive core once its
-		// construction node is built" - once the node exists, it needs
-		// feeding in small amounts as plasma regenerates (attempt_build_
-		// hive_core()'s own internal check), not the full 400 up front -
-		// gating the call itself on the full placement cost meant she'd
-		// never even attempt a feed until she'd banked 400 again. Both the
-		// placement path (place_construction's own use_ability()) and the
-		// feed path check their own plasma sufficiency internally, so this
-		// is safe to call every tick regardless of her current plasma.
+		// Both the placement path (place_construction's own use_ability()) and the feed path check
+		// their own plasma sufficiency internally, so this is safe to call every tick regardless of
+		// her current plasma.
 		attempt_build_hive_core(queen_pilot)
 		return
 
@@ -207,18 +188,7 @@
  * needs to still be off cooldown (it's the same action a player mounts
  * with, and use_ability() already no-ops safely if it isn't ready).
  */
-/// Whether the hive can afford its mother marching to a distant, optional fight: population near the Spawner's live target AND an actual escort of daughters nearby. See tick()'s economy gate.
-/**
- * Reverted the combat-tier-specific escort requirement this proc briefly had - live testing found
- * it made this FALSE far more often than the plain headcount check ever did (any nearby daughter
- * counted before; requiring a specific T2+ combat caste nearby is a much harder bar in practice),
- * and since tick() re-evaluates this every single tick she has a distant target, failing it more
- * often meant far more frequent drop_target() calls - "kept walking up to humans and retreating"
- * was this: approach, edge just outside self-defense range or lose the marginal escort for one
- * tick, drop, re-acquire the same nearest target next tick via process_target(), repeat. Back to
- * the plain any-ally headcount check; see tick()'s own new commit-window guard for the actual fix
- * to the underlying re-evaluate-every-tick flicker.
- */
+/// Whether the hive can afford its mother marching to a distant, optional fight: population near the Spawner's target and any nearby ally escort. See tick()'s economy gate and commit-window guard.
 /datum/xeno_ai_controller/queen/proc/hive_strong_enough_to_attack()
 	if(count_nearby_hive_allies(AI_QUEEN_ATTACK_ESCORT_RADIUS) < AI_QUEEN_ATTACK_MIN_ESCORT)
 		return FALSE
@@ -480,7 +450,7 @@
 		attempt_plant_weeds()
 	attempt_periodic_combat_pheromones()
 
-	last_seen_turf = get_turf(current_target)
+	note_last_seen(get_turf(current_target), current_target)
 	if(should_close_to_melee(current_target))
 		travel_to(current_target, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_COVER_CHECK)
 	else
@@ -554,7 +524,7 @@
 
 	return attempt_tail_stab(target)
 
-/// Cast on the most badly hurt nearby daughter within AI_QUEEN_SUPPORT_RADIUS - queen_heal is a fully-built AoE heal-over-time centered on a turf, previously never used by the AI at all despite being a real, ready-made "care for my hive" tool.
+/// Cast on the most badly hurt nearby daughter within AI_QUEEN_SUPPORT_RADIUS.
 /datum/xeno_ai_controller/queen/proc/attempt_queen_heal()
 	if(!pilot)
 		return FALSE
@@ -575,7 +545,7 @@
 	heal.use_ability(hurt_ally)
 	return TRUE
 
-/// Cast on the most plasma-starved nearby daughter within AI_QUEEN_SUPPORT_RADIUS - queen_give_plasma was previously never used by the AI at all either.
+/// Cast on the most plasma-starved nearby daughter within AI_QUEEN_SUPPORT_RADIUS.
 /datum/xeno_ai_controller/queen/proc/attempt_queen_give_plasma()
 	if(!pilot)
 		return FALSE
@@ -596,12 +566,7 @@
 	give.use_ability(needy_ally)
 	return TRUE
 
-/**
- * AI Queen promotes a worthy nearby combat-capable (T2+) daughter to Hive Leader once, if the
- * hive currently has none - set_xeno_lead/add_hive_leader() (the real "designate a lieutenant"
- * mechanic, hive_status.dm) was previously entirely player-driven, never touched by the AI, so an
- * AI-piloted hive's leadership infrastructure sat permanently dormant.
- */
+/// Promotes a worthy nearby combat-capable (T2+) daughter to Hive Leader once, if the hive currently has none.
 /datum/xeno_ai_controller/queen/proc/attempt_promote_leader()
 	if(!pilot?.hive)
 		return FALSE

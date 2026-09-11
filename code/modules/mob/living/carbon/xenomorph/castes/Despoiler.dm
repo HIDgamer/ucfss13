@@ -88,10 +88,13 @@
 
 /mob/living/carbon/xenomorph/despoiler/apply_damage(damage, damagetype, def_zone, used_weapon, sharp, edge, force, enviro, chemical)
 	. = ..()
-	var/datum/behavior_delegate/despoiler_base/delegate = behavior_delegate
-	if(damage > 0)
-		delegate.last_combat_time = world.time
-		delegate.increase_hypertension(round(damage))
+	if(damage <= 0)
+		return
+	var/datum/behavior_delegate/despoiler_base/delegate = behavior_delegate // Re-read after ..() - the parent apply_damage() call can be lethal and null this out.
+	if(!delegate)
+		return
+	delegate.last_combat_time = world.time
+	delegate.increase_hypertension(round(damage))
 
 /datum/behavior_delegate/despoiler_base
 	name = "Base Despoiler Behavior Delegate"

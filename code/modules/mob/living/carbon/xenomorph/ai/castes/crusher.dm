@@ -54,7 +54,7 @@
 		drop_target()
 		return
 
-	last_seen_turf = get_turf(current_target)
+	note_last_seen(get_turf(current_target), current_target)
 
 	if(get_dist(pilot, current_target) <= 1 && pilot.Adjacent(current_target))
 		ai_state = AI_STATE_ATTACKING

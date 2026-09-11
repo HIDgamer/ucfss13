@@ -83,7 +83,7 @@
 		drop_target()
 		return
 
-	last_seen_turf = get_turf(current_target)
+	note_last_seen(get_turf(current_target), current_target)
 	var/dist = get_dist(pilot, current_target)
 
 	var/datum/action/xeno_action/ability = get_ranged_ability()

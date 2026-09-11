@@ -60,6 +60,22 @@ SUBSYSTEM_DEF(xeno_pathfinding)
 		return
 	rust_xeno_pathfind_threat("[death_turf.z],[death_turf.x],[death_turf.y],[AI_THREAT_DEATH_AMOUNT]")
 
+/**
+ * Re-injects threat at every currently-active sentry's tile, same threat
+ * layer as on_xeno_death() above and the same live-check is_valid_target()
+ * already uses to decide a sentry is a real threat. Re-injects every decay
+ * cycle rather than firing once, so a destroyed/turned-off turret's
+ * contribution simply stops being added and decays away naturally over the
+ * next couple of cycles - no explicit removal call needed.
+ */
+/datum/controller/subsystem/xeno_pathfinding/proc/refresh_turret_threat()
+	for(var/obj/structure/machinery/defenses/sentry/turret in world)
+		if(turret.stat == DEFENSE_DESTROYED || !turret.turned_on)
+			continue
+		var/turf/turret_turf = get_turf(turret)
+		if(turret_turf)
+			rust_xeno_pathfind_threat("[turret_turf.z],[turret_turf.x],[turret_turf.y],[AI_THREAT_TURRET_AMOUNT]")
+
 /// Packs one z-level's turf walkability row-major from (1,1) and bulk-loads it into the native grid. Returns whether the native side accepted it.
 /datum/controller/subsystem/xeno_pathfinding/proc/load_z_level(z)
 	var/list/cells = list()
@@ -142,3 +158,4 @@ SUBSYSTEM_DEF(xeno_pathfinding)
 	if(decay_counter >= XENO_PATHFIND_DECAY_EVERY_FIRES)
 		decay_counter = 0
 		rust_xeno_pathfind_decay()
+		refresh_turret_threat()

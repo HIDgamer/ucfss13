@@ -34,6 +34,8 @@
 	var/circle_dir
 	/// pilot.health as of the last process_attack() call - see the reactive-dodge check there, same pattern as ravager.dm.
 	var/last_known_health
+	/// Site committed to for attempt_dig_tunnel() - picked once (pick_tunnel_site()) and walked to across multiple idle ticks instead of re-rolled every call, same shape as the base controller's build_target_turf. Null whenever not mid-walk to a tunnel site.
+	var/turf/tunnel_build_turf
 
 /datum/xeno_ai_controller/burrower/New(mob/living/carbon/xenomorph/new_pilot)
 	. = ..()
@@ -61,6 +63,10 @@
 		return
 	if(prob(AI_BURROWER_AMBUSH_CHANCE) && attempt_burrow_ambush())
 		idle_activity = IDLE_ACTIVITY_AMBUSH
+		return
+	// Tunnels are a powerful tool - see attempt_dig_tunnel() for the site-selection logic.
+	if((tunnel_build_turf || prob(AI_BURROWER_TUNNEL_DIG_CHANCE)) && attempt_dig_tunnel())
+		idle_activity = IDLE_ACTIVITY_BUILD
 		return
 	// "A trap-setting builder-brawler" per her own caste doc comment, but
 	// Place Trap (a resin trap hole) was granted and never used - same idle-
@@ -90,6 +96,123 @@
 		return FALSE
 	burrow_ability.use_ability(burrower_pilot)
 	return TRUE
+
+/**
+ * Same commit-once-then-travel idle shape as
+ * attempt_build_defense()/attempt_build_fort_line() (xeno_ai_controller.dm):
+ * pick_tunnel_site() picks a site once, tunnel_build_turf holds the
+ * commitment across however many idle ticks it takes to walk there, and the
+ * ability only actually fires once close enough. Burrower-only, and sited
+ * purely off stable hive-side signals (see pick_tunnel_site()) rather than
+ * live marine positions, so placement doesn't "chase" a moving target.
+ */
+/datum/xeno_ai_controller/burrower/proc/attempt_dig_tunnel()
+	var/mob/living/carbon/xenomorph/burrower_pilot = pilot
+	if(!istype(burrower_pilot) || !burrower_pilot.hive)
+		return FALSE
+	var/datum/action/xeno_action/onclick/build_tunnel/dig = get_ability(/datum/action/xeno_action/onclick/build_tunnel)
+	if(!dig || !dig.action_cooldown_check())
+		return FALSE
+	if(burrower_pilot.tunnel_delay || burrower_pilot.get_active_hand())
+		return FALSE
+	if(length(burrower_pilot.hive.tunnels) >= AI_TUNNEL_MAX_HIVE_TUNNELS)
+		return FALSE // Hard cap (counts player-built tunnels too) - don't let idle rolls spam an unbounded network.
+	if(!burrower_pilot.check_plasma(dig.plasma_cost))
+		return FALSE
+
+	if(tunnel_build_turf)
+		if(!is_valid_tunnel_site(tunnel_build_turf))
+			tunnel_build_turf = null
+		else if(get_dist(pilot, tunnel_build_turf) > 0)
+			travel_to(tunnel_build_turf, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_AVOID_MOBS|TRAVEL_FLAG_STATIC_GOAL)
+			return TRUE
+		else
+			dig.use_ability(burrower_pilot) // Re-validates turf/plasma/cooldown itself, same as every other AI direct-call site - safe to call speculatively.
+			tunnel_build_turf = null
+			return TRUE
+
+	tunnel_build_turf = pick_tunnel_site()
+	return tunnel_build_turf ? TRUE : FALSE
+
+/// Mechanical placement gate shared by attempt_dig_tunnel()'s re-validation and pick_tunnel_site()'s candidate filtering - the same checks build_tunnel/use_ability() itself performs up front before it'll ever actually dig (Burrower.dm), duplicated here only so an unsuitable turf never gets committed to or walked toward in the first place.
+/datum/xeno_ai_controller/burrower/proc/is_valid_tunnel_site(turf/candidate)
+	if(!candidate || !candidate.can_dig_xeno_tunnel() || !is_ground_level(candidate.z))
+		return FALSE
+	if(locate(/obj/structure/tunnel) in candidate)
+		return FALSE
+	if(locate(/obj/structure/machinery/sentry_holder/landing_zone) in candidate)
+		return FALSE
+	return TRUE
+
+/**
+ * Autonomous "strategic position" siting for attempt_dig_tunnel() above.
+ * Reuses the same candidate-pool/anti-cluster/variety-tolerance shape
+ * pick_fort_line_start_turf() (xeno_ai_controller.dm) already established
+ * for a different structure type, plus would_block_passage()'s existing
+ * chokepoint BFS - used there to REJECT wall placement on a corridor tile,
+ * inverted here to PREFER one, since a genuine chokepoint is exactly where a
+ * reinforcement shortcut matters most.
+ */
+/datum/xeno_ai_controller/burrower/proc/pick_tunnel_site()
+	if(!pilot || !pilot.hive)
+		return null
+	var/turf/search_center = get_turf(pilot)
+	if(!search_center)
+		return null
+
+	var/list/candidates = list()
+	for(var/obj/effect/alien/weeds/weed in range(AI_TUNNEL_SITE_SEARCH_RADIUS, search_center))
+		if(weed.linked_hive.hivenumber != pilot.hivenumber)
+			continue
+		var/turf/weed_turf = get_turf(weed)
+		if(weed_turf && is_valid_tunnel_site(weed_turf))
+			candidates += weed_turf
+	if(!length(candidates))
+		return null
+
+	// Anti-cluster, same shape as pick_fort_line_start_turf()'s against
+	// fort_gates - against the hive's existing tunnel network instead.
+	var/list/spread_candidates = list()
+	for(var/turf/candidate in candidates)
+		var/near_existing = FALSE
+		for(var/obj/structure/tunnel/existing as anything in pilot.hive.tunnels)
+			if(existing && get_dist(candidate, existing) < AI_TUNNEL_ANTI_CLUSTER_RADIUS)
+				near_existing = TRUE
+				break
+		if(!near_existing)
+			spread_candidates += candidate
+	if(length(spread_candidates))
+		candidates = spread_candidates
+
+	// A genuine chokepoint is exactly where a reinforcement shortcut matters
+	// most - prefer one outright when any survive the filters above, rather
+	// than folding it into a numeric score.
+	var/list/turf/chokepoints = list()
+	for(var/turf/candidate in candidates)
+		if(would_block_passage(candidate))
+			chokepoints += candidate
+	if(length(chokepoints))
+		candidates = chokepoints
+
+	// Among whatever's left, prefer whichever sits closest to ground the
+	// hive has actually taken and held (frontier_turf) or, before any exists
+	// yet, its current push target (assault_alert_turf) - the closest
+	// available signal to "strategic position" that doesn't chase live
+	// marine movement. Same near-tied variety-tolerance pattern
+	// pick_fort_line_start_turf() already uses.
+	var/turf/anchor = pilot.hive.frontier_turf || pilot.hive.assault_alert_turf
+	if(!anchor)
+		return pick(candidates)
+	var/best_dist = INFINITY
+	for(var/turf/candidate in candidates)
+		var/d = get_dist(candidate, anchor)
+		if(d < best_dist)
+			best_dist = d
+	var/list/turf/best_candidates = list()
+	for(var/turf/candidate in candidates)
+		if(get_dist(candidate, anchor) <= best_dist + AI_FORT_FRONTIER_TOLERANCE)
+			best_candidates += candidate
+	return pick(best_candidates)
 
 /**
  * Combat movement: while burrowed, either tunnels the rest of the way onto
@@ -127,7 +250,7 @@
 			return
 		tactical_retreat_until = 0
 
-	last_seen_turf = get_turf(current_target)
+	note_last_seen(get_turf(current_target), current_target)
 	if(get_dist(pilot, current_target) <= 1 && pilot.Adjacent(current_target))
 		ai_state = AI_STATE_ATTACKING
 		blocked_attempts = 0
