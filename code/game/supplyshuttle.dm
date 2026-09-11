@@ -1334,6 +1334,8 @@ GLOBAL_DATUM_INIT(supply_controller, /datum/controller/supply, new())
 	var/obj/vehicle/ordered_vehicle
 	var/unlocked = TRUE
 	var/failure_message = "<font color=\"red\"><b>Not enough resources were allocated to repair this vehicle during this operation.</b></font><br>"
+	/// Which of the Vehicle Parts Delivery System's gear lists (vehicle_crew.dm's selected_vehicle) this order should switch that vendor to once retrieved.
+	var/vehicle_category = "TANK"
 
 /datum/vehicle_order/proc/has_vehicle_lock()
 	return FALSE
@@ -1359,6 +1361,7 @@ GLOBAL_DATUM_INIT(supply_controller, /datum/controller/supply, new())
 /datum/vehicle_order/apc
 	name = "M577 Armored Personnel Carrier"
 	ordered_vehicle = /obj/effect/vehicle_spawner/apc/decrepit
+	vehicle_category = "APC"
 
 /datum/vehicle_order/apc/med
 	name = "M577-MED Armored Personnel Carrier"
@@ -1375,6 +1378,7 @@ GLOBAL_DATUM_INIT(supply_controller, /datum/controller/supply, new())
 /datum/vehicle_order/arc
 	name = "M540-B Armored Recon Carrier"
 	ordered_vehicle = /obj/effect/vehicle_spawner/arc
+	vehicle_category = "ARC"
 
 /datum/vehicle_order/arc/has_vehicle_lock()
 	return
@@ -1382,6 +1386,7 @@ GLOBAL_DATUM_INIT(supply_controller, /datum/controller/supply, new())
 /datum/vehicle_order/humvee
 	name = "M2420 JTMV-HWC Heavy Weapon Carrier"
 	ordered_vehicle = /obj/effect/vehicle_spawner/humvee
+	vehicle_category = "HUMVEE"
 
 /datum/vehicle_order/humvee/medical
 	name = "M2421 JTMV-Ambulance"
@@ -1398,7 +1403,11 @@ GLOBAL_DATUM_INIT(supply_controller, /datum/controller/supply, new())
 	. = ..()
 
 	vehicles = list(
-		new /datum/vehicle_order/tank/plain
+		new /datum/vehicle_order/tank/plain,
+		new /datum/vehicle_order/arc,
+		new /datum/vehicle_order/apc,
+		new /datum/vehicle_order/apc/med,
+		new /datum/vehicle_order/apc/cmd,
 	)
 
 	if(!GLOB.VehicleElevatorConsole)
@@ -1494,6 +1503,10 @@ GLOBAL_DATUM_INIT(supply_controller, /datum/controller/supply, new())
 		SSshuttle.vehicle_elevator.request(SSshuttle.getDock("almayer vehicle"))
 
 		VO.on_created(ordered_vehicle)
+
+		var/obj/structure/machinery/cm_vending/gear/vehicle_crew/gearcomp = GLOB.VehicleGearConsole
+		if(gearcomp)
+			gearcomp.selected_vehicle = VO.vehicle_category
 
 		SEND_GLOBAL_SIGNAL(COMSIG_GLOB_VEHICLE_ORDERED, ordered_vehicle)
 
