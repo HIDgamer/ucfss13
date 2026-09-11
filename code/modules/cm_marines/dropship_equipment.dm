@@ -212,7 +212,8 @@
 		undeploy_sentry()
 
 /obj/structure/dropship_equipment/sentry_holder/on_arrival()
-	if(ship_base && auto_deploy && ship_base.base_category == DROPSHIP_WEAPON) //only external sentires are automatically deployed
+	// is_ground_level() restricts auto-deploy to actual mission LZs, so it doesn't arm while docking back at the Almayer's own hangar.
+	if(ship_base && auto_deploy && ship_base.base_category == DROPSHIP_WEAPON && is_ground_level(linked_shuttle.z)) //only external sentires are automatically deployed
 		deploy_sentry()
 
 /obj/structure/dropship_equipment/sentry_holder/equipment_interact(mob/user)
@@ -370,7 +371,8 @@
 		undeploy_mg()
 
 /obj/structure/dropship_equipment/mg_holder/on_arrival()
-	if(ship_base && auto_deploy && ship_base.base_category == DROPSHIP_WEAPON) //only external mgs are automatically deployed
+	// is_ground_level() restricts auto-deploy to actual mission LZs, same as sentry_holder/on_arrival() above.
+	if(ship_base && auto_deploy && ship_base.base_category == DROPSHIP_WEAPON && is_ground_level(linked_shuttle.z)) //only external mgs are automatically deployed
 		deploy_mg(null)
 
 /obj/structure/dropship_equipment/mg_holder/attack_hand(user as mob)

@@ -19,6 +19,13 @@
 			<img alt="Code Docs (CM-SS13)" width="15%" hspace="3%" src=".github/assets/docs-dark.png">
 		</picture>
 	</a>
+	<a href="https://discord.gg/fjWghEnpHn">
+		<picture>
+			<source media="(prefers-color-scheme: dark)" srcset=".github/assets/discord-light.png">
+			<source media="(prefers-color-scheme: light)" srcset=".github/assets/discord-dark.png">
+			<img alt="Discord" width="15%" hspace="3%" src=".github/assets/discord-dark.png">
+		</picture>
+	</a>
 </p>
 
 <p align="center">
@@ -33,7 +40,7 @@
 
 **UCFSS13** is a private fork of [Colonial Marines SS13](https://github.com/cmss13-devs/cmss13), a strategic roleplay-focused team deathmatch game built in [BYOND](https://www.byond.com) on the [Space Station 13](https://spacestation13.com) engine.
 
-There is no separate Discord or wiki for this fork — for game rules, mechanics, and general how-to-play information, use **[CM-SS13's own wiki](https://cm-ss13.com/wiki)** linked above; almost everything there applies here unchanged unless noted in this repository's own commits/changelog.
+There is no separate wiki for this fork — for game rules, mechanics, and general how-to-play information, use **[CM-SS13's own wiki](https://cm-ss13.com/wiki)** linked above; almost everything there applies here unchanged unless noted in this repository's own commits/changelog. This fork does have its own Discord server, linked above, for anything specific to this fork.
 
 ## Inspired By
 
