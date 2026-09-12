@@ -10,27 +10,41 @@
 
 	bracer_color = SIMI_COLOR_WHITE
 	faction = FACTION_WY
+	minimap_flag = MINIMAP_FLAG_WY
 
 /obj/item/clothing/gloves/synth/wy/pmc
 	faction = FACTION_PMC
+	minimap_flag = MINIMAP_FLAG_PMC
+	has_dropship_control = FALSE
 
 /obj/item/clothing/gloves/synth/wy/pmc/preset
 	faction = FACTION_PMC
+	ability_chips_max = 4
 	actions_list_added = list(
 		/datum/action/human_action/synth_bracer/repair_form,
 		/datum/action/human_action/synth_bracer/motion_detector,
+		/datum/action/human_action/synth_bracer/battery_upgrade,
+		/datum/action/human_action/synth_bracer/tactical_map,
 	)
 
 /obj/item/clothing/gloves/synth/wy/pmc/preset/Initialize()
 	. = ..()
 	underglove = new /obj/item/clothing/gloves/marine/veteran/pmc(src)
+	battery_charge_max = SMARTPACK_MAX_POWER_STORED * 2
+	battery_charge = battery_charge_max
 
 	var/obj/item/device/simi_chip/motion_detector/new_md = new
 	var/obj/item/device/simi_chip/repair/new_repair = new
+	var/obj/item/device/simi_chip/battery_upgrade/new_battery = new
+	var/obj/item/device/simi_chip/tactical_map/new_tacmap = new
 	new_md.forceMove(src)
 	ability_chips += new_md
 	new_repair.forceMove(src)
 	ability_chips += new_repair
+	new_battery.forceMove(src)
+	ability_chips += new_battery
+	new_tacmap.forceMove(src)
+	ability_chips += new_tacmap
 
 /obj/item/clothing/gloves/synth/testing
 	name = "XPK-140 SIMI wrist-mounted computer"

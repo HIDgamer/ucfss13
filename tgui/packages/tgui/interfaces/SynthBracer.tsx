@@ -27,9 +27,10 @@ type Data = {
   // / Fraction of max charge below which the bracer is actually in SIMI_STATUS_LOWPOWER (static data).
   battery_low_ratio: number;
   phone_ringing: boolean;
-  is_on_ship: boolean;
-  is_on_colony: boolean;
+  has_dropship_control: boolean;
   has_tactical_map: boolean;
+  has_live_tacmap: boolean;
+  live_tacmap_ref: string | null;
   owner_name: string | null;
   active_ability: string;
   active_utility: string;
@@ -564,7 +565,7 @@ const MenuButton = (props: {
 
 const MainMenu = () => {
   const { data } = useBackend<Data>();
-  const { phone_ringing, is_on_ship } = data;
+  const { phone_ringing, has_dropship_control } = data;
 
   return (
     <>
@@ -630,17 +631,17 @@ const MainMenu = () => {
         <MenuButton
           icon="helicopter"
           label={
-            is_on_ship
+            has_dropship_control
               ? 'Dropship Flight Computer'
-              : 'Dropship Flight Computer — UNAVAILABLE'
+              : 'Dropship Flight Computer — NOT INSTALLED'
           }
           tooltip={
-            is_on_ship
-              ? 'Remotely control dropship navigation (CIC-mode).'
-              : 'Must be aboard the ship to access flight controls.'
+            has_dropship_control
+              ? 'Remotely control dropship navigation (CIC-mode), from anywhere.'
+              : 'This unit is not equipped with dropship remote control hardware.'
           }
-          color={is_on_ship ? 'average' : undefined}
-          disabled={!is_on_ship}
+          color={has_dropship_control ? 'average' : undefined}
+          disabled={!has_dropship_control}
           action="page_dropship"
         />
       </Section>
@@ -1134,7 +1135,7 @@ const CameraFeed = () => {
 
 const DropshipControl = () => {
   const { data } = useBackend<Data & DropshipNavigationProps>();
-  const { is_on_ship, is_disabled } = data;
+  const { has_dropship_control, is_disabled } = data;
 
   return (
     <Stack vertical fill>
@@ -1142,7 +1143,7 @@ const DropshipControl = () => {
         <NavHeader />
       </Stack.Item>
       <Stack.Item grow>
-        {is_on_ship ? (
+        {has_dropship_control ? (
           is_disabled === 0 ? (
             <RenderScreen />
           ) : (
@@ -1161,7 +1162,7 @@ const DropshipControl = () => {
                 textAlign="center"
                 mt={2}
               >
-                Dropship remote access requires ship-side proximity.
+                This unit is not equipped with dropship remote control hardware.
               </Box>
             </Flex>
           </Section>
@@ -1174,15 +1175,37 @@ const DropshipControl = () => {
 // ─── Tactical Map ─────────────────────────────────────────────────────────────
 
 const TacticalMap = () => {
-  const { data } = useBackend<Data>();
-  const { has_tactical_map } = data;
+  const { data, act } = useBackend<Data>();
+  const { has_tactical_map, has_live_tacmap, live_tacmap_ref } = data;
 
   return (
     <>
       <NavHeader />
       <Section title="Tactical Situation Map">
         <Flex direction="column" align="center" mt={3} mb={3} gap={2}>
-          {has_tactical_map ? (
+          {has_live_tacmap ? (
+            <>
+              <Box fontFamily="monospace" fontSize="1.1rem" bold color="good">
+                ● LIVE TACTICAL MAP ACTIVE
+              </Box>
+              <Box
+                fontFamily="monospace"
+                fontSize="0.82rem"
+                color="label"
+                textAlign="center"
+              >
+                Real-time unit positions, with drawing tools.
+              </Box>
+              <Button
+                icon="map"
+                onClick={() =>
+                  act('trigger_ability', { action_ref: live_tacmap_ref })
+                }
+              >
+                Toggle Live Tactical Map
+              </Button>
+            </>
+          ) : has_tactical_map ? (
             <>
               <Box fontFamily="monospace" fontSize="1.1rem" bold color="good">
                 ● TACTICAL MAP MODULE ACTIVE

@@ -124,10 +124,14 @@ GLOBAL_LIST_INIT(APOLLO_ACTION_TRANSLATION, list(
 	data["battery_charge_max"] = battery_charge_max
 	data["phone_ringing"] = (internal_transmitter && internal_transmitter.inbound_call)
 
-	var/mob/living/carbon/human/wearer = loc
-	data["is_on_ship"] = (wearer && is_mainship_level(wearer.z))
-	data["is_on_colony"] = (wearer && is_ground_level(wearer.z))
+	data["has_dropship_control"] = has_dropship_control
 	data["has_tactical_map"] = !!(locate(/obj/item/device/simi_chip/tactical_map) in ability_chips)
+	data["has_live_tacmap"] = !!GetComponent(/datum/component/tacmap)
+	data["live_tacmap_ref"] = null
+	if(data["has_live_tacmap"])
+		var/datum/action/human_action/synth_bracer/live_tactical_map/live_action = locate() in actions_list_actions
+		if(live_action)
+			data["live_tacmap_ref"] = REF(live_action)
 	data["owner_name"] = owner_name
 
 	data["active_ability"] = active_ability
@@ -323,6 +327,8 @@ GLOBAL_LIST_INIT(APOLLO_ACTION_TRANSLATION, list(
 			current_menu = "abilities"
 
 		if("page_dropship")
+			if(!has_dropship_control)
+				return FALSE
 			last_menu = current_menu
 			current_menu = "dropship"
 			// Uses the bracer_remote subtype which:

@@ -517,6 +517,10 @@ GLOBAL_LIST_EMPTY(dropship_flight_consoles)
 			to_chat(user, SPAN_WARNING("The dropship isn't responding to controls."))
 			return
 
+	if(!skip_time_lock && world.time < SSticker.mode.round_time_lobby + SHUTTLE_TIME_LOCK)
+		to_chat(user, SPAN_WARNING("The shuttle is still undergoing pre-flight fueling and cannot depart yet. Please wait another [floor((SSticker.mode.round_time_lobby + SHUTTLE_TIME_LOCK-world.time)/600)] minutes before trying again."))
+		return TRUE
+
 	if(use_factions && shuttle && shuttle.faction != faction) //someone trying href
 		return FALSE
 
