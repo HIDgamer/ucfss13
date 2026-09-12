@@ -37,6 +37,11 @@
 	var/list/ability_chips = list()
 	var/ability_chips_max = 3
 
+	/// Faction minimap shown by the Live Tactical Map upgrade chip's tacmap component.
+	var/minimap_flag = MINIMAP_FLAG_USCM
+	/// Whether this bracer model exposes the Dropship Flight Computer tab at all.
+	var/has_dropship_control = TRUE
+
 	var/list/actions_list_inherent = list(
 		/datum/action/human_action/synth_bracer/crew_monitor,
 		/datum/action/human_action/synth_bracer/deploy_binoculars,
@@ -224,7 +229,7 @@
 			if(istype(new_chip, /obj/item/device/simi_chip/battery_upgrade))
 				battery_charge_max = SMARTPACK_MAX_POWER_STORED * 2
 			if(istype(new_chip, /obj/item/device/simi_chip/live_tactical_map))
-				AddComponent(/datum/component/tacmap, FALSE, MINIMAP_FLAG_USCM, FALSE, FALSE)
+				AddComponent(/datum/component/tacmap, FALSE, minimap_flag, FALSE, FALSE)
 			if(user.gloves && (user.gloves == src))
 				update_actions(SIMI_ACTIONS_RELOAD, user)
 			else
