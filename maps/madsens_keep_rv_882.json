@@ -1,0 +1,6 @@
+{
+    "map_name": "Madsen's Keep",
+    "map_path": "map_files/Madsens_Keep_RV_882",
+    "map_file": "Madsens_Keep_RV_882.dmm",
+    "traits": [{ "Ground": true }]
+}
