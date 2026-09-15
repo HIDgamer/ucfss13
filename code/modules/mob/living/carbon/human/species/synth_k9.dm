@@ -54,11 +54,118 @@
 	//dedicated K9_*_rest body art instead, so redraw on every stand/lie transition rather than rotate.
 	RegisterSignal(spawned_k9, COMSIG_LIVING_SET_BODY_POSITION, PROC_REF(handle_body_position_change))
 	give_action(spawned_k9, /datum/action/human_action/activable/k9_lunge)
+	give_action(spawned_k9, /datum/action/k9_emote_panel)
 
 /datum/species/synthetic/synth_k9/post_species_loss(mob/living/carbon/human/H)
 	UnregisterSignal(H, list(COMSIG_LIVING_CLIMB_STRUCTURE, COMSIG_LIVING_SET_BODY_POSITION))
 	remove_action(H, /datum/action/human_action/activable/k9_lunge)
+	remove_action(H, /datum/action/k9_emote_panel)
 	. = ..()
+
+/// Open the K9's emote panel, which allows them to play voicelines/barks on demand
+/datum/species/synthetic/synth_k9/open_emote_panel()
+	var/datum/k9_emote_panel/ui = new(usr)
+	ui.ui_interact(usr)
+
+/datum/action/k9_emote_panel
+	name = "Open Voice Synthesizer"
+	action_icon_state = "looc_toggle"
+
+/datum/action/k9_emote_panel/can_use_action()
+	. = ..()
+	if(!.)
+		return FALSE
+
+	if(!isk9synth(owner))
+		return FALSE
+
+	return TRUE
+
+/datum/action/k9_emote_panel/action_activate()
+	. = ..()
+	if(!can_use_action())
+		return
+
+	var/mob/living/carbon/human/human_owner = owner
+	var/datum/species/synthetic/synth_k9/k9_species = human_owner.species
+	k9_species.open_emote_panel()
+
+/datum/k9_emote_panel
+	/// Static dict ("category" : (emotes)) of every K9 emote typepath
+	var/static/list/k9_emotes
+	/// Static list of categories
+	var/static/list/k9_categories = list()
+	/// Panel allows you to spam, so a manual CD is added here
+	COOLDOWN_DECLARE(panel_emote_cooldown)
+
+/datum/k9_emote_panel/New()
+	if(length(k9_emotes))
+		return
+	var/list/emotes_to_add = list()
+	for(var/datum/emote/living/carbon/human/synthetic/synth_k9/emote as anything in subtypesof(/datum/emote/living/carbon/human/synthetic/synth_k9))
+		if(!initial(emote.key))
+			continue
+
+		if(!(initial(emote.category) in k9_categories))
+			k9_categories += initial(emote.category)
+		emotes_to_add += emote
+	k9_emotes = emotes_to_add
+
+/datum/k9_emote_panel/proc/ui_interact(mob/user, datum/tgui/ui)
+	ui = SStgui.try_update_ui(user, src, ui)
+	if(!ui)
+		ui = new(user, src, "Emotes", "K9 Voice Synthesizer")
+		ui.open()
+
+/datum/k9_emote_panel/ui_state(mob/user)
+	return GLOB.conscious_state
+
+/datum/k9_emote_panel/ui_data(mob/user)
+	var/list/data = list()
+
+	data["on_cooldown"] = !COOLDOWN_FINISHED(src, panel_emote_cooldown)
+
+	return data
+
+/datum/k9_emote_panel/ui_static_data(mob/user)
+	var/list/data = list()
+
+	data["theme"] = "crtblue"
+	data["categories"] = k9_categories
+	data["emotes"] = list()
+
+	for(var/datum/emote/living/carbon/human/synthetic/synth_k9/emote as anything in k9_emotes)
+		data["emotes"] += list(list(
+			"id" = initial(emote.key),
+			"text" = (initial(emote.override_say) || initial(emote.say_message) || initial(emote.key)),
+			"category" = initial(emote.category),
+			"path" = "[emote]",
+		))
+
+	return data
+
+/datum/k9_emote_panel/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
+	. = ..()
+	if(.)
+		return
+
+	switch(action)
+		if("emote")
+			var/datum/emote/living/carbon/human/synthetic/synth_k9/path
+			if(!params["emotePath"])
+				return
+
+			path = text2path(params["emotePath"])
+
+			if(!path || !COOLDOWN_FINISHED(src, panel_emote_cooldown))
+				return
+
+			if(!(path in subtypesof(/datum/emote/living/carbon/human/synthetic/synth_k9)))
+				return
+
+			COOLDOWN_START(src, panel_emote_cooldown, 2.5 SECONDS)
+			usr.emote(initial(path.key))
+			return TRUE
 
 /datum/species/synthetic/synth_k9/proc/handle_climbing(mob/living/user, list/climbdata)
 	SIGNAL_HANDLER
