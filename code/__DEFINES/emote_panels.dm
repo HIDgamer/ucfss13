@@ -14,3 +14,7 @@
 #define YAUTJA_EMOTE_CATEGORY_FAKESOUND "Fake Sound"
 #define YAUTJA_EMOTE_CATEGORY_VOICE "Voice Synthesizer"
 #define YAUTJA_EMOTE_CATEGORY_SPECIES "Yautja"
+#define K9_EMOTE_CATEGORY_BARK "Bark"
+#define K9_EMOTE_CATEGORY_GROWL "Growl"
+#define K9_EMOTE_CATEGORY_PAIN "Pain"
+#define K9_EMOTE_CATEGORY_MISC "Vocalization"

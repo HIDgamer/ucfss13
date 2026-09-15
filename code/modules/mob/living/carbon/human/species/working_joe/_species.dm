@@ -70,7 +70,7 @@
 /datum/joe_emote_panel/proc/ui_interact(mob/user, datum/tgui/ui)
 	ui = SStgui.try_update_ui(user, src, ui)
 	if(!ui)
-		ui = new(user, src, "JoeEmotes")
+		ui = new(user, src, "Emotes", "Working Joe Voice Synthesizer")
 		ui.open()
 
 
