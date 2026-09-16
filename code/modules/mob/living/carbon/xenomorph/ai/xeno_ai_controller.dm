@@ -2242,6 +2242,28 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 	if(!best_candidate)
 		return
 
+	// Not always the single strictly-nearest one - a second pass gathers every
+	// other valid candidate within AI_TARGET_NEAR_TIE_MARGIN of that same
+	// distance and picks randomly among them. Purely cosmetic (every one of
+	// them was already going to be found and fought eventually - this only
+	// changes which one gets picked first among near-equal options), but a
+	// population that always beelines the literal closest target reads as
+	// robotic in a way real players don't; cmss13-pve does the same thing
+	// (their get_target(), a random pick within ~20% of the nearest distance).
+	if(best_dist > 0)
+		var/tie_margin = max(1, round(best_dist * AI_TARGET_NEAR_TIE_MARGIN))
+		var/list/near_ties = list(best_candidate)
+		for(var/atom/movable/candidate as anything in get_cached_target_candidates())
+			if(candidate == pilot || candidate == best_candidate || candidate.z != pilot_turf.z)
+				continue
+			var/dist = get_dist(pilot, candidate)
+			if(dist > best_dist + tie_margin)
+				continue
+			if(!is_valid_target(candidate))
+				continue
+			near_ties += candidate
+		best_candidate = pick(near_ties)
+
 	acquire_target(best_candidate, "scan")
 
 /**

@@ -522,6 +522,8 @@
 #define AI_FOCUS_TARGET_MIN_PRIORITY AI_PRIORITY_HIGH
 /// How long hive_status.dm's focus_target stays live before going stale - short and tactical (a specific fight right now), unlike the much longer AI_XENO_HIVE_ALERT_WINDOW summons.
 #define AI_FOCUS_TARGET_WINDOW 8 SECONDS
+/// Fraction of the nearest valid target's distance process_target() also considers "close enough to tie" and picks randomly among - purely cosmetic (every one of them gets found/fought eventually either way), just avoids always beelining the single literal-closest target, which reads as robotic against a real cluster. Matches cmss13-pve's own get_target() (a random pick within ~20% of the nearest distance).
+#define AI_TARGET_NEAR_TIE_MARGIN 0.20
 /// Tiles broadcast_local_retaliation() pushes a fresh attacker to nearby idle hivemates within - tight and immediate, an ambush a few steps away should be noticed at once, not the whole hive.
 #define AI_LOCAL_RETALIATION_RADIUS 5
 /// How long hive_status.dm's boss_under_attack stays live before going stale - short and tactical, same reasoning as AI_FOCUS_TARGET_WINDOW.
