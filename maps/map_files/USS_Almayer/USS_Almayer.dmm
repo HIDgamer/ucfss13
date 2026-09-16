@@ -4342,7 +4342,6 @@
 /turf/open/floor/almayer/red,
 /area/almayer/shipboard/navigation)
 "azC" = (
-/obj/structure/stairs,
 /obj/structure/platform_decoration/metal/strata/east,
 /turf/open/floor/almayer/plate,
 /area/almayer/command/cic)
@@ -4490,14 +4489,8 @@
 /turf/open/floor/almayer,
 /area/almayer/command/cic)
 "aAF" = (
-/obj/structure/bed/chair/comfy/blue{
-	dir = 8;
-	icon_state = "comfychair_teal"
-	},
-/turf/open/floor/almayer/blue/north{
-	dir = 5;
-	icon_state = "greenfull2"
-	},
+/obj/structure/machinery/prop/almayer/CICmap/table/horizontal,
+/turf/open/floor/almayer,
 /area/almayer/command/cic)
 "aAK" = (
 /obj/structure/surface/table/almayer,
@@ -14151,6 +14144,7 @@
 /obj/structure/bed/chair/comfy/bravo{
 	dir = 8
 	},
+/obj/structure/machinery/light,
 /turf/open/floor/almayer/orangefull,
 /area/almayer/living/briefing)
 "bUf" = (
@@ -16322,6 +16316,12 @@
 	},
 /turf/open/floor/almayer/plate,
 /area/almayer/maint/hull/upper/u_f_s)
+"crj" = (
+/obj/structure/pipes/standard/manifold/hidden/supply{
+	dir = 4
+	},
+/turf/closed/wall/almayer,
+/area/almayer/living/briefing)
 "crD" = (
 /turf/open/floor/almayer/greencorner/north,
 /area/almayer/squads/req)
@@ -21397,10 +21397,6 @@
 /turf/open/floor/plating/plating_catwalk,
 /area/almayer/living/captain_mess)
 "esF" = (
-/obj/structure/stairs,
-/obj/structure/platform/metal/hybrisa/metalplatform3/north{
-	dir = 4
-	},
 /obj/structure/platform_decoration/metal/hybrisa/metalplatformdeco3/west,
 /turf/open/floor/almayer/plate,
 /area/almayer/command/cic)
@@ -22583,13 +22579,7 @@
 /turf/open/floor/carpet,
 /area/almayer/living/commandbunks)
 "eRu" = (
-/obj/structure/platform/metal/strata/north{
-	dir = 8
-	},
 /obj/structure/platform_decoration/metal/strata/east{
-	dir = 1
-	},
-/obj/structure/stairs{
 	dir = 1
 	},
 /turf/open/floor/almayer/plate,
@@ -25357,7 +25347,8 @@
 /obj/structure/machinery/light,
 /obj/structure/stairs{
 	dir = 8;
-	icon_state = "ramptop"
+	icon_state = "ramptop";
+	plane = -6
 	},
 /obj/structure/platform/metal/hybrisa/metalplatform3/north,
 /turf/open/floor/almayer/plate,
@@ -27208,6 +27199,9 @@
 /area/almayer/hallways/lower/port_umbilical)
 "gMU" = (
 /obj/structure/pipes/standard/simple/hidden/supply{
+	dir = 4
+	},
+/obj/structure/machinery/light{
 	dir = 4
 	},
 /turf/open/floor/almayer/uscm/directional/east,
@@ -31298,17 +31292,10 @@
 /turf/open/floor/almayer/plate,
 /area/almayer/maint/hull/upper/u_a_s)
 "ixv" = (
-/obj/structure/pipes/standard/simple/hidden/supply{
-	dir = 4
+/obj/structure/platform/metal/hybrisa/metalplatform3/north{
+	dir = 2
 	},
-/obj/structure/bed/chair/comfy/blue{
-	dir = 8;
-	icon_state = "comfychair_teal"
-	},
-/turf/open/floor/almayer/blue/north{
-	dir = 5;
-	icon_state = "greenfull2"
-	},
+/turf/open/floor/almayer/plate,
 /area/almayer/command/cic)
 "ixD" = (
 /obj/structure/machinery/light,
@@ -38634,17 +38621,15 @@
 /turf/open/floor/almayer/test_floor4,
 /area/almayer/shipboard/panic)
 "lpr" = (
-/obj/structure/machinery/door/poddoor/almayer{
-	dir = 4;
-	id = "North Hangar Podlocks";
-	name = "\improper North Hangar Podlock"
+/obj/structure/pipes/standard/simple/hidden/supply,
+/obj/structure/bed/chair/comfy/charlie{
+	dir = 8
 	},
-/obj/structure/machinery/door/poddoor/almayer/open{
-	id = "Hangar Lockdown";
-	name = "\improper Hangar Lockdown Blast Door"
+/obj/structure/machinery/light{
+	dir = 1
 	},
-/turf/open/floor/almayer/test_floor4,
-/area/almayer/hallways/lower/starboard_fore_hallway)
+/turf/open/floor/almayer/emeraldfull,
+/area/almayer/living/briefing)
 "lpt" = (
 /turf/open/floor/almayer/blue,
 /area/almayer/squads/charlie_delta_shared)
@@ -38876,7 +38861,9 @@
 /obj/structure/platform/metal/strata/north{
 	dir = 2
 	},
-/turf/closed/wall/almayer/reinforced,
+/turf/closed/wall/almayer/reinforced{
+	plane = -5
+	},
 /area/almayer/command/cic)
 "lvb" = (
 /obj/structure/machinery/door_control/cl/office/door{
@@ -47519,9 +47506,6 @@
 	},
 /obj/structure/platform_decoration/metal/hybrisa/metalplatformdeco3/west{
 	dir = 2
-	},
-/obj/structure/stairs{
-	dir = 1
 	},
 /turf/open/floor/almayer,
 /area/almayer/command/cic)
@@ -58205,6 +58189,10 @@
 "taw" = (
 /turf/closed/wall/almayer,
 /area/almayer/maint/hull/upper/u_a_s)
+"tax" = (
+/obj/structure/platform/metal/hybrisa/metalplatform3/north,
+/turf/open/floor/almayer/plate,
+/area/almayer/command/cic)
 "taH" = (
 /obj/structure/machinery/door/airlock/almayer/research/glass/reinforced{
 	id = "Containment Cell 2";
@@ -66562,6 +66550,12 @@
 	},
 /turf/open/floor/almayer/uscm/directional/north,
 /area/almayer/command/cic)
+"wgL" = (
+/obj/structure/machinery/light{
+	dir = 8
+	},
+/turf/open/floor/almayer,
+/area/almayer/living/briefing)
 "wgO" = (
 /obj/structure/pipes/standard/simple/hidden/supply{
 	dir = 4
@@ -69424,6 +69418,10 @@
 /obj/effect/step_trigger/clone_cleaner,
 /turf/open/floor/almayer/greencorner/east,
 /area/almayer/hallways/lower/starboard_fore_hallway)
+"xkO" = (
+/obj/structure/machinery/light,
+/turf/open/floor/almayer,
+/area/almayer/living/tankerbunks)
 "xlb" = (
 /obj/structure/machinery/camera/autoname/almayer{
 	dir = 1;
@@ -71078,11 +71076,10 @@
 /turf/open/floor/almayer/red,
 /area/almayer/shipboard/brig/processing)
 "xTR" = (
-/obj/structure/platform/metal/strata/north{
-	dir = 4
-	},
 /obj/structure/platform/metal/strata/north,
-/turf/closed/wall/almayer/reinforced,
+/turf/closed/wall/almayer/reinforced{
+	plane = -5
+	},
 /area/almayer/command/cic)
 "xTW" = (
 /obj/structure/bed{
@@ -85887,7 +85884,7 @@ sje
 rqQ
 bSv
 ifb
-bTH
+xkO
 bSv
 xVT
 flr
@@ -90031,13 +90028,13 @@ dvl
 alX
 alX
 avY
-mQc
+aqN
 mQc
 wgk
 euV
 mJu
 aGv
-aGv
+aqN
 avY
 alX
 alX
@@ -91045,16 +91042,16 @@ wVW
 arG
 aVR
 aqN
-oPE
+ixv
 vOf
 soC
 aIf
 alX
 bZJ
 aRt
-dUE
-gtp
-fHh
+tax
+aqN
+apo
 aVR
 aqN
 wVW
@@ -92875,7 +92872,7 @@ atP
 avY
 arP
 avY
-ixv
+aIf
 aAF
 avY
 avY
@@ -97432,7 +97429,7 @@ wfE
 wfE
 yap
 bqg
-lpr
+yap
 bnj
 eFG
 sbK
@@ -108202,8 +108199,8 @@ dRT
 dqD
 dqD
 bUb
-dRT
-eWp
+crj
+lpr
 eWp
 eWp
 dRT
@@ -108405,7 +108402,7 @@ beH
 xRJ
 xRJ
 xRJ
-beH
+wgL
 xAt
 xAt
 xAt
