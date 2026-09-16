@@ -644,8 +644,11 @@
 
 		total_hits++
 
+	// linked_xeno can have lost the boiler_trap ability by the time this trap actually
+	// triggers (died, evolved, caste changed since placing it) - live-diagnosed as a
+	// real runtime ("Cannot execute null.reduce_cooldown()") on AI-piloted Boilers.
 	var/datum/action/xeno_action/activable/boiler_trap/trap = get_action(linked_xeno, /datum/action/xeno_action/activable/boiler_trap)
-
-	trap.reduce_cooldown(total_hits*4 SECONDS)
+	if(trap)
+		trap.reduce_cooldown(total_hits*4 SECONDS)
 
 	return ..()

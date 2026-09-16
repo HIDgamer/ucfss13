@@ -82,7 +82,24 @@ SUBSYSTEM_DEF(xeno_pathfinding)
 	for(var/y in 1 to world.maxy)
 		for(var/x in 1 to world.maxx)
 			var/turf/scanned = locate(x, y, z)
-			cells += turf_cell_code(scanned)
+			var/code = turf_cell_code(scanned)
+			// Belt-and-suspenders against turf_cell_code() ever returning
+			// something outside the single-character '0'-'4' set the native
+			// side accepts - the Rust decoder rejects the *entire* payload on
+			// the first unrecognized byte (see xeno_pathfind_init_z's own
+			// validation), so one bad turf silently fails the whole z-level
+			// with no indication of which turf or byte was the culprit. This
+			// was live-diagnosed as exactly this failure mode (every z-level
+			// on a real round returning "" with a byte-for-byte-correct
+			// length) without ever pinning down the actual bad turf, because
+			// nothing logged what the bad code/turf actually was - only that
+			// the aggregate call failed. Logs the one-shot detail then keeps
+			// going with a safe fallback code so this doesn't also block
+			// every other turf's data from loading.
+			if(length(code) != 1 || !(code in list("0", "1", "2", "3", "4")))
+				log_debug("SSxeno_pathfinding: turf_cell_code() returned invalid code [code ? "\"[code]\"" : "null"] for turf ([x],[y],[z]) ([scanned ? "[scanned.type]" : "null turf"]) - substituting \"1\" (blocked) and continuing.")
+				code = "1"
+			cells += code
 		CHECK_TICK
 	var/result = rust_xeno_pathfind_init_z("[z],[world.maxx],[world.maxy]", cells.Join(""))
 	// "Failed to load z-level N" with no further detail was already fixed
@@ -98,28 +115,57 @@ SUBSYSTEM_DEF(xeno_pathfinding)
 	return result == "ok"
 
 /**
- * The native cell code for a turf's current state: '1' dense turf (wall),
- * '2' walkable turf with a dense door on it, '3' walkable turf with some
- * other dense breakable structure (window, girder - priced far above a door
- * so routes only smash through glass as a last resort, never as a shortcut),
- * '0' open. Directional (ON_BORDER) structures like flipped tables and most
- * barricades are ignored - they only block from one side, which a
- * full-tile cost can't represent; the per-step obstacle handling deals with
- * them on contact instead.
+ * The native cell code for a turf's current state: '1' dense turf (wall, or
+ * a dense structure the AI can genuinely never get through - see
+ * `unslashable` below), '2' walkable turf with a dense, forceable door on
+ * it, '3' walkable turf with some other dense breakable structure (window,
+ * girder - priced far above a door so routes only smash through glass as a
+ * last resort, never as a shortcut), '4' walkable turf with a directional
+ * (ON_BORDER) structure (platform, most barricades, flipped tables) -
+ * priced modestly above open ground rather than skipped outright. A
+ * full-tile cost still can't represent "blocks from one side, open from
+ * another" exactly (the per-step obstacle handling still does the real work
+ * on contact), but leaving these completely invisible to route planning -
+ * as CELL_OPEN, the same as bare floor - let long routes get planned
+ * straight through/across clusters of them with zero accounting for the
+ * real crossing cost, which is what actually produced the "going insane
+ * near platforms" reports: the router's plan and the per-step reality
+ * disagreed about whether a tile was free. '0' open.
+ *
+ * `unslashable` structures (blast doors/shutters, and any other structure
+ * flagged that way) are priced as a hard block ('1'), not their normal type
+ * cost - get_blocking_obstacle() (xeno_ai_movement.dm) excludes any
+ * unslashable blocker from obstacle-forcing entirely (nothing to smash,
+ * nothing to climb), so the AI can never actually get through one no matter
+ * what a route assumed. Pricing an unslashable door the same as a normal
+ * forceable one (its old behavior) planned routes straight at permanently
+ * shut security doors with a real path around through other open doors -
+ * live-diagnosed as "AI stuck running back and forth against an impassible
+ * shutter, ignoring a valid path a few tiles over." Checked before the door
+ * type check below since an unslashable door is a door, but the AI must
+ * treat it like a wall instead.
  */
 /datum/controller/subsystem/xeno_pathfinding/proc/turf_cell_code(turf/scanned)
 	if(!scanned || scanned.density)
 		return "1"
 	var/has_obstacle = FALSE
+	var/has_border = FALSE
 	for(var/obj/structure/blocker in scanned)
-		if(!blocker.density || (blocker.flags_atom & ON_BORDER))
+		if(!blocker.density)
 			continue
+		if(blocker.flags_atom & ON_BORDER)
+			has_border = TRUE
+			continue
+		if(blocker.unslashable)
+			return "1"
 		if(istype(blocker, /obj/structure/machinery/door))
 			return "2"
 		if(blocker.climbable)
 			continue // Tables/racks - vaulted over, not smashed; near-free for movement.
 		has_obstacle = TRUE
-	return has_obstacle ? "3" : "0"
+	if(has_obstacle)
+		return "3"
+	return has_border ? "4" : "0"
 
 /**
  * Re-reads one turf's walkability and queues the delta for the native grid.
@@ -128,18 +174,19 @@ SUBSYSTEM_DEF(xeno_pathfinding)
  * redundantly - a delta that doesn't actually change the cell is harmless
  * on the native side.
  *
- * turf_cell_code() can return "3" (a breakable obstacle - window/girder),
- * matching the Rust side's own CELL_OBSTACLE code - the mapping below must
- * produce it too, or a window/girder placed or revealed mid-round (e.g. a
- * wall demolished down to a girder) syncs into the native grid as a
- * zero-cost open tile instead of the intended higher STEP_COST_OBSTACLE,
+ * turf_cell_code() can return "3" (a breakable obstacle - window/girder) or
+ * "4" (an ON_BORDER structure - platform/barricade/flipped table), matching
+ * the Rust side's own CELL_OBSTACLE/CELL_BORDER codes - the mapping below
+ * must produce both, or a structure placed or revealed mid-round (e.g. a
+ * wall demolished down to a girder, or a barricade dropped) syncs into the
+ * native grid as a zero-cost open tile instead of its intended cost,
  * degrading route quality without erroring.
  */
 /datum/controller/subsystem/xeno_pathfinding/proc/push_delta(turf/changed)
 	if(!available || !changed)
 		return
 	var/code_char = turf_cell_code(changed)
-	var/code = (code_char == "1") ? 1 : ((code_char == "2") ? 2 : ((code_char == "3") ? 3 : 0))
+	var/code = (code_char == "1") ? 1 : ((code_char == "2") ? 2 : ((code_char == "3") ? 3 : ((code_char == "4") ? 4 : 0)))
 	pending_deltas += "[changed.z],[changed.x],[changed.y],[code]"
 	if(length(pending_deltas) >= XENO_PATHFIND_DELTA_FLUSH_AT)
 		flush_deltas()

@@ -105,13 +105,13 @@
 		log_debug("SSxeno_pathfinding: native call to [func_name] failed - [error]")
 	__xeno_pathfind_persistent_checked = TRUE
 
-/// Bulk-loads one z-level's walkability. z_desc is "z,width,height"; packed_cells is width*height chars of '0' open / '1' blocked / '2' closed door, row-major from tile (1,1). Returns "ok" or "".
+/// Bulk-loads one z-level's walkability. z_desc is "z,width,height"; packed_cells is width*height chars of '0' open / '1' blocked / '2' closed door / '3' breakable obstacle / '4' ON_BORDER structure, row-major from tile (1,1). Returns "ok" or "".
 /proc/rust_xeno_pathfind_init_z(z_desc, packed_cells)
 	if(!z_desc || !packed_cells)
 		return ""
 	return __xeno_pathfind_persistent_call("xeno_pathfind_init_z", z_desc, packed_cells)
 
-/// Applies batched cell deltas: ';'-separated "z,x,y,c" entries (c: 0 open / 1 blocked / 2 door / 3 breakable obstacle). Unknown z / malformed entries are skipped individually.
+/// Applies batched cell deltas: ';'-separated "z,x,y,c" entries (c: 0 open / 1 blocked / 2 door / 3 breakable obstacle / 4 ON_BORDER structure). Unknown z / malformed entries are skipped individually.
 /proc/rust_xeno_pathfind_update(deltas)
 	if(!deltas)
 		return ""

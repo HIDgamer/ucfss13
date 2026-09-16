@@ -423,6 +423,13 @@
 		return FALSE
 	if(target.maxHealth && target.health <= target.maxHealth * AI_QUEEN_MELEE_TARGET_HEALTH_PERCENT)
 		return TRUE
+	// An immature Queen (Queen.dm's mobile_aged_abilities, granted only after
+	// XENO_QUEEN_AGE_TIME) has no ranged spit at all - staying at range to
+	// "soften up" a group she can't actually hit from range just means
+	// backing away dealing zero damage. The spit-and-kite tradeoff below only
+	// earns its keep once she can actually spit.
+	if(!get_ability(/datum/action/xeno_action/activable/xeno_spit/queen_macro))
+		return TRUE
 	var/nearby_hostiles = 0
 	for(var/mob/living/nearby in orange(AI_QUEEN_GROUP_SCREECH_RADIUS, target))
 		if(nearby == target || !is_valid_target(nearby))

@@ -30,8 +30,6 @@
 #define AI_XENO_DEFAULT_ATTACK_DISTANCE 10
 /// Default leash radius (tiles) from anchor_turf before an AI xeno disengages and returns.
 #define AI_XENO_DEFAULT_RETURN_DISTANCE 15
-/// How far the pilot can drift from where process_target()'s scan rectangle was last centered before it's considered stale and recomputed - keeps the scan following her as she patrols/wanders instead of staying pinned to wherever she happened to be during her last unsuccessful scan.
-#define AI_XENO_TARGET_SCAN_REFRESH_DISTANCE 3
 /// Per-swing cooldown the AI's plain melee is held to (execute_attack()'s plain-melee branch, xeno_ai_attack.dm) - attack_alien() itself never sets this, only click_adjacent()'s own `next_move += 4` does, and only for a real player's click. 4 is the bare code-permitted floor though (2.5 attacks/sec sustained), far faster than a real player's actual click cadence in practice (aiming, reacting, missing a click here and there) - "no click delay... can melt a player to death with just slashing" was this AI attacking at that literal floor nonstop, which no human sustains. Set higher to read as a real melee pace instead of the theoretical maximum.
 #define XENO_MELEE_ATTACK_DELAY 8
 /// Percent chance a plain melee swing against a human uses INTENT_DISARM (a real tackle attempt, can knock down) instead of INTENT_HARM (plain claw damage).
@@ -181,8 +179,8 @@
 #define AI_KING_ESCORT_RADIUS 7
 /// Sisters required at King's side before he marches on a distant target.
 #define AI_KING_ESCORT_MIN 2
-/// Distance within which the Queen always defends herself regardless of hive strength.
-#define AI_QUEEN_SELF_DEFENSE_RANGE 8
+/// Distance within which the Queen always defends herself regardless of hive strength. Close to AI_QUEEN_ATTACK_DISTANCE (18) rather than a small fraction of it - she can see a threat out to her full scan range, and leaving a wide gap between "can see it" and "will defend against it" read live as "refuses to get aggressive at all," letting a squad shoot her unanswered from just past this range until she'd already taken damage or they closed to point-blank. A couple of tiles under the scan range still leaves the hive-strength check (hive_strong_enough_to_attack()) meaningful for the extreme edge of her vision.
+#define AI_QUEEN_SELF_DEFENSE_RANGE 16
 /// Radius the Queen checks for an escort before marching to a distant fight.
 #define AI_QUEEN_ATTACK_ESCORT_RADIUS 7
 /// Daughters required at the Queen's side before she leaves the hive to attack.
@@ -524,6 +522,8 @@
 #define AI_FOCUS_TARGET_MIN_PRIORITY AI_PRIORITY_HIGH
 /// How long hive_status.dm's focus_target stays live before going stale - short and tactical (a specific fight right now), unlike the much longer AI_XENO_HIVE_ALERT_WINDOW summons.
 #define AI_FOCUS_TARGET_WINDOW 8 SECONDS
+/// Fraction of the nearest valid target's distance process_target() also considers "close enough to tie" and picks randomly among - purely cosmetic (every one of them gets found/fought eventually either way), just avoids always beelining the single literal-closest target, which reads as robotic against a real cluster. Matches cmss13-pve's own get_target() (a random pick within ~20% of the nearest distance).
+#define AI_TARGET_NEAR_TIE_MARGIN 0.20
 /// Tiles broadcast_local_retaliation() pushes a fresh attacker to nearby idle hivemates within - tight and immediate, an ambush a few steps away should be noticed at once, not the whole hive.
 #define AI_LOCAL_RETALIATION_RADIUS 5
 /// How long hive_status.dm's boss_under_attack stays live before going stale - short and tactical, same reasoning as AI_FOCUS_TARGET_WINDOW.
