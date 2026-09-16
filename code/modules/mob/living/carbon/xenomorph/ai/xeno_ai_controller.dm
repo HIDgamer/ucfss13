@@ -15,10 +15,6 @@
 	var/atom/movable/current_target
 	/// Turf the pilot leashes to; wandering more than return_distance from this turf aborts the chase.
 	var/turf/anchor_turf
-	/// Cached bounded turf list from the last scan; reused across idle ticks until a target is found or the pilot moves on.
-	var/list/turf_block
-	/// Turf the pilot was standing on when turf_block was last computed - see process_target()'s staleness check.
-	var/turf/turf_block_origin
 	var/ai_state = AI_STATE_IDLE
 	/// Ticks slept between loop iterations while actively engaged (chasing/attacking).
 	var/ai_heartbeat = AI_XENO_DEFAULT_HEARTBEAT
@@ -70,6 +66,8 @@
 	var/next_replan_time = 0
 	/// Consecutive compute_path_global()/compute_path() failures against the current goal - see compute_path()'s doc comment on margin escalation. Reset on any successful solve and whenever the goal itself changes (acquire_target()/drop_target()), so a fresh target never inherits a stale streak from whatever was being chased before.
 	var/path_fail_streak = 0
+	/// The specific path-queue waypoint advance_along_path() just failed to step into this tick, if any - set right before it nulls path_queue on a failed step. Consumed and cleared unconditionally by the very next handle_travel_obstacles() call (always the next statement travel_to() executes, same tick), so obstacle-forcing targets the tile movement itself actually tried and failed on instead of a beeline to the far ultimate goal - once a route curves around something, those can point in completely different directions, and computing candidates against the distant goal can miss the real obstacle or commit to an unrelated one.
+	var/turf/route_block_turf
 	/// Debug-only path visualization markers currently shown to admins - see update_debug_path_visual() (xeno_ai_movement.dm). Null whenever GLOB.ai_debug_pathing is off or path_queue is empty.
 	var/list/image/debug_path_images
 	/// Obstacle (wall/structure) currently committed to smashing through - see attack_blocking_obstacle()/get_blocking_obstacle(). Keeps a target shifting behind cover from making a different obstacle line up as "the" blocking one every tick, abandoning whatever damage was already dealt to the old one.
@@ -226,7 +224,6 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	pilot = null
 	current_target = null
 	anchor_turf = null
-	turf_block = null
 	path_queue = null
 	path_goal = null
 	clear_debug_path_visual()
@@ -2158,23 +2155,58 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	return count
 
 /**
- * Bounded, cached target scan. Only recomputes the block() rectangle when there is
- * no cached one to reuse, or the pilot has drifted far enough from where it was
- * last centered - deliberately avoids re-scanning the map every idle tick.
- * Picks the NEAREST valid candidate found in the block (marines or active
- * sentry turrets - see is_valid_target()), not just the first one encountered
- * in scan order, so targeting doesn't depend on incidental turf iteration
- * order.
+ * Shared "everything that could possibly be a valid target for some AI xeno
+ * right now" candidate pool (living humans, living xenomorphs of any hive,
+ * active sentry turrets, vehicles) - refreshed at most once every
+ * AI_HIVE_SCAN_CACHE_INTERVAL and reused by every AI controller's
+ * process_target() call within that window, instead of each one
+ * independently walking every turf within its own scan radius to discover
+ * the same handful of candidates from scratch. Same diagnosis as
+ * hive_status.dm's get_cached_ai_roster() ("AI xenos get sluggish as the
+ * round goes on"/lag with many concurrent AI xenos) - applied here to the
+ * other expensive per-mob scan in this file: with N AI xenos near the same
+ * fight all independently re-deriving "who's actually nearby" by walking
+ * every turf in a large square region, the aggregate cost scales with both
+ * population and scan area. Each caller still applies its own
+ * is_valid_target()/distance filtering to this shared pool - this only
+ * replaces how candidates are discovered, not the validity or priority
+ * logic itself, so hive/ally/tier/cooldown rules are unaffected.
+ */
+GLOBAL_LIST_EMPTY(ai_target_candidate_pool)
+GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
+
+/datum/xeno_ai_controller/proc/get_cached_target_candidates()
+	if(world.time >= GLOB.ai_target_candidate_pool_time + AI_HIVE_SCAN_CACHE_INTERVAL)
+		var/list/pool = list()
+		for(var/mob/living/living_candidate as anything in GLOB.alive_mob_list)
+			if(ishuman(living_candidate) || isxeno(living_candidate))
+				pool += living_candidate
+		for(var/obj/structure/machinery/defenses/sentry/turret in world)
+			pool += turret
+		for(var/obj/vehicle/multitile/vehicle as anything in GLOB.all_multi_vehicles)
+			pool += vehicle
+		GLOB.ai_target_candidate_pool = pool
+		GLOB.ai_target_candidate_pool_time = world.time
+	return GLOB.ai_target_candidate_pool
+
+/**
+ * Target scan against the shared candidate pool above (get_cached_target_candidates()),
+ * bounded to attack_distance and filtered by is_valid_target(), picking the
+ * NEAREST valid candidate rather than just the first one encountered so
+ * targeting doesn't depend on incidental list order.
  *
- * "Many times the AI is just not locking onto enemies for no reason at all" -
- * the staleness check against turf_block_origin is what actually makes that
- * "or the pilot moves on" true. Without it (the previous behavior), a scan
- * that found nobody left turf_block sitting there forever, centered on
- * wherever she happened to be at that one moment - as she patrolled/wandered
- * off, every later process_target() call kept re-scanning that same stale,
- * now-distant rectangle instead of the area she was actually standing in,
- * so a marine right next to her could go completely unnoticed until she
- * wandered back near the original scan point by coincidence.
+ * Used to walk every turf in a block() rectangle around the pilot to discover
+ * candidates, cached per-mob with its own staleness check against how far the
+ * pilot had drifted since the last scan ("Many times the AI is just not
+ * locking onto enemies for no reason at all" was traced to exactly that
+ * staleness handling once, see the git history on this proc if that class of
+ * bug ever resurfaces). Replaced with a distance check against the shared
+ * pool instead: get_dist() between same-z turfs is the max(dx,dy) distance,
+ * which is exactly the region a square block() of this same radius would
+ * have bounded to, so this covers the identical search area at a fraction of
+ * the cost - no per-mob turf enumeration or staleness tracking needed at all
+ * once the expensive part (discovering candidates) is a shared, already-cheap
+ * list instead of a fresh map walk.
  */
 /datum/xeno_ai_controller/proc/process_target()
 	if(!pilot)
@@ -2193,46 +2225,19 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		acquire_target(shared_focus, "focus")
 		return
 
-	if(!turf_block || !length(turf_block) || !turf_block_origin || get_dist(pilot_turf, turf_block_origin) > AI_XENO_TARGET_SCAN_REFRESH_DISTANCE)
-		var/scaled_attack_distance = round(attack_distance * GLOB.ai_distance_multiplier)
-		turf_block = block(
-			locate(max(1, pilot_turf.x - scaled_attack_distance), max(1, pilot_turf.y - scaled_attack_distance), pilot_turf.z),
-			locate(min(world.maxx, pilot_turf.x + scaled_attack_distance), min(world.maxy, pilot_turf.y + scaled_attack_distance), pilot_turf.z),
-		)
-		turf_block_origin = pilot_turf
-
-	// Targeted scans (mobs, sentries, and - Tier 2+ only - vehicles) rather
-	// than one broad atom/movable scan - keeps this to a cheap candidate
-	// set instead of walking every item/decal/effect on every scanned turf.
-	// "Vehicles or multitile entities should be attacked by larger T2 and
-	// T3 aliens" - the vehicle scan is skipped outright for Tier 1 castes
-	// (is_valid_target() would reject them anyway), so a Runner/Drone-scale
-	// population doesn't pay for a scan that can never match anything.
+	var/scaled_attack_distance = round(attack_distance * GLOB.ai_distance_multiplier)
 	var/atom/movable/best_candidate
 	var/best_dist = INFINITY
-	for(var/turf/scanned_turf as anything in turf_block)
-		for(var/mob/living/candidate in scanned_turf)
-			if(!is_valid_target(candidate))
-				continue
-			var/dist = get_dist(pilot, candidate)
-			if(dist < best_dist)
-				best_dist = dist
-				best_candidate = candidate
-		for(var/obj/structure/machinery/defenses/sentry/candidate in scanned_turf)
-			if(!is_valid_target(candidate))
-				continue
-			var/dist = get_dist(pilot, candidate)
-			if(dist < best_dist)
-				best_dist = dist
-				best_candidate = candidate
-		if(pilot.tier >= 2)
-			for(var/obj/vehicle/candidate in scanned_turf)
-				if(!is_valid_target(candidate))
-					continue
-				var/dist = get_dist(pilot, candidate)
-				if(dist < best_dist)
-					best_dist = dist
-					best_candidate = candidate
+	for(var/atom/movable/candidate as anything in get_cached_target_candidates())
+		if(candidate == pilot || candidate.z != pilot_turf.z)
+			continue
+		var/dist = get_dist(pilot, candidate)
+		if(dist > scaled_attack_distance || dist >= best_dist)
+			continue // Cheaper than is_valid_target() - worth checking distance first.
+		if(!is_valid_target(candidate))
+			continue
+		best_dist = dist
+		best_candidate = candidate
 
 	if(!best_candidate)
 		return
@@ -2410,7 +2415,6 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		log_debug("XENO AI TARGET ACQUIRED: [pilot] ([pilot.type]) acquired [target] ([reason]) at [get_turf(target)] - [get_ai_debug_snapshot()]")
 	current_target = target
 	note_last_seen(get_turf(target), target)
-	turf_block = null
 	blocked_attempts = 0
 	last_progress_distance = null
 	no_progress_ticks = 0
@@ -2726,7 +2730,6 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	// updated individually.
 	clear_player_order()
 	current_target = null
-	turf_block = null
 	blocked_attempts = 0
 	path_queue = null
 	path_goal = null

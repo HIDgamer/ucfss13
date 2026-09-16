@@ -1,0 +1,80 @@
+name: rust-g
+on:
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - master
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-pc-windows-msvc
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Clippy (all features)
+        run: cargo clippy --target i686-pc-windows-msvc --features all --locked -- -D warnings
+
+      - name: Rustfmt
+        run: cargo fmt -- --check
+
+      - name: Build (release) (default features)
+        run: cargo build --target i686-pc-windows-msvc --locked --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Windows Build
+          path: |
+            target/i686-pc-windows-msvc/release/rust_g.dll
+            target/i686-pc-windows-msvc/release/rust_g.pdb
+            target/rust_g.dm
+
+  build-linux:
+    runs-on: ubuntu-latest
+    env:
+      BYOND_MAJOR: 515
+      BYOND_MINOR: 1636
+      PKG_CONFIG_ALLOW_CROSS: 1
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386
+          ./scripts/install_byond.sh
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: i686-unknown-linux-gnu
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Check (all features)
+        run: cargo check --target i686-unknown-linux-gnu --locked --features all
+
+      - name: Build (Debug) (all features)
+        run: cargo build --target i686-unknown-linux-gnu --locked --features all
+
+      - name: Run tests (all features)
+        run: cargo test --target i686-unknown-linux-gnu --locked --features all
+        env:
+          BYOND_BIN: /home/runner/BYOND/byond/bin
+
+      - name: Build (release) (default features)
+        run: cargo build --target i686-unknown-linux-gnu --locked --release
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Linux Build
+          path: |
+            target/i686-unknown-linux-gnu/release/librust_g.so
+            target/rust_g.dm

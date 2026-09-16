@@ -62,7 +62,16 @@
  * (navigate_around()) as the last resort.
  */
 /datum/xeno_ai_controller/proc/handle_travel_obstacles(atom/goal, travel_flags)
-	var/obj/structure/climbable_obstacle = get_climbable_obstacle(goal)
+	// A routed step that just failed points every check below at the actual
+	// blocked waypoint instead of the far ultimate goal - see
+	// route_block_turf's doc comment. Consumed and cleared unconditionally
+	// here (not just when set) so a stale value can never survive into a
+	// later, unrelated call; falls back to goal when this is a direct-step
+	// failure that never went through advance_along_path() at all.
+	var/atom/obstacle_goal = route_block_turf || goal
+	route_block_turf = null
+
+	var/obj/structure/climbable_obstacle = get_climbable_obstacle(obstacle_goal)
 	if(climbable_obstacle)
 		if((travel_flags & TRAVEL_FLAG_FORCE_OBSTACLES) && should_smash_instead_of_climb(climbable_obstacle))
 			attack_blocking_obstacle(climbable_obstacle)
@@ -74,18 +83,18 @@
 		// time; open ground immediately beside the obstacle is a free
 		// alternative navigate_around() (below) will actually take, so it's
 		// only worth vaulting when there's nowhere cheaper to step instead.
-		if(!has_open_detour(get_dir(pilot, goal)) && attempt_climb_obstacle(climbable_obstacle))
+		if(!has_open_detour(get_dir(pilot, obstacle_goal)) && attempt_climb_obstacle(climbable_obstacle))
 			return TRUE
 
 	if(travel_flags & TRAVEL_FLAG_FORCE_OBSTACLES)
-		var/atom/blocking_obstacle = get_blocking_obstacle(goal)
+		var/atom/blocking_obstacle = get_blocking_obstacle(obstacle_goal)
 		if(blocking_obstacle)
 			if((travel_flags & TRAVEL_FLAG_COVER_CHECK) && current_target && is_direct_approach_too_risky(blocking_obstacle, current_target) && retreat_to_cover(current_target))
 				return TRUE
 			attack_blocking_obstacle(blocking_obstacle)
 			return TRUE
 
-	return navigate_around(goal)
+	return navigate_around(obstacle_goal)
 
 /datum/xeno_ai_controller/proc/process_movement()
 	if(!pilot || !current_target)
@@ -763,6 +772,7 @@
 
 	var/turf/next_step = path_queue[1]
 	if(!cardinal_step_towards(next_step))
+		route_block_turf = next_step // See its doc comment - handle_travel_obstacles() picks this up next, in place of the far goal.
 		path_queue = null // Plan is stale - let this tick fall back to greedy/obstacle handling, replan next tick.
 		return FALSE
 
@@ -882,6 +892,20 @@
 		for(var/x in min_x to max_x)
 			var/turf/T = locate(x, y, pilot_turf.z)
 			var/tile_blocked = (T && T.density)
+			// A dense, unslashable, non-climbable, non-border structure (blast
+			// doors/shutters) is a real hard block, not just an "obstacle" -
+			// get_blocking_obstacle() (this same file) never forces one open,
+			// so a route planned straight at one leaves the AI standing there
+			// with nothing left to do but blindly sidestep, ignoring a real
+			// detour a few tiles over. Mirrors turf_cell_code()'s identical
+			// fix on the persistent native grid (xeno_pathfinding.dm) - same
+			// diagnosis, same treatment, for hosts falling back to this
+			// bounded solver.
+			if(!tile_blocked && T)
+				for(var/obj/structure/blocker in T)
+					if(blocker.density && blocker.unslashable && !blocker.climbable && !(blocker.flags_atom & ON_BORDER))
+						tile_blocked = TRUE
+						break
 			// Fire is walkable, not a wall - so it isn't blocked outright, but
 			// it's treated as blocked for routing purposes so the solver
 			// prefers a route around it. Never blocks the pilot's own tile or
@@ -1419,15 +1443,14 @@
  * as a player would.
  */
 /**
- * Cheap one-tile lookahead shared by get_blocking_obstacle() (walls only) and travel_to()'s
- * climb branch: is there open ground immediately beside the blocked direction? Checks the
- * same two perpendicular directions navigate_around()'s own sidestep fallback would try
- * (turn(blocked_dir, ±90)) - doesn't move the pilot, just answers "would a sidestep actually
- * go somewhere right now," using the same density/climbable-structure check
- * find_charge_lane() already uses for its own lane-clearing scan. "Which is faster, going
- * around or smashing a wall" / "is climbing a table worth it" both come down to this: if a
- * free tile is sitting right beside the obstacle, take it instead of paying to break through
- * or vault it.
+ * Cheap one-tile lookahead shared by get_blocking_obstacle() (walls, other structures, and
+ * vehicles alike) and travel_to()'s climb branch: is there open ground immediately beside the
+ * blocked direction? Checks the same two perpendicular directions navigate_around()'s own
+ * sidestep fallback would try (turn(blocked_dir, ±90)) - doesn't move the pilot, just answers
+ * "would a sidestep actually go somewhere right now," using the same density/climbable-structure
+ * check find_charge_lane() already uses for its own lane-clearing scan. "Which is faster, going
+ * around or smashing it" / "is climbing a table worth it" both come down to this: if a free tile
+ * is sitting right beside the obstacle, take it instead of paying to break through or vault it.
  */
 /datum/xeno_ai_controller/proc/has_open_detour(blocked_dir)
 	if(!pilot || !blocked_dir)
@@ -1471,7 +1494,9 @@
 
 	var/obj/structure/door_candidate
 	var/obj/structure/other_candidate
+	var/other_candidate_dir
 	var/atom/vehicle_candidate
+	var/vehicle_candidate_dir
 	var/turf/closed/wall/wall_candidate
 	var/wall_candidate_dir
 
@@ -1486,8 +1511,9 @@
 				continue
 			if(istype(blocking_obstacle, /obj/structure/machinery/door) || istype(blocking_obstacle, /obj/structure/mineral_door))
 				door_candidate = door_candidate || blocking_obstacle
-			else
-				other_candidate = other_candidate || blocking_obstacle
+			else if(!other_candidate)
+				other_candidate = blocking_obstacle
+				other_candidate_dir = candidate_dir
 		// /obj/vehicle is a sibling of /obj/structure, not a subtype - the loop
 		// above never matches one, so a parked vehicle directly in the way was
 		// invisible to this whole obstacle-forcing chain regardless of caste.
@@ -1495,6 +1521,7 @@
 			for(var/obj/vehicle/blocking_vehicle in next_turf)
 				if(blocking_vehicle.density)
 					vehicle_candidate = blocking_vehicle
+					vehicle_candidate_dir = candidate_dir
 					break
 		// Mirrors walls.dm's own attack_alien() gates exactly, so this never
 		// commits to a wall whose attack would silently no-op (the base
@@ -1531,14 +1558,20 @@
 	// before opening a fresh hole in a wall/window on the other candidate.
 	if(door_candidate)
 		return commit_to_obstacle(door_candidate)
-	if(other_candidate)
+	// "Which is faster, going around or smashing it" - windows, crates,
+	// machinery and other non-climbable structures (other_candidate) and
+	// parked vehicles used to commit unconditionally here, the only branch
+	// below that didn't get the wall_candidate side-check. That's what let a
+	// pilot start clawing a window with a marine visible right past it while
+	// a completely free tile sat one step to the side - reported live as
+	// "attacks windows/crates instead of the player." Same detour check
+	// walls already get, applied the same way.
+	if(other_candidate && !has_open_detour(other_candidate_dir))
 		return commit_to_obstacle(other_candidate)
-	if(vehicle_candidate)
+	if(vehicle_candidate && !has_open_detour(vehicle_candidate_dir))
 		return commit_to_obstacle(vehicle_candidate)
-	// Walls only (doors/vehicles/other structures above are already the
-	// intended route, left unconditional): "which is faster, going around or
-	// smashing a wall" - a wall is only ever the one thing genuinely optional
-	// to force through, so it's the one case worth a cheap side-check first.
+	// Walls only (doors above are already the intended route, left
+	// unconditional): "which is faster, going around or smashing a wall."
 	if(wall_candidate && !has_open_detour(wall_candidate_dir))
 		return commit_to_obstacle(wall_candidate)
 	return null
