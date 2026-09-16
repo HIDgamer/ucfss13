@@ -275,7 +275,13 @@
 		throwing = FALSE
 		return
 
-	if (pounceAction.can_be_shield_blocked)
+	// pounceAction can actually be null here despite the "only called back by a mob
+	// that has pounce" assumption above - the callback fires when a thrown mob lands,
+	// which can be well after the throw started, and the pilot can lose the pounce
+	// action in between (died, evolved, caste/ability changed mid-throw). Live-diagnosed
+	// as a real runtime ("Cannot read null.can_be_shield_blocked") hitting AI-piloted
+	// xenos, which call abilities directly rather than through the normal click gate.
+	if (pounceAction?.can_be_shield_blocked)
 		if(ishuman(M) && (M.dir in reverse_nearby_direction(dir)))
 			var/mob/living/carbon/human/H = M
 			if(H.check_shields(15, "the pounce")) //Human shield block.

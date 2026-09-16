@@ -106,6 +106,17 @@
 
 	note_last_seen(get_turf(current_target), current_target)
 
+	// Opportunistic, same as wander()/return_to_anchor() - see get_flee_threshold()'s
+	// neighbor should_flee()/step_away_from_target() doc comment on why fire alone
+	// doesn't force a flee or drop a winnable fight. This is specifically the
+	// APPROACHING case those two didn't cover: closing distance on a target still
+	// isn't "actively swinging" (that's AI_STATE_ATTACKING, handled separately and
+	// deliberately left alone), so there's no attack window being sacrificed here -
+	// only burning the whole way there for no reason. "They don't put themselves
+	// out" live-reported specifically for xenos mid-chase, not mid-fight.
+	if(pilot.on_fire && pilot.can_resist())
+		pilot.resist()
+
 	if(get_dist(pilot, current_target) <= 1 && pilot.Adjacent(current_target))
 		ai_state = AI_STATE_ATTACKING
 		blocked_attempts = 0
@@ -863,6 +874,9 @@
  * common case (most replans succeed well within it) stays cheap; the
  * escalated case is already rare and throttled by PATH_RETRY_COOLDOWN.
  */
+/// One-shot-per-round latch for compute_path()'s own diagnostic below - see its doc comment.
+GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
+
 /datum/xeno_ai_controller/proc/compute_path(turf/goal_turf)
 	var/turf/pilot_turf = get_turf(pilot)
 	if(!pilot_turf || !goal_turf || pilot_turf.z != goal_turf.z)
@@ -926,6 +940,19 @@
 
 	var/result = rust_xeno_pathfind(grid_desc, blocked_map)
 	if(!result || !length(result))
+		// One-shot diagnostic, not per-failure - this proc runs on essentially
+		// every replan while the persistent grid is unavailable, so logging
+		// every miss would flood the log. rust_xeno_pathfind() itself only
+		// logs on a thrown exception (__xeno_pathfind.dm) - a call that
+		// returns cleanly but empty (e.g. the native side rejected the grid
+		// for some reason short of throwing) is otherwise completely silent,
+		// which was true of xeno_pathfind_init_z() too until load_z_level()
+		// got the same treatment - see that proc's doc comment for the
+		// matching persistent-grid symptom this is checking whether the
+		// bounded solver shares.
+		if(!GLOB.xeno_pathfind_bounded_failure_logged)
+			GLOB.xeno_pathfind_bounded_failure_logged = TRUE
+			log_debug("SSxeno_pathfinding: rust_xeno_pathfind() (bounded solver) returned [result ? "\"[result]\"" : "null/empty"] for grid_desc=[grid_desc], blocked_map length=[length(blocked_map)] - falling back to greedy movement. Logged once per round.")
 		return null
 
 	var/list/waypoints = list()

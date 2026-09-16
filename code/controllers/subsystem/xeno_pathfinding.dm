@@ -82,7 +82,24 @@ SUBSYSTEM_DEF(xeno_pathfinding)
 	for(var/y in 1 to world.maxy)
 		for(var/x in 1 to world.maxx)
 			var/turf/scanned = locate(x, y, z)
-			cells += turf_cell_code(scanned)
+			var/code = turf_cell_code(scanned)
+			// Belt-and-suspenders against turf_cell_code() ever returning
+			// something outside the single-character '0'-'4' set the native
+			// side accepts - the Rust decoder rejects the *entire* payload on
+			// the first unrecognized byte (see xeno_pathfind_init_z's own
+			// validation), so one bad turf silently fails the whole z-level
+			// with no indication of which turf or byte was the culprit. This
+			// was live-diagnosed as exactly this failure mode (every z-level
+			// on a real round returning "" with a byte-for-byte-correct
+			// length) without ever pinning down the actual bad turf, because
+			// nothing logged what the bad code/turf actually was - only that
+			// the aggregate call failed. Logs the one-shot detail then keeps
+			// going with a safe fallback code so this doesn't also block
+			// every other turf's data from loading.
+			if(length(code) != 1 || !(code in list("0", "1", "2", "3", "4")))
+				log_debug("SSxeno_pathfinding: turf_cell_code() returned invalid code [code ? "\"[code]\"" : "null"] for turf ([x],[y],[z]) ([scanned ? "[scanned.type]" : "null turf"]) - substituting \"1\" (blocked) and continuing.")
+				code = "1"
+			cells += code
 		CHECK_TICK
 	var/result = rust_xeno_pathfind_init_z("[z],[world.maxx],[world.maxy]", cells.Join(""))
 	// "Failed to load z-level N" with no further detail was already fixed

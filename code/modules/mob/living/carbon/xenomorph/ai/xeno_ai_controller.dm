@@ -2881,6 +2881,12 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 		ai_state = AI_STATE_IDLE
 		return
 
+	// Opportunistic, same reasoning as process_movement()'s identical check - not
+	// actively swinging while searching for a lost target, so no attack window is
+	// sacrificed by pausing to resist().
+	if(pilot.on_fire && pilot.can_resist())
+		pilot.resist()
+
 	if(world.time - search_started_at > AI_XENO_SEARCH_TIMEOUT)
 		if(GLOB.ai_debug_pathing)
 			log_debug("XENO AI SEARCH TIMEOUT: [pilot] ([pilot.type]) gave up searching near ([last_seen_turf.x],[last_seen_turf.y]) - [get_ai_debug_snapshot()]")
