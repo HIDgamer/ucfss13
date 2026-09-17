@@ -28,12 +28,9 @@
 	src.updateDialog()
 
 /obj/structure/machinery/embedded_controller/attack_remote(mob/user as mob)
-	src.ui_interact(user)
+	return
 
 /obj/structure/machinery/embedded_controller/attack_hand(mob/user as mob)
-	src.ui_interact(user)
-
-/obj/structure/machinery/embedded_controller/ui_interact()
 	return
 
 /obj/structure/machinery/embedded_controller/radio

@@ -13,17 +13,6 @@
  * Text sanitization
  */
 
-//Simply removes < and > and limits the length of the message
-/proc/strip_html_simple(t, limit=MAX_MESSAGE_LEN)
-	var/list/strip_chars = list("<",">")
-	t = copytext(t,1,limit)
-	for(var/char in strip_chars)
-		var/index = findtext(t, char)
-		while(index)
-			t = copytext(t, 1, index) + copytext(t, index+1)
-			index = findtext(t, char)
-	return t
-
 //Removes a few problematic characters
 /proc/sanitize_simple(text, list/repl_chars = list("\n"=" ","\t"=" ","�"=" "))
 	for(var/char in repl_chars)
@@ -56,15 +45,29 @@
 	var/static/regex/whitelistedWords = regex(@{"([^\u0020-\u8000]+)"}, "g")
 	return whitelistedWords.Replace(text, "")
 
-//Runs sanitize and strip_html_simple
-//I believe strip_html_simple() is required to run first to prevent '<' from displaying as '&lt;' after sanitize() calls byond's html_encode()
-/proc/strip_html(text, limit=MAX_MESSAGE_LEN)
-	return copytext((sanitize(strip_html_simple(text))), 1, limit)
+// Empty tag/attribute whitelists - nothing is allowed through, so rustg_sanitize_html
+// strips all markup down to plain text (tags/attributes removed, their inner text kept;
+// script/style tag *content* is always dropped entirely, see sanitize.rs).
+// DM string literals treat [...] as interpolation syntax, so the brackets must be
+// escaped here (\[\]) - an unescaped "[]" silently collapses to an empty string at
+// compile time, which broke rustg_sanitize_html's JSON parsing (confirmed via a boot
+// test: every call failed with the same "expected value at line 1 column 1" error).
+#define RUSTG_SANITIZE_NO_TAGS_ALLOWED "\[\]"
 
-//Runs byond's sanitization proc along-side strip_html_simple
-//I believe strip_html_simple() is required to run first to prevent '<' from displaying as '&lt;' that html_encode() would cause
+// Uses rust-g's real HTML sanitizer (ammonia) instead of hand-rolled bracket-stripping -
+// verified via a local boot-test battery (HTML-injection attempts, literal '<'/'>' in
+// ordinary text, quotes, ampersands) to be at least as safe and generally cleaner output
+// (disallowed tags are fully removed rather than leaving garbled tag-name remnants behind).
+// sanitize_simple() still runs first since rustg_sanitize_html doesn't touch whitespace at
+// all - confirmed empirically, a literal "\n"/"\t" passes straight through unchanged.
+/proc/strip_html(text, limit=MAX_MESSAGE_LEN)
+	text = sanitize_simple(text)
+	return copytext(rustg_sanitize_html(text, RUSTG_SANITIZE_NO_TAGS_ALLOWED, RUSTG_SANITIZE_NO_TAGS_ALLOWED), 1, limit)
+
+//Runs rust-g's HTML sanitizer, same as strip_html() but without sanitize_simple()'s whitespace
+//normalization - matches adminscrub()'s prior scope (it never called sanitize_simple() either).
 /proc/adminscrub(text, limit=MAX_MESSAGE_LEN)
-	return copytext((html_encode(strip_html_simple(text))), 1, limit)
+	return copytext(rustg_sanitize_html(text, RUSTG_SANITIZE_NO_TAGS_ALLOWED, RUSTG_SANITIZE_NO_TAGS_ALLOWED), 1, limit)
 
 //Returns null if there is any bad text in the string
 /proc/reject_bad_text(text, max_length=512)

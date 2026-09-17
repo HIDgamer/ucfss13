@@ -4,6 +4,11 @@
 #define SENTRY_LOW_AMMO_TIMEOUT 20 SECONDS
 #define SENTRY_LOW_AMMO_ALERT_PERCENTAGE 0.25
 
+/// All live sentry turrets (every subtype, registered/unregistered from the base
+/// Initialize()/Destroy()) - lets threat-refresh/target-scan code avoid a full
+/// `for(x in world)` scan just to find turrets.
+GLOBAL_LIST_EMPTY(sentry_turret_list)
+
 /obj/structure/machinery/defenses/sentry
 	name = "\improper UA 571-C sentry gun"
 	icon = 'icons/obj/structures/machinery/defenses/sentry.dmi'
@@ -58,6 +63,7 @@
 
 /obj/structure/machinery/defenses/sentry/Initialize()
 	. = ..()
+	GLOB.sentry_turret_list += src
 	spark_system = new /datum/effect_system/spark_spread
 	spark_system.set_up(5, 0, src)
 	spark_system.attach(src)
@@ -69,6 +75,7 @@
 	RegisterSignal(src, COMSIG_ATOM_TURF_CHANGE, PROC_REF(unset_range))
 
 /obj/structure/machinery/defenses/sentry/Destroy() //Clear these for safety's sake.
+	GLOB.sentry_turret_list -= src
 	SSminimaps.remove_marker(src)
 	targets = null
 	other_targets = null
