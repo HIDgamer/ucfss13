@@ -99,40 +99,52 @@ SUBSYSTEM_DEF(minimaps)
 	var/xmax = 1
 	var/ymax = 1
 
-	for(var/xval = 1 to world.maxx)
-		for(var/yval = 1 to world.maxy) //Scan all the turfs and draw as needed
-			var/turf/location = locate(xval,yval,level)
-			if(location.density)
+	// Scan turfs row-by-row (y outer, x inner) so same-color consecutive tiles on
+	// a row can be merged into a single DrawBox(color, x1, y, x2, y) call instead
+	// of one DrawBox per tile. Bounds tracking is still per-tile.
+	for(var/yval = 1 to world.maxy)
+		var/run_color = null
+		var/run_start = 0
+		for(var/xval = 1 to world.maxx)
+			var/turf/location = locate(xval, yval, level)
+			var/tile_color
+
+			if(!location || location.z != level)
+				tile_color = null
+			else if(location.density)
 				if(!istype(location, /turf/closed/wall/almayer/outer)) // Ignore almayer border
 					xmin = min(xmin, xval)
 					ymin = min(ymin, yval)
 					xmax = max(xmax, xval)
 					ymax = max(ymax, yval)
-				icon_gen.DrawBox(location.minimap_color, xval, yval)
-				continue
-			if(istype(location, /turf/open/space))
-				continue
-			var/atom/movable/alttarget = (locate(/obj/structure/machinery/door) in location) || (locate(/obj/structure/fence) in location)
-			if(alttarget)
-				xmin = min(xmin, xval)
-				ymin = min(ymin, yval)
-				xmax = max(xmax, xval)
-				ymax = max(ymax, yval)
-				icon_gen.DrawBox(alttarget.minimap_color, xval, yval)
-				continue
-			var/area/turfloc = location.loc
-			if(turfloc.minimap_color)
-				xmin = min(xmin, xval)
-				ymin = min(ymin, yval)
-				xmax = max(xmax, xval)
-				ymax = max(ymax, yval)
-				icon_gen.DrawBox(BlendRGB(location.minimap_color, turfloc.minimap_color, 0.5), xval, yval)
-				continue
-			xmin = min(xmin, xval)
-			ymin = min(ymin, yval)
-			xmax = max(xmax, xval)
-			ymax = max(ymax, yval)
-			icon_gen.DrawBox(location.minimap_color, xval, yval)
+				tile_color = location.minimap_color
+			else if(istype(location, /turf/open/space))
+				tile_color = null
+			else
+				var/atom/movable/alttarget = (locate(/obj/structure/machinery/door) in location) || (locate(/obj/structure/fence) in location)
+				if(alttarget)
+					xmin = min(xmin, xval)
+					ymin = min(ymin, yval)
+					xmax = max(xmax, xval)
+					ymax = max(ymax, yval)
+					tile_color = alttarget.minimap_color
+				else
+					var/area/turfloc = location.loc
+					xmin = min(xmin, xval)
+					ymin = min(ymin, yval)
+					xmax = max(xmax, xval)
+					ymax = max(ymax, yval)
+					tile_color = turfloc.minimap_color ? BlendRGB(location.minimap_color, turfloc.minimap_color, 0.5) : location.minimap_color
+
+			if(tile_color == run_color)
+				continue // extend current run; bounds already updated above
+			if(run_color)
+				icon_gen.DrawBox(run_color, run_start, yval, xval - 1, yval)
+			run_color = tile_color
+			run_start = xval
+
+		if(run_color)
+			icon_gen.DrawBox(run_color, run_start, yval, world.maxx, yval)
 	xmin = xmin * MINIMAP_SCALE - 1
 	ymin = ymin * MINIMAP_SCALE - 1
 	xmax = min(xmax * MINIMAP_SCALE, MINIMAP_PIXEL_SIZE)

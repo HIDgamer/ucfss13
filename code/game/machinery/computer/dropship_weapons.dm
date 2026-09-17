@@ -107,7 +107,7 @@
 		weapons.Add(weap)
 	firemission_envelope.update_weapons(weapons)
 
-/obj/structure/machinery/computer/dropship_weapons/ui_interact(mob/user)
+/obj/structure/machinery/computer/dropship_weapons/proc/ui_interact(mob/user)
 	var/obj/docking_port/mobile/marine_dropship/dropship = SSshuttle.getShuttle(shuttle_tag)
 	if(!istype(dropship))
 		return

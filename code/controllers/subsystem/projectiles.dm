@@ -7,7 +7,9 @@ SUBSYSTEM_DEF(projectiles)
 
 	/// List of projectiles handled by the subsystem
 	VAR_PRIVATE/list/obj/projectile/projectiles
-	/// List of projectiles on hold due to sleeping
+	/// Associative set (projectile = TRUE) of projectiles on hold due to sleeping - kept
+	/// associative so building `flying` each tick is an O(1)-lookup skip per projectile
+	/// instead of a full list-subtract every cycle.
 	VAR_PRIVATE/list/obj/projectile/sleepers
 	/// List of projectiles handled this controller firing
 	VAR_PRIVATE/list/obj/projectile/flying
@@ -15,6 +17,13 @@ SUBSYSTEM_DEF(projectiles)
 	VAR_PRIVATE/last_fire_real_time = 0
 	/// Delta time calculated at the start of each fire cycle, shared with resumed continuations
 	VAR_PRIVATE/current_delta_time = 0
+	/// Real elapsed time that couldn't be credited to movement this cycle because a single
+	/// tick's movement is capped (to stop projectiles tunnelling through obstacles during
+	/// extreme lag) - carried forward and paid out on later, less-laggy ticks instead of being
+	/// permanently discarded, so a lag spike delays projectiles rather than costing them
+	/// distance outright. Capped at the same per-tick ceiling so a sustained outage can't
+	/// build up an unbounded catch-up debt.
+	VAR_PRIVATE/banked_delta_time = 0
 
 	/*
 	 * Scheduling notes:
@@ -48,11 +57,25 @@ SUBSYSTEM_DEF(projectiles)
 		var/real_delta = last_fire_real_time ? (real_now - last_fire_real_time) * (1 SECONDS) : normal_delta
 		if(real_delta < 0) // REALTIMEOFDAY midnight rollover guard
 			real_delta = normal_delta
+			banked_delta_time = 0 // stale bank from before the rollover, discard it
 		last_fire_real_time = real_now
-		// Cap at 4x normal tick to prevent bullet teleportation during extreme lag or pauses
-		current_delta_time = clamp(real_delta, normal_delta, normal_delta * 4)
-		flying = projectiles.Copy()
-		flying -= sleepers
+		real_delta = max(real_delta, normal_delta) // never credit less than one nominal tick's worth
+
+		// Cap at 4x normal tick to prevent bullet teleportation during extreme lag or pauses.
+		// Anything beyond that cap is banked (not discarded) and paid out on subsequent ticks
+		// once the lag eases, so a spike delays projectiles rather than permanently costing
+		// them distance - previously the excess was thrown away every single tick, which is
+		// why projectiles used to visibly fall behind ("freeze") during laggy stretches and
+		// never catch back up.
+		var/max_tick_delta = normal_delta * 4
+		var/available_delta_time = banked_delta_time + real_delta
+		current_delta_time = min(available_delta_time, max_tick_delta)
+		banked_delta_time = min(available_delta_time - current_delta_time, max_tick_delta)
+
+		flying = list()
+		for(var/obj/projectile/candidate as anything in projectiles)
+			if(!sleepers[candidate])
+				flying += candidate
 	while(length(flying))
 		var/obj/projectile/projectile = flying[length(flying)]
 		flying.len--
@@ -72,7 +95,7 @@ SUBSYSTEM_DEF(projectiles)
 		log_debug("SSprojectiles: projectile '[projectile.name]' shot by '[projectile.firer]' discarded due to invalid speed.")
 	if(. == PROC_RETURN_SLEEP)
 		log_debug("SSprojectiles: projectile '[projectile.name]' shot by '[projectile.firer]' at ([projectile.x],[projectile.y],[projectile.z]) found sleeping despite all the sleep prevention! Putting on hold.")
-		sleepers += projectile
+		sleepers[projectile] = TRUE
 	else if(.)
 		stop_projectile(projectile) // Ideally this was already done thru process()
 		qdel(projectile)

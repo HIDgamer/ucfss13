@@ -2181,7 +2181,7 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 		for(var/mob/living/living_candidate as anything in GLOB.alive_mob_list)
 			if(ishuman(living_candidate) || isxeno(living_candidate))
 				pool += living_candidate
-		for(var/obj/structure/machinery/defenses/sentry/turret in world)
+		for(var/obj/structure/machinery/defenses/sentry/turret as anything in GLOB.sentry_turret_list)
 			pool += turret
 		for(var/obj/vehicle/multitile/vehicle as anything in GLOB.all_multi_vehicles)
 			pool += vehicle

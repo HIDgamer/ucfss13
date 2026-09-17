@@ -802,11 +802,6 @@ GLOBAL_LIST_EMPTY_TYPED(total_vending_machines, /obj/structure/machinery/vending
 /obj/structure/machinery/vending/proc/release_item(datum/data/vending_product/product, delay_vending = 0, mob/living/carbon/human/user)
 	set waitfor = 0
 
-	//We interact with the UI only if a user is present
-	//(This function can be called with no user if the machine gets blown up / malfunctions)
-	if(user)
-		ui_interact(user)
-
 	if (delay_vending)
 		use_power(vend_power_usage) //actuators and stuff
 		if (icon_vend)
@@ -833,7 +828,6 @@ GLOBAL_LIST_EMPTY_TYPED(total_vending_machines, /obj/structure/machinery/vending
 	if(istype(A, /obj/item))
 		var/obj/item/item = A
 		stock(item, user)
-		ui_interact(user)
 
 /obj/structure/machinery/vending/proc/stock(obj/item/item_to_stock, mob/user)
 	var/datum/data/vending_product/product //Let's try with a new datum.

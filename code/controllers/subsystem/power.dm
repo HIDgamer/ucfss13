@@ -45,12 +45,11 @@ SUBSYSTEM_DEF(power)
 		if (!X || QDELETED(X))
 			continue
 
-		if (istype(X, /obj/structure/machinery))
-			var/obj/structure/machinery/M = X
-			if (M.process() == PROCESS_KILL)
-				//M.inMachineList = FALSE
-				GLOB.power_machines.Remove(M)
-				continue
+		var/obj/structure/machinery/M = X
+		if (M.process() == PROCESS_KILL)
+			//M.inMachineList = FALSE
+			GLOB.power_machines.Remove(M)
+			continue
 
 		if (MC_TICK_CHECK)
 			return

@@ -69,7 +69,7 @@ SUBSYSTEM_DEF(xeno_pathfinding)
  * next couple of cycles - no explicit removal call needed.
  */
 /datum/controller/subsystem/xeno_pathfinding/proc/refresh_turret_threat()
-	for(var/obj/structure/machinery/defenses/sentry/turret in world)
+	for(var/obj/structure/machinery/defenses/sentry/turret as anything in GLOB.sentry_turret_list)
 		if(turret.stat == DEFENSE_DESTROYED || !turret.turned_on)
 			continue
 		var/turf/turret_turf = get_turf(turret)

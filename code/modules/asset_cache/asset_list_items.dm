@@ -138,9 +138,10 @@
 
 /datum/asset/spritesheet/chat
 	name = "chat"
+	use_iconforge = TRUE
 
 /datum/asset/spritesheet/chat/register()
-	InsertAll("emoji", 'icons/emoji.dmi')
+	InsertAllForge("emoji", 'icons/emoji.dmi')
 	// pre-loading all lanugage icons also helps to avoid meta
 /* InsertAll("language", 'icons/misc/language.dmi')
 	// catch languages which are pulling icons from another file
@@ -157,6 +158,10 @@
 	name = "chooseresin"
 
 /datum/asset/spritesheet/choose_resin/register()
+	// NOT migrated to iconforge: 'icons/mob/hud/actions_xeno.dmi' fails to parse in
+	// rust-g's iconforge with the identical "Dmi error: Error loading icon: improper
+	// state found: []" seen on lineart.dmi and hud.dmi - a real, file-specific
+	// incompatibility with the vendored dmi Rust crate, not fixable from DM code.
 	for (var/k in GLOB.resin_constructions_list)
 		var/datum/resin_construction/RC = k
 
@@ -192,6 +197,9 @@
 	name = "playtimerank"
 
 /datum/asset/spritesheet/playtime_rank/register()
+	// NOT migrated to iconforge: 'icons/mob/hud/hud.dmi' fails to parse in rust-g's
+	// iconforge with the same "improper state found: []" error as lineart.dmi and
+	// actions_xeno.dmi - a real, file-specific dmi-crate incompatibility.
 	var/icon_file = 'icons/mob/hud/hud.dmi'
 	var/tier1_state = "hudxenoupgrade2"
 	var/tier2_state = "hudxenoupgrade3"
@@ -223,6 +231,7 @@
 
 /datum/asset/spritesheet/choose_mark
 	name = "choosemark"
+	use_iconforge = TRUE
 
 /datum/asset/spritesheet/choose_mark/register()
 	for (var/k in GLOB.resin_mark_meanings)
@@ -232,7 +241,7 @@
 		var/icon_state = initial(RC.icon_state)
 		var/icon_name = icon_state
 
-		if (sprites[icon_name])
+		if (sprites[icon_name] || iconforge_pending[icon_name])
 			continue
 
 		var/icon_states_list = icon_states(icon_file)
@@ -247,16 +256,15 @@
 			icon_file = 'icons/turf/floors/floors.dmi'
 			icon_state = ""
 
-		var/icon/iconNormal = icon(icon_file, icon_state, SOUTH)
-		Insert(icon_name, iconNormal)
+		InsertForge(icon_name, icon_file, icon_state, SOUTH)
 
-		var/icon/iconBig = icon(icon_file, icon_state, SOUTH)
-		iconBig.Scale(iconNormal.Width()*2, iconNormal.Height()*2)
-		Insert("[icon_name]_big", iconBig)
+		var/icon/probe = icon(icon_file, icon_state, SOUTH) // dimensions only, not composited - cheap
+		InsertForge("[icon_name]_big", icon_file, icon_state, SOUTH, 1, list(iconforge_scale(probe.Width()*2, probe.Height()*2)))
 	return ..()
 
 /datum/asset/spritesheet/ranks
 	name = "squadranks"
+	use_iconforge = TRUE
 
 /datum/asset/spritesheet/ranks/register()
 	var/icon_file = 'icons/mob/hud/marine_hud.dmi'
@@ -278,15 +286,13 @@
 		var/color = squad.equipment_color
 		for(var/iref in icon_data)
 			var/list/iconref = iref
-			var/icon/background = icon('icons/mob/hud/marine_hud.dmi', "hudsquad", SOUTH)
-			background.Blend(color, ICON_MULTIPLY)
+			var/list/transform = list(iconforge_blend_color(color, ICON_MULTIPLY))
 			if(iconref[2])
-				var/icon/squad_icon = icon(icon_file, iconref[2], SOUTH)
-				background.Blend(squad_icon, ICON_OVERLAY)
-			background.Crop(25,25,32,32)
-			background.Scale(16,16)
+				transform += list(iconforge_blend_icon(icon_file, iconref[2], SOUTH, 1, ICON_OVERLAY))
+			transform += list(iconforge_crop(25,25,32,32))
+			transform += list(iconforge_scale(16,16))
 
-			Insert("squad-[squad]-hud-[iconref[1]]", background)
+			InsertForge("squad-[squad]-hud-[iconref[1]]", 'icons/mob/hud/marine_hud.dmi', "hudsquad", SOUTH, 1, transform)
 	return ..()
 
 /datum/asset/spritesheet/vending_products
@@ -373,6 +379,7 @@
 
 /datum/asset/spritesheet/choose_fruit
 	name = "choosefruit"
+	use_iconforge = TRUE
 
 /datum/asset/spritesheet/choose_fruit/register()
 	var/icon_file = 'icons/mob/xenos/fruits.dmi'
@@ -381,7 +388,7 @@
 		var/icon_state = initial(fruit.mature_icon_state)
 		var/icon_name = replacetext(icon_state, " ", "-")
 
-		if (sprites[icon_name])
+		if (sprites[icon_name] || iconforge_pending[icon_name])
 			continue
 
 		if(!(icon_state in icon_states_list))
@@ -395,30 +402,23 @@
 			icon_file = 'icons/turf/floors/floors.dmi'
 			icon_state = ""
 
-		var/icon/iconNormal = icon(icon_file, icon_state, SOUTH)
-		Insert(icon_name, iconNormal)
+		InsertForge(icon_name, icon_file, icon_state, SOUTH)
 
-		var/icon/iconBig = icon(icon_file, icon_state, SOUTH)
-		iconBig.Scale(iconNormal.Width()*2, iconNormal.Height()*2)
-		Insert("[icon_name]_big", iconBig)
+		var/icon/probe = icon(icon_file, icon_state, SOUTH) // dimensions only, not composited - cheap
+		InsertForge("[icon_name]_big", icon_file, icon_state, SOUTH, 1, list(iconforge_scale(probe.Width()*2, probe.Height()*2)))
 	return ..()
 
 /datum/asset/spritesheet/tutorial
 	name = "tutorial"
+	use_iconforge = TRUE
 
 /datum/asset/spritesheet/tutorial/register()
-	for(var/icon_state in icon_states('icons/misc/tutorial.dmi'))
-		var/icon/icon_sprite = icon('icons/misc/tutorial.dmi', icon_state)
-		icon_sprite.Scale(128, 128)
-		Insert(icon_state, icon_sprite)
+	var/icon_file = 'icons/misc/tutorial.dmi'
+	for(var/icon_state in icon_states(icon_file))
+		InsertForge(icon_state, icon_file, icon_state, SOUTH, 1, list(iconforge_scale(128, 128)))
 
-	var/icon/retrieved_icon = icon('icons/mob/hud/human_dark.dmi', "intent_all")
-	retrieved_icon.Scale(128, 128)
-	Insert("intents", retrieved_icon)
-
-	retrieved_icon = icon('icons/mob/xenos/castes/tier_4/predalien.dmi', "Normal Predalien Walking")
-	retrieved_icon.Scale(128, 128)
-	Insert("predalien", retrieved_icon)
+	InsertForge("intents", 'icons/mob/hud/human_dark.dmi', "intent_all", SOUTH, 1, list(iconforge_scale(128, 128)))
+	InsertForge("predalien", 'icons/mob/xenos/castes/tier_4/predalien.dmi', "Normal Predalien Walking", SOUTH, 1, list(iconforge_scale(128, 128)))
 
 	return ..()
 
@@ -427,6 +427,12 @@
 	name = "gunlineart"
 
 /datum/asset/spritesheet/gun_lineart/register()
+	// NOT migrated to iconforge: 'icons/obj/items/weapons/guns/lineart.dmi' fails to
+	// parse in rust-g's iconforge (confirmed via a real boot test - "Dmi error: Error
+	// loading icon: improper state found: []", a Rust dmi-crate-level parse failure on
+	// this specific file, not an empty/blank icon_state name - checked every state name
+	// in the file, none are blank). This is a hard incompatibility with this file's
+	// format, not something fixable from the DM side - stays on the native path.
 	var/icon_file = 'icons/obj/items/weapons/guns/lineart.dmi'
 	InsertAll("", icon_file)
 
@@ -446,9 +452,10 @@
 
 /datum/asset/spritesheet/gun_lineart_modes
 	name = "gunlineartmodes"
+	use_iconforge = TRUE
 
 /datum/asset/spritesheet/gun_lineart_modes/register()
-	InsertAll("", 'icons/obj/items/weapons/guns/lineart_modes.dmi')
+	InsertAllForge("", 'icons/obj/items/weapons/guns/lineart_modes.dmi')
 	..()
 
 /datum/asset/simple/orbit
