@@ -92,6 +92,16 @@
 	var/revive_grace_period = 5 MINUTES //5 minutes
 	var/undefibbable = FALSE //whether the human is dead and past the defibbrillation period.
 
+	/// Composed AI decision-making datum for an NPC-piloted zombie. Null for player-piloted
+	/// humans (including player-piloted zombies) and for humans that aren't zombies at all.
+	/// See code/modules/mob/living/carbon/human/zombie_ai/.
+	var/datum/zombie_ai_controller/zombie_ai_controller
+	/// Cheap TRUE/FALSE mirror of (zombie_ai_controller != null) - mirrors xeno's is_ai_controlled.
+	var/is_zombie_ai_controlled = FALSE
+	/// Sticky flag set once at AI attach time; survives ghost takeover/give-back so only a body
+	/// that started AI-driven ever falls back to AI on disconnect - mirrors xeno's was_ai_spawned.
+	var/was_zombie_ai_spawned = FALSE
+
 	var/holo_card_color = "" //which color type of holocard is printed on us
 	var/holo_card_accuracy = HOLOCARD_ACCURACY_HANDHELD // What placed this holocard on the human
 

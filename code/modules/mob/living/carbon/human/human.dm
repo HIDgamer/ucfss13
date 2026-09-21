@@ -60,6 +60,12 @@
 	GLOB.alive_human_list -= src
 	SShuman.processable_human_list -= src
 
+	// Phase 5 zombie AI safety net - handle_death() (zombie.dm) already detaches on the normal
+	// death path; this only matters for a mob deleted without going through death() first (e.g.
+	// an admin hard-delete). Var check alone is enough gating - null for every non-zombie human.
+	if(zombie_ai_controller)
+		detach_zombie_ai(src)
+
 	QDEL_NULL_LIST(embedded_items)
 	QDEL_LIST_ASSOC_VAL(internal_organs_by_name)
 	QDEL_NULL_LIST(limbs)

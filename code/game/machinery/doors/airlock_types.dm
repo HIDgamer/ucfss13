@@ -263,6 +263,13 @@
 
 /obj/structure/machinery/door/airlock/yautja/secure
 	heavy = TRUE
+	// Not forceable (get_blocking_obstacle() already excludes heavy doors from its door_candidate
+	// bucket) - but without this flag the native pathfinding grid's turf_cell_code() still priced
+	// it as a normal cheap/forceable door, so the AI's own router could confidently route straight
+	// at a door it can never actually open. unslashable makes both sides agree it's a hard block.
+	// (/ancient already had this set individually; setting it here on the shared parent covers
+	// /elder too, which didn't.)
+	unslashable = TRUE
 	req_one_access = list(ACCESS_YAUTJA_SECURE, ACCESS_YAUTJA_ELDER, ACCESS_YAUTJA_ANCIENT)
 
 /obj/structure/machinery/door/airlock/yautja/secure/elder

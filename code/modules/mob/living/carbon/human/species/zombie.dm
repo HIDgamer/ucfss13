@@ -45,6 +45,11 @@
 	zombie.faction = FACTION_ZOMBIE
 	zombie.faction_group = list(FACTION_ZOMBIE)
 
+	var/datum/pass_flags_container/zombie_pass_flags = new()
+	zombie_pass_flags.flags_pass = PASS_MOB_IS_HUMAN|PASS_MOB_IS_ZOMBIE
+	zombie_pass_flags.flags_can_pass_all = PASS_MOB_THRU_HUMAN|PASS_MOB_THRU_ZOMBIE|PASS_AROUND|PASS_HIGH_OVER_ONLY
+	zombie.pass_flags = zombie_pass_flags
+
 	if(zombie.l_hand)
 		zombie.drop_inv_item_on_ground(zombie.l_hand, FALSE, TRUE)
 	if(zombie.r_hand)
@@ -84,6 +89,8 @@
 	var/datum/mob_hud/Hu = GLOB.huds[MOB_HUD_MEDICAL_OBSERVER]
 	Hu.remove_hud_from(zombie, zombie)
 
+	zombie.pass_flags = GLOB.pass_flags_cache[zombie.type] || zombie.pass_flags
+
 
 /datum/species/zombie/handle_unique_behavior(mob/living/carbon/human/zombie)
 	if(prob(5))
@@ -91,8 +98,38 @@
 	else if(prob(5))
 		playsound(zombie.loc, rare_moan, 15, rare_variance)
 
+/**
+ * Phase 5 zombie AI: mirrors xeno's Login()/Logout() hooks
+ * (xenomorph/login.dm) exactly, just routed through the species-callback
+ * hook /mob/living/carbon/human/Login()/Logout() already call
+ * (human/login.dm, human/logout.dm) rather than a raw override on human
+ * itself - a raw override there would run for every human regardless of
+ * species.
+ */
+/datum/species/zombie/handle_login_special(mob/living/carbon/human/H)
+	..()
+	if(H.zombie_ai_controller)
+		detach_zombie_ai(H) // A ghost just claimed this body - hand off cleanly before normal player setup runs.
+
+/datum/species/zombie/handle_logout_special(mob/living/carbon/human/H)
+	..()
+	if(H.was_zombie_ai_spawned && !H.zombie_ai_controller)
+		reattach_zombie_ai_on_disconnect(H) // Falls back to AI control so a body that never had (or already lost) a real player pilot doesn't go idle just because this particular ghost disconnected.
+
 /datum/species/zombie/handle_death(mob/living/carbon/human/zombie, gibbed)
 	set waitfor = FALSE
+
+	// Phase 5 zombie AI: detach immediately at death rather than waiting for eventual Destroy()
+	// (gibbing, or the round ending) - mirrors xeno's own death() override
+	// (xenomorph/death.dm) and its doc comment's exact reasoning: otherwise the dead mob's
+	// controller keeps ticking every heartbeat for nothing (tick() no-ops once stat reads DEAD,
+	// but the coroutine itself still pays its per-heartbeat cost) and the corpse stays counted
+	// against GLOB.ai_zombie_max_pop (zombie_ai_lifecycle.dm) despite doing nothing useful with
+	// that slot. revive_from_death() below re-schedules a fresh grace period on its own if this
+	// body comes back up later, so nothing about a later revive depends on the controller having
+	// stayed attached through death.
+	if(zombie.zombie_ai_controller)
+		detach_zombie_ai(zombie)
 
 	if(gibbed)
 		remove_from_revive(zombie)
@@ -128,6 +165,16 @@
 		remove_from_revive(zombie)
 
 		handle_alert_ghost(zombie)
+		// A zombie coming back to life (as opposed to a fresh infection) has no live original
+		// owner actively deciding whether to reclaim it right now - waiting out the same grace
+		// period a first-time transform uses just leaves it standing idle for no reason. Attach
+		// AI immediately whenever nobody's client is currently attached; a ghost that reenters
+		// later still safely reclaims the body at any point regardless (handle_login_special()
+		// detaches AI unconditionally on login), so this costs a returning player nothing.
+		if(zombie.client)
+			schedule_zombie_ai_grace_period(zombie) // Phase 5 zombie AI - see its own doc comment (zombie_ai_lifecycle.dm).
+		else
+			attach_zombie_ai(zombie)
 
 		addtimer(CALLBACK(zombie, TYPE_PROC_REF(/mob, remove_jittery)), 3 SECONDS)
 

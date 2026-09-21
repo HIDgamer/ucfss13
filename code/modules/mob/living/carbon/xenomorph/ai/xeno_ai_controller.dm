@@ -2443,6 +2443,8 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 	stale_attack_ticks = 0
 	staged_until = 0
 	path_fail_streak = 0
+	committed_obstacle = null
+	committed_obstacle_until = 0
 	ai_state = AI_STATE_APPROACHING
 	pilot.emote("hiss") // Fires exactly once on first contact, not every tick spent chasing - a quiet patrol suddenly noticing prey.
 	if(pilot.resting)
@@ -2758,6 +2760,8 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 	path_fail_streak = 0
 	last_sidestep_dir = null
 	fallback_walk_dir = null
+	committed_obstacle = null
+	committed_obstacle_until = 0
 	if(should_search && last_seen_turf)
 		ai_state = AI_STATE_SEARCHING
 		search_started_at = world.time

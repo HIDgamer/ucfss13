@@ -43,6 +43,8 @@
 #define PASS_HIGH_OVER_ONLY (1<<15) // For atoms that require a high toss to go over it, should only really be using this for flags_can_pass_x vars
 #define PASS_BUILDING_ONLY (1<<16) // For throwing stuff over walls (that lead to open ceilings)
 #define PASS_CRUSHER_CHARGE (1<<17) // For crusher charge specifically
+#define PASS_MOB_IS_ZOMBIE (1<<18) // For if a zombie can pass through something
+#define PASS_MOB_THRU_ZOMBIE (1<<19) // For if something can pass through a zombie - specifically so AI zombies converging on the same target don't block each other in a narrow space the way plain humans do (see zombie.dm's handle_post_spawn())
 
 // Pass flag groups
 #define PASS_OVER (PASS_OVER_THROW_ITEM|PASS_OVER_THROW_MOB|PASS_OVER_FIRE|PASS_OVER_ACID_SPRAY)

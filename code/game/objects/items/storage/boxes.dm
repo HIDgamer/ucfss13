@@ -52,6 +52,21 @@
 	new /obj/item/clothing/mask/breath( src )
 	new /obj/item/tank/emergency_oxygen/engi( src )
 
+/// The full M3 MOPP set, previously only ever spawned directly onto a mob by the CBRN ERT's own equipment presets (gear_presets/cbrn.dm) - no box/kit version existed and it was never purchasable/spawnable as a standalone item.
+/obj/item/storage/box/cbrn_kit
+	name = "CBRN kit box"
+	desc = "A field kit containing a full M3 MOPP set - suit, armor, gloves, boots, and a distress headset - for protection against chemical, biological, radiological, and nuclear hazards."
+	icon = 'icons/obj/items/storage/kits.dmi'
+	icon_state = "guncase"
+	item_state = "guncase"
+	w_class = SIZE_MEDIUM
+
+/obj/item/storage/box/cbrn_kit/fill_preset_inventory()
+	new /obj/item/clothing/under/marine/cbrn(src)
+	new /obj/item/clothing/suit/storage/marine/cbrn(src)
+	new /obj/item/clothing/gloves/marine/veteran/cbrn(src)
+	new /obj/item/clothing/shoes/veteran/pmc/commando/cbrn(src)
+
 
 /obj/item/storage/box/gloves
 	name = "box of latex gloves"

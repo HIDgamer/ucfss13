@@ -10,6 +10,11 @@
 	icon_state = "door_locked"
 	stat = 0
 	heavy = TRUE
+	// Not forceable (get_blocking_obstacle() already excludes heavy doors from its door_candidate
+	// bucket) - but without this flag the native pathfinding grid's turf_cell_code() still priced
+	// it as a normal cheap/forceable door, so the AI's own router could confidently route straight
+	// at a door it can never actually open. unslashable makes both sides agree it's a hard block.
+	unslashable = TRUE
 	masterkey_resist = TRUE
 	openspeed = 4 SECONDS
 	unacidable = TRUE//Walls can still be melted or blown up.

@@ -695,6 +695,16 @@
 
 //*****************************************************************************************************/
 
+/// Plain subtype of the real "Zombie" preset above - see zombie_burster.dm for what actually makes it a Burster (explodes into an infectious gas cloud on death instead of rising again). Reuses every other override (gear/name/id/skills) as-is - the "Zombie" job/ID label is a cosmetic detail not worth complicating the load_id() ..() chain over - only load_race() differs.
+/datum/equipment_preset/other/zombie/burster
+	name = "Zombie Burster"
+
+/datum/equipment_preset/other/zombie/burster/load_race(mob/living/carbon/human/new_human)
+	new_human.set_species(SPECIES_HUMAN) // Set back, so that we can get our claws again
+	new_human.set_species(SPECIES_ZOMBIE_BURSTER)
+
+//*****************************************************************************************************/
+
 /datum/equipment_preset/other/gladiator
 	name = "Gladiator"
 	flags = EQUIPMENT_PRESET_EXTRA

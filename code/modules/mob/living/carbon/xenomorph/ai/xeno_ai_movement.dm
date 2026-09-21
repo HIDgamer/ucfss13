@@ -33,7 +33,16 @@
 	// goal (own fort-line corner, a dead-end alcove) needs the real router,
 	// not blind cardinal-stepping that can only ever ping-pong against it.
 	if(!(travel_flags & TRAVEL_FLAG_STATIC_GOAL) && get_dist(pilot, goal) <= AI_TRAVEL_DIRECT_RANGE)
-		if(cardinal_step_towards(goal, travel_flags & TRAVEL_FLAG_AVOID_MOBS))
+		// cardinal_step_towards() tries the primary direction toward goal, then falls back to
+		// secondary if primary fails - and treats EITHER succeeding as "handled." When primary is
+		// genuinely blocked (a window, a table) but secondary is open floor running alongside the
+		// obstacle (the common case approaching anything but a perfectly axis-aligned target), it
+		// just walks sideways every tick, travel_to() reports progress, and handle_travel_obstacles()
+		// - the only place that ever looks at get_climbable_obstacle()/get_blocking_obstacle() -
+		// never runs at all. Checked here, not inside cardinal_step_towards() itself, which has
+		// other callers (cover-seeking, kiting) that should keep their existing secondary-direction
+		// fallback behavior unchanged.
+		if(!primary_direction_blocked(goal) && cardinal_step_towards(goal, travel_flags & TRAVEL_FLAG_AVOID_MOBS))
 			return TRUE
 		return handle_travel_obstacles(goal, travel_flags)
 	if(advance_along_path(goal))
@@ -55,11 +64,10 @@
 
 /**
  * Shared obstacle-handling tail for travel_to()'s two "a direct/routed step
- * didn't work" cases: climb what's climbable (unless a free ground detour
- * exists), claw through whatever's blocking (TRAVEL_FLAG_FORCE_OBSTACLES
- * only), retreating to cover first if the approach reads as too risky
- * (TRAVEL_FLAG_COVER_CHECK), and finally a one-tile sidestep
- * (navigate_around()) as the last resort.
+ * didn't work" cases: climb what's climbable, claw through whatever's
+ * blocking (TRAVEL_FLAG_FORCE_OBSTACLES only), retreating to cover first if
+ * the approach reads as too risky (TRAVEL_FLAG_COVER_CHECK), and finally a
+ * one-tile sidestep (navigate_around()) as the last resort.
  */
 /datum/xeno_ai_controller/proc/handle_travel_obstacles(atom/goal, travel_flags)
 	// A routed step that just failed points every check below at the actual
@@ -78,12 +86,7 @@
 			return TRUE
 		if((travel_flags & TRAVEL_FLAG_COVER_CHECK) && current_target && is_direct_approach_too_risky(climbable_obstacle, current_target) && retreat_to_cover(current_target))
 			return TRUE
-		// "Is climbing a table worth it or not" - do_climb() costs a real
-		// ~2-second do_after(), stalling this controller's tick() the whole
-		// time; open ground immediately beside the obstacle is a free
-		// alternative navigate_around() (below) will actually take, so it's
-		// only worth vaulting when there's nowhere cheaper to step instead.
-		if(!has_open_detour(get_dir(pilot, obstacle_goal)) && attempt_climb_obstacle(climbable_obstacle))
+		if(attempt_climb_obstacle(climbable_obstacle))
 			return TRUE
 
 	if(travel_flags & TRAVEL_FLAG_FORCE_OBSTACLES)
@@ -117,7 +120,7 @@
 	if(pilot.on_fire && pilot.can_resist())
 		pilot.resist()
 
-	if(get_dist(pilot, current_target) <= 1 && pilot.Adjacent(current_target))
+	if(get_dist(pilot, current_target) <= 1 && is_melee_reachable(current_target))
 		ai_state = AI_STATE_ATTACKING
 		blocked_attempts = 0
 		path_queue = null
@@ -245,27 +248,36 @@
 	pilot.setDir(get_dir(pilot, current_target))
 	return TRUE
 
-/// Other same-hive AI xenos hunting the same target, split by how close they are to joining the fight - see check_pack_staging().
+/**
+ * Other same-hive AI xenos hunting the same target, split by how close they are to joining the
+ * fight - see check_pack_staging(). The actual roster scan is now shared/cached per-target on
+ * the hive (get_cached_pack_assault_status(), hive_status.dm) rather than redone here on every
+ * call - this used to be a fresh full-roster scan on every single call, and this proc is called
+ * by every approaching-and-in-stage-range xeno up to 10x/second each, which made a real fight
+ * with several xenos converging on the same target an O(roster^2) per-second cost. See that
+ * proc's doc comment for the full reasoning.
+ *
+ * The shared scan counts every hive AI member converging on the target, including whichever
+ * pilot calls this next for that same target - it has to, since it's shared across every caller
+ * rather than computed fresh per-caller. pilot's own contribution is subtracted back out here,
+ * cheaply (no scan), so the result still reads as "how many OTHER members," which
+ * check_pack_staging() depends on: pilot's own dist_to_target is always <= AI_XENO_STAGE_RANGE
+ * by the time this is ever called (see that proc's own gate), so pilot always lands in exactly
+ * one bucket below.
+ */
 /datum/xeno_ai_controller/proc/get_pack_assault_status()
-	var/inbound = 0
-	var/in_range = 0
-	var/engaged = 0
-	if(!pilot?.hive)
-		return list("inbound" = inbound, "in_range" = in_range, "engaged" = engaged)
-	for(var/mob/living/carbon/xenomorph/ally as anything in pilot.hive.get_cached_ai_roster())
-		if(ally == pilot || ally.stat == DEAD)
-			continue
-		var/datum/xeno_ai_controller/ally_controller = ally.ai_controller
-		if(!ally_controller || ally_controller.current_target != current_target)
-			continue
-		if(ally_controller.ai_state == AI_STATE_ATTACKING)
-			engaged++
-		else if(ally_controller.ai_state == AI_STATE_APPROACHING)
-			if(get_dist(ally, current_target) <= AI_XENO_STAGE_RANGE)
-				in_range++
-			else
-				inbound++
-	return list("inbound" = inbound, "in_range" = in_range, "engaged" = engaged)
+	if(!pilot?.hive || !current_target)
+		return list("inbound" = 0, "in_range" = 0, "engaged" = 0)
+
+	var/list/status = pilot.hive.get_cached_pack_assault_status(current_target).Copy()
+	if(ai_state == AI_STATE_ATTACKING)
+		status["engaged"] = max(status["engaged"] - 1, 0)
+	else if(ai_state == AI_STATE_APPROACHING)
+		if(get_dist(pilot, current_target) <= AI_XENO_STAGE_RANGE)
+			status["in_range"] = max(status["in_range"] - 1, 0)
+		else
+			status["inbound"] = max(status["inbound"] - 1, 0)
+	return status
 
 /**
  * blocked_attempts resets on every successful branch of process_movement(),
@@ -512,20 +524,28 @@
 			return FALSE
 	return TRUE
 
-/// Same-hive AI xenos already actively approaching/attacking this exact target - see get_flanking_position()/process_movement()'s flanking check.
+/**
+ * Same-hive AI xenos already actively approaching/attacking this exact target - see
+ * get_flanking_position()/process_movement()'s flanking check. Reuses the same shared/cached
+ * per-target hive scan get_pack_assault_status() does (get_cached_pack_assault_status(),
+ * hive_status.dm) instead of its own separate full-roster scan - this was the same
+ * "O(roster) scan on every single call" cost as that proc used to have, actually called more
+ * often: process_movement() calls this unconditionally on every APPROACHING xeno's tick, up to
+ * 10x/second each, with no distance gate at all (get_pack_assault_status() at least requires
+ * being within AI_XENO_STAGE_RANGE via check_pack_staging()'s own gate).
+ *
+ * "engaged"+"in_range"+"inbound" together are exactly "approaching or attacking this target,
+ * any distance" - what this proc has always counted. Every call site (here, queen.dm,
+ * runner.dm) passes the caller's own current_target, so pilot's own contribution needs
+ * excluding the same way get_pack_assault_status() does.
+ */
 /datum/xeno_ai_controller/proc/count_engaged_allies(atom/movable/target)
-	if(!pilot?.hive)
+	if(!pilot?.hive || !target)
 		return 0
-	var/count = 0
-	for(var/mob/living/carbon/xenomorph/ally as anything in pilot.hive.get_cached_ai_roster())
-		if(ally == pilot || ally.stat == DEAD)
-			continue
-		var/datum/xeno_ai_controller/ally_controller = ally.ai_controller
-		if(!ally_controller || ally_controller.current_target != target)
-			continue
-		if(ally_controller.ai_state != AI_STATE_APPROACHING && ally_controller.ai_state != AI_STATE_ATTACKING)
-			continue
-		count++
+	var/list/raw = pilot.hive.get_cached_pack_assault_status(target)
+	var/count = raw["engaged"] + raw["in_range"] + raw["inbound"]
+	if(current_target == target && (ai_state == AI_STATE_APPROACHING || ai_state == AI_STATE_ATTACKING))
+		count = max(count - 1, 0)
 	return count
 
 /**
@@ -1432,6 +1452,30 @@ GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
 	return list(primary_dir, secondary_dir)
 
 /**
+ * Whether the PRIMARY cardinal direction toward goal (get_cardinal_candidates()[1] - the one
+ * cardinal_step_towards() tries first) is blocked by a real, dense structure or wall - see
+ * travel_to()'s doc comment on why this needs checking before cardinal_step_towards() runs, not
+ * after. Only checks for a genuine obstacle (a dense /obj/structure, or a closed wall turf) - a
+ * mob standing in the way is deliberately NOT treated as blocking here, so the existing
+ * secondary-direction sidestep around a crowded corridor tile is untouched.
+ */
+/datum/xeno_ai_controller/proc/primary_direction_blocked(atom/goal)
+	if(!pilot || !goal)
+		return FALSE
+	var/list/candidates = get_cardinal_candidates(goal)
+	if(!candidates)
+		return FALSE
+	var/turf/next_turf = get_step(pilot, candidates[1])
+	if(!next_turf)
+		return FALSE
+	if(next_turf.density)
+		return TRUE
+	for(var/obj/structure/blocker in next_turf)
+		if(blocker.density)
+			return TRUE
+	return FALSE
+
+/**
  * "They need to stop pushing each other around when idle, consider the mob
  * standing on a turf before moving to it" - xenos pass freely through each
  * other (initialize_pass_flags()'s PASS_MOB_THRU_XENO, needed so a chase
@@ -1470,56 +1514,96 @@ GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
  * as a player would.
  */
 /**
- * Cheap one-tile lookahead shared by get_blocking_obstacle() (walls, other structures, and
- * vehicles alike) and travel_to()'s climb branch: is there open ground immediately beside the
- * blocked direction? Checks the same two perpendicular directions navigate_around()'s own
- * sidestep fallback would try (turn(blocked_dir, ±90)) - doesn't move the pilot, just answers
- * "would a sidestep actually go somewhere right now," using the same density/climbable-structure
- * check find_charge_lane() already uses for its own lane-clearing scan. "Which is faster, going
- * around or smashing it" / "is climbing a table worth it" both come down to this: if a free tile
- * is sitting right beside the obstacle, take it instead of paying to break through or vault it.
+ * Real, whole-route answer to "is there actually a way around this specific tile" - used only for
+ * the one case left that needs it (a locked/bolted airlock's expensive grind-vs-detour decision,
+ * see get_blocking_obstacle()). Reuses the same pure path-computing procs advance_along_path()
+ * already calls (compute_path_global() first, the bounded local solver as fallback) rather than a
+ * local 1-tile peek - a free tile beside an obstacle doesn't mean a real path exists that direction
+ * (it can just be another edge of the same wall/platform), which is exactly the "fake detour never
+ * resolves" failure mode that plagued this AI's obstacle-forcing for a long time. Side-effect-free:
+ * only inspects a freshly-computed route, never consumes/mutates path_queue or moves the pilot.
  */
-/datum/xeno_ai_controller/proc/has_open_detour(blocked_dir)
-	if(!pilot || !blocked_dir)
+/datum/xeno_ai_controller/proc/has_real_detour(atom/goal, turf/blocked_turf)
+	if(!pilot || !goal || !blocked_turf)
 		return FALSE
-	for(var/side_dir in list(turn(blocked_dir, 90), turn(blocked_dir, -90)))
-		var/turf/side_turf = get_step(pilot, side_dir)
-		if(!side_turf || side_turf.density)
-			continue
-		var/blocked = FALSE
-		for(var/obj/structure/blocker in side_turf)
-			if(blocker.density && !blocker.climbable)
-				blocked = TRUE
-				break
-		if(!blocked)
-			return TRUE
-	return FALSE
+	var/turf/goal_turf = get_turf(goal)
+	if(!goal_turf)
+		return FALSE
+	var/list/route = compute_path_global(goal_turf)
+	if(!route)
+		route = compute_path(goal_turf)
+	if(!route || !length(route))
+		return FALSE
+	return !(blocked_turf in route)
+
+/**
+ * Defensive double-check on top of plain Adjacent(): "click-adjacent" (touch range for a real
+ * player's click, which click.dm then redirects onto whatever border object is actually in the
+ * way) is not the same guarantee this controller needs, since execute_attack() swings straight at
+ * current_target with no such redirection. Rather than trust exactly how Adjacent()'s border-
+ * crossing math resolves for every window/door placement, this explicitly refuses "melee ready"
+ * whenever a real blocking structure sits on either the target's tile or the pilot's own tile - a
+ * xeno standing at an unbroken window should always go through handle_travel_obstacles() and
+ * attack the window, never skip straight to swinging at whoever's on the other side of it.
+ * get_blocking_obstacle() alone only scans the tile being stepped INTO (target's side); a border
+ * structure can just as easily be registered on the PILOT's own tile instead, so that's checked
+ * directly here too.
+ */
+/datum/xeno_ai_controller/proc/is_melee_reachable(atom/target)
+	if(!pilot || !target || !pilot.Adjacent(target))
+		return FALSE
+	if(get_blocking_obstacle(target))
+		return FALSE
+	var/turf/pilot_turf = get_turf(pilot)
+	if(pilot_turf)
+		for(var/obj/structure/blocker in pilot_turf)
+			if(blocker.density && !blocker.climbable && !blocker.unslashable)
+				return FALSE
+	return TRUE
 
 /datum/xeno_ai_controller/proc/get_blocking_obstacle(atom/goal, allow_friendly_walls = FALSE)
 	if(!pilot || !goal)
 		return null
 
-	// Stays committed to whatever's already mid-smash for a while (see
-	// AI_XENO_OBSTACLE_COMMIT_DURATION), as long as it's actually still
-	// there/blocking and still reachable, instead of re-picking a target
-	// obstacle fresh every tick and abandoning partial progress whenever a
-	// target shifts behind a different piece of cover. A destroyed obstacle
-	// or one the pilot's since moved away from falls through to a fresh pick
-	// below.
-	if(committed_obstacle && world.time < committed_obstacle_until && is_obstacle_still_blocking(committed_obstacle))
-		return committed_obstacle
-	committed_obstacle = null
-
 	// Reuses cardinal_step_towards()'s own candidate tiles rather than
 	// independently recomputing a raw (possibly diagonal) direction to goal -
 	// otherwise this could pick a wall/window on a third tile neither
 	// cardinal attempt covered, ignoring a door that one of those two
-	// attempts already found open and would have walked through.
+	// attempts already found open and would have walked through. Computed
+	// before the committed_obstacle check below (not just for the fresh-pick
+	// scan further down) so that check can verify the commitment is still
+	// actually relevant to THIS goal.
 	var/list/candidates = get_cardinal_candidates(goal)
 	if(!candidates)
 		return null
 
+	// Stays committed to whatever's already mid-smash for a while (see
+	// AI_XENO_OBSTACLE_COMMIT_DURATION), as long as it's actually still
+	// there/blocking, still reachable, AND still sitting on one of the
+	// cardinal tiles toward THIS goal - instead of re-picking a target
+	// obstacle fresh every tick and abandoning partial progress whenever a
+	// target shifts behind a different piece of cover. Without that last
+	// check this was goal-blind: is_melee_reachable() calls this with the
+	// current living target as goal, and a vehicle/window the pilot
+	// legitimately committed to smashing earlier (while it really was in the
+	// way of something) kept getting returned here forever after - as long
+	// as the pilot stayed adjacent and it was still standing - even once the
+	// pilot was right next to a fully open path to its actual target. That
+	// permanently vetoed ever fighting the real target: is_melee_reachable()
+	// kept reporting "blocked," so the xeno kept attacking the stale old
+	// obstacle instead of the clearly-reachable hostile right in front of it
+	// (reported live as "acid-ing a window"/"smashing a car" instead of the
+	// human with nothing in the way). A destroyed obstacle, one the pilot's
+	// moved away from, or one that's just no longer relevant to this
+	// specific goal all correctly fall through to a fresh pick below.
+	if(committed_obstacle && world.time < committed_obstacle_until && is_obstacle_still_blocking(committed_obstacle))
+		var/turf/committed_turf = get_turf(committed_obstacle)
+		if(committed_turf == get_step(pilot, candidates[1]) || (candidates[2] && committed_turf == get_step(pilot, candidates[2])))
+			return committed_obstacle
+	committed_obstacle = null
+
 	var/obj/structure/door_candidate
+	var/door_candidate_dir
 	var/obj/structure/other_candidate
 	var/other_candidate_dir
 	var/atom/vehicle_candidate
@@ -1536,8 +1620,15 @@ GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
 		for(var/obj/structure/blocking_obstacle in next_turf)
 			if(!blocking_obstacle.density || blocking_obstacle.unslashable || blocking_obstacle.climbable)
 				continue
-			if(istype(blocking_obstacle, /obj/structure/machinery/door) || istype(blocking_obstacle, /obj/structure/mineral_door))
-				door_candidate = door_candidate || blocking_obstacle
+			if(istype(blocking_obstacle, /obj/structure/machinery/door))
+				var/obj/structure/machinery/door/door_obstacle = blocking_obstacle
+				if(!door_candidate && !door_obstacle.heavy)
+					door_candidate = door_obstacle
+					door_candidate_dir = candidate_dir
+			else if(istype(blocking_obstacle, /obj/structure/mineral_door))
+				if(!door_candidate)
+					door_candidate = blocking_obstacle
+					door_candidate_dir = candidate_dir
 			else if(!other_candidate)
 				other_candidate = blocking_obstacle
 				other_candidate_dir = candidate_dir
@@ -1581,25 +1672,34 @@ GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
 				wall_candidate = candidate_wall
 				wall_candidate_dir = candidate_dir
 
-	// A door is the intended route through a structure - worth forcing
-	// before opening a fresh hole in a wall/window on the other candidate.
+	// A door found only via the secondary (sideways) direction no longer preempts a candidate
+	// sitting directly on the path to goal (primary direction). Type priority (door > other >
+	// vehicle > wall, below) is only meant to break a tie between candidates stacked on the same
+	// tile - nulled out here instead of restructuring the whole selection chain, so a
+	// non-primary door simply falls through to lose to whatever real candidate the primary
+	// direction actually has.
+	var/primary_dir = candidates[1]
+	if(door_candidate && door_candidate_dir != primary_dir)
+		if((other_candidate && other_candidate_dir == primary_dir) || (vehicle_candidate && vehicle_candidate_dir == primary_dir) || (wall_candidate && wall_candidate_dir == primary_dir))
+			door_candidate = null
+
+	// A door is the intended route through a structure, worth forcing before opening a fresh hole
+	// in a wall/window on the other candidate - commits unconditionally UNLESS it's a locked
+	// (bolted) airlock specifically, which attack_alien() grinds down over
+	// HEALTH_DOOR/XENO_HITS_TO_DESTROY_BOLTED_DOOR hits (airlock.dm), dramatically more expensive
+	// than a normal or welded door, so it's worth checking for a real detour first there -
+	// has_real_detour() (a whole-route answer, not a 1-tile peek) so a "free" tile that doesn't
+	// actually lead anywhere doesn't make this skip a door with no real way around it.
 	if(door_candidate)
-		return commit_to_obstacle(door_candidate)
-	// "Which is faster, going around or smashing it" - windows, crates,
-	// machinery and other non-climbable structures (other_candidate) and
-	// parked vehicles used to commit unconditionally here, the only branch
-	// below that didn't get the wall_candidate side-check. That's what let a
-	// pilot start clawing a window with a marine visible right past it while
-	// a completely free tile sat one step to the side - reported live as
-	// "attacks windows/crates instead of the player." Same detour check
-	// walls already get, applied the same way.
-	if(other_candidate && !has_open_detour(other_candidate_dir))
+		var/obj/structure/machinery/door/airlock/locked_airlock = door_candidate
+		var/skip_locked_door = istype(locked_airlock) && locked_airlock.locked && has_real_detour(goal, get_turf(door_candidate))
+		if(!skip_locked_door)
+			return commit_to_obstacle(door_candidate)
+	if(other_candidate)
 		return commit_to_obstacle(other_candidate)
-	if(vehicle_candidate && !has_open_detour(vehicle_candidate_dir))
+	if(vehicle_candidate)
 		return commit_to_obstacle(vehicle_candidate)
-	// Walls only (doors above are already the intended route, left
-	// unconditional): "which is faster, going around or smashing a wall."
-	if(wall_candidate && !has_open_detour(wall_candidate_dir))
+	if(wall_candidate)
 		return commit_to_obstacle(wall_candidate)
 	return null
 
@@ -1662,16 +1762,49 @@ GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
 		return movable_obstacle.density
 	return FALSE
 
-/// A climbable structure (table, some fences/crates) directly ahead on the way to goal - see get_blocking_obstacle()'s doc comment above for why this needs separate handling instead of being treated as freely passable.
+/**
+ * A climbable structure (table, some fences/crates) directly ahead on the way to goal - see
+ * get_blocking_obstacle()'s doc comment above for why this needs separate handling instead of
+ * being treated as freely passable. Checks BOTH cardinal candidate tiles
+ * cardinal_step_towards() would actually try (get_cardinal_candidates() - primary axis first,
+ * then secondary), not just the raw get_dir(pilot, goal) tile - that raw direction is diagonal
+ * any time goal isn't exactly aligned on a row/column with the pilot (the common case during a
+ * real chase, not an edge case), which pointed this at an empty diagonal tile while a real
+ * climbable structure sat one tile over on the cardinal the pilot was actually trying to step
+ * into.
+ */
 /datum/xeno_ai_controller/proc/get_climbable_obstacle(atom/goal)
 	if(!pilot || !goal)
 		return null
-	var/turf/next_turf = get_step(pilot, get_dir(pilot, goal))
-	if(!next_turf)
+	var/list/candidates = get_cardinal_candidates(goal)
+	if(!candidates)
 		return null
-	for(var/obj/structure/climbable_obstacle in next_turf)
-		if(climbable_obstacle.density && climbable_obstacle.climbable)
-			return climbable_obstacle
+	var/primary_dir = candidates[1]
+	var/primary_blocked_by_other = FALSE
+	for(var/candidate_dir in candidates)
+		if(!candidate_dir)
+			continue
+		var/turf/next_turf = get_step(pilot, candidate_dir)
+		if(!next_turf)
+			continue
+		var/obj/structure/found_climbable
+		for(var/obj/structure/S in next_turf)
+			if(!S.density)
+				continue
+			if(S.climbable)
+				found_climbable = S
+			else if(candidate_dir == primary_dir)
+				primary_blocked_by_other = TRUE
+		if(!found_climbable)
+			continue
+		if(candidate_dir == primary_dir)
+			return found_climbable
+		// A climbable structure found only on the SECONDARY (sideways) tile must not preempt a
+		// genuine non-climbable blocking obstacle sitting on the PRIMARY tile - that's the one
+		// actually on the direct line to goal and needs attacking (get_blocking_obstacle()
+		// below), not a sideways vault that goes nowhere toward goal.
+		if(!primary_blocked_by_other)
+			return found_climbable
 	return null
 
 /// Vaults over a climbable obstacle the same way a real player's do_climb() interaction would, instead of only ever sidestepping around it or standing there unable to proceed. do_climb()'s own do_after() windup blocks this controller's tick() the same safe way Queen's Gut/Burrower's burrow already do.

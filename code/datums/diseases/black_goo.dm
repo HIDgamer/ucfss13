@@ -39,6 +39,14 @@
 	/// variable that handles passive increase of the virus of a host.
 	var/infection_rate = SLOW_INFECTION_RATE
 
+	/// When set (>0), overrides the stat-based SLOW/FAST_INFECTION_RATE selection below entirely -
+	/// used by the admin "Infect (Zombie)" tool's timed mode (event_tab.dm's do_infect_zombie_timed())
+	/// to make progression speed match an admin-requested duration instead of the normal dead/alive
+	/// split, and to keep pacing identical regardless of whether the host is a corpse, still alive,
+	/// or gets moved around in the meantime - stage_act() runs on its own SSdisease schedule either
+	/// way (see disease.dm's process()), untouched by any of that.
+	var/forced_infection_rate = 0
+
 	/// cooldown for the living mob's symptom messages
 	COOLDOWN_DECLARE(goo_message_cooldown)
 
@@ -51,12 +59,14 @@
 	if(iszombie(infected_mob))
 		return
 
+	if(forced_infection_rate)
+		infection_rate = forced_infection_rate
 	// infection rate is faster for dead mobs
-	if(infected_mob.stat == DEAD)
+	else if(infected_mob.stat == DEAD)
 		infection_rate = FAST_INFECTION_RATE
 
 	// standard infection rate for living mobs
-	if(infected_mob.stat != DEAD)
+	else
 		infection_rate = SLOW_INFECTION_RATE
 
 	stage_level += infection_rate
@@ -161,6 +171,11 @@
 		stage = 4
 		human.faction = FACTION_ZOMBIE
 		zombie_is_transforming = FALSE
+		// Phase 5 zombie AI: unconditional regardless of whether this human was dead (the usual
+		// case, ghost already pinged above) or still alive when the infection reached stage 4 -
+		// the grace-period callback's own client/stat checks (zombie_ai_lifecycle.dm) safely
+		// no-op for a still-connected player either way, so nothing extra needs gating here.
+		schedule_zombie_ai_grace_period(human)
 
 
 /obj/item/weapon/zombie_claws
@@ -190,7 +205,12 @@
 		if(locate(/datum/disease/black_goo) in human.viruses)
 			to_chat(user, SPAN_XENOWARNING("<b>You sense your target is infected.</b>"))
 		else
-			var/bio_protected = max(CLOTHING_ARMOR_HARDCORE - human.getarmor(user.zone_selected, ARMOR_BIO), 0)
+			// Floored above 0 rather than letting stacked bio armor (e.g. the CBRN kit's MOPP
+			// under-suit alone reaches CLOTHING_ARMOR_HARDCORE by itself) zero this out entirely -
+			// bio armor should only make the GAS vector (is_gas_infection_protected(),
+			// zombie_burster.dm) impossible to block; direct contact from a claw should always
+			// carry some risk.
+			var/bio_protected = max(CLOTHING_ARMOR_HARDCORE - human.getarmor(user.zone_selected, ARMOR_BIO), 5)
 			if(prob(bio_protected))
 				target.AddDisease(new /datum/disease/black_goo)
 				to_chat(user, SPAN_XENOWARNING("<b>You sense your target is now infected.</b>"))

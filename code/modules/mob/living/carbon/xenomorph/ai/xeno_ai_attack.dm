@@ -25,7 +25,7 @@
 		ai_state = AI_STATE_APPROACHING
 		return
 
-	if(!pilot.Adjacent(current_target))
+	if(!is_melee_reachable(current_target))
 		ai_state = AI_STATE_APPROACHING
 		return
 

@@ -115,35 +115,38 @@ SUBSYSTEM_DEF(xeno_pathfinding)
 	return result == "ok"
 
 /**
- * The native cell code for a turf's current state: '1' dense turf (wall, or
- * a dense structure the AI can genuinely never get through - see
- * `unslashable` below), '2' walkable turf with a dense, forceable door on
- * it, '3' walkable turf with some other dense breakable structure (window,
- * girder - priced far above a door so routes only smash through glass as a
- * last resort, never as a shortcut), '4' walkable turf with a directional
- * (ON_BORDER) structure (platform, most barricades, flipped tables) -
- * priced modestly above open ground rather than skipped outright. A
- * full-tile cost still can't represent "blocks from one side, open from
- * another" exactly (the per-step obstacle handling still does the real work
- * on contact), but leaving these completely invisible to route planning -
- * as CELL_OPEN, the same as bare floor - let long routes get planned
- * straight through/across clusters of them with zero accounting for the
- * real crossing cost, which is what actually produced the "going insane
- * near platforms" reports: the router's plan and the per-step reality
- * disagreed about whether a tile was free. '0' open.
+ * The native cell code for a turf's current state: '1' dense turf (wall, or a dense structure
+ * the AI can genuinely never get through - see `unslashable` below), '2' walkable turf with a
+ * dense, forceable door on it, '3' walkable turf with some other dense, non-climbable, forceable
+ * structure (window, girder - priced far above a door so routes only smash through glass as a
+ * last resort, never as a shortcut), '4' walkable turf with a CLIMBABLE structure (table, rack,
+ * platform, barricade) - priced modestly above open ground rather than skipped outright, since a
+ * full-tile cost can't represent "quick vault, not actually free" exactly (the per-step climb
+ * handling still does the real work on contact) but leaving these completely invisible to route
+ * planning - as CELL_OPEN, the same as bare floor - let long routes get planned straight
+ * through/across clusters of them with zero accounting for the real crossing cost, which is what
+ * actually produced the "going insane near platforms" reports: the router's plan and the
+ * per-step reality disagreed about whether a tile was free. '0' open.
  *
- * `unslashable` structures (blast doors/shutters, and any other structure
- * flagged that way) are priced as a hard block ('1'), not their normal type
- * cost - get_blocking_obstacle() (xeno_ai_movement.dm) excludes any
- * unslashable blocker from obstacle-forcing entirely (nothing to smash,
- * nothing to climb), so the AI can never actually get through one no matter
- * what a route assumed. Pricing an unslashable door the same as a normal
- * forceable one (its old behavior) planned routes straight at permanently
- * shut security doors with a real path around through other open doors -
- * live-diagnosed as "AI stuck running back and forth against an impassible
- * shutter, ignoring a valid path a few tiles over." Checked before the door
- * type check below since an unslashable door is a door, but the AI must
- * treat it like a wall instead.
+ * `climbable` (not the ON_BORDER flag) is what actually decides '3' vs '4'. Checking ON_BORDER
+ * first and unconditionally short-circuiting to the cheap '4' tier would silently catch windows
+ * too (window.dm sets ON_BORDER) even though STEP_COST_OBSTACLE's own doc comment
+ * (xeno_pathfind.rs) explicitly names "window" as what the real obstacle tier is for - the router
+ * would then have zero reason to ever prefer even a short detour over smashing straight through
+ * one. Every other ON_BORDER structure in the codebase (platforms, barricades, crates, flipped
+ * tables, deconstructed window frames) is also climbable; an intact window is the one ON_BORDER
+ * structure that isn't, so `climbable` alone is the correct, simpler gate.
+ *
+ * `unslashable` structures (blast doors/shutters, and any other structure flagged that way) are
+ * priced as a hard block ('1'), not their normal type cost - get_blocking_obstacle()
+ * (xeno_ai_movement.dm) excludes any unslashable blocker from obstacle-forcing entirely (nothing
+ * to smash, nothing to climb - unless it's ALSO climbable, checked first, since climbing doesn't
+ * care whether a structure can be damaged), so the AI can never actually force through one no
+ * matter what a route assumed. Pricing an unslashable door the same as a normal forceable one
+ * (its old behavior) planned routes straight at permanently shut security doors with a real path
+ * around through other open doors - live-diagnosed as "AI stuck running back and forth against
+ * an impassible shutter, ignoring a valid path a few tiles over." Checked before the door type
+ * check below since an unslashable door is a door, but the AI must treat it like a wall instead.
  */
 /datum/controller/subsystem/xeno_pathfinding/proc/turf_cell_code(turf/scanned)
 	if(!scanned || scanned.density)
@@ -153,16 +156,14 @@ SUBSYSTEM_DEF(xeno_pathfinding)
 	for(var/obj/structure/blocker in scanned)
 		if(!blocker.density)
 			continue
-		if(blocker.flags_atom & ON_BORDER)
-			has_border = TRUE
+		if(blocker.climbable)
+			has_border = TRUE // Tables/racks/platforms/barricades - vaulted over, not smashed; near-free for movement, regardless of ON_BORDER.
 			continue
 		if(blocker.unslashable)
 			return "1"
 		if(istype(blocker, /obj/structure/machinery/door))
 			return "2"
-		if(blocker.climbable)
-			continue // Tables/racks - vaulted over, not smashed; near-free for movement.
-		has_obstacle = TRUE
+		has_obstacle = TRUE // Dense, non-climbable, forceable (a window, a girder) - real obstacle cost, ON_BORDER or not.
 	if(has_obstacle)
 		return "3"
 	return has_border ? "4" : "0"

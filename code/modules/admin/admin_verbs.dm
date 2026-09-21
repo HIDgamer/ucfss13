@@ -236,6 +236,7 @@ GLOBAL_LIST_INIT(debug_verbs, list(
 	/client/proc/view_power_update_stats_area,
 	/client/proc/view_power_update_stats_machines,
 	/client/proc/toggle_power_update_profiling,
+	/client/proc/debug_attach_zombie_ai,
 ))
 
 GLOBAL_LIST_INIT(admin_verbs_possess, list(

@@ -1,6 +1,6 @@
 import { playClickBlip } from 'common/audio';
 import { BooleanLike } from 'common/react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import { resolveAsset } from '../assets';
 import { useBackend } from '../backend';
@@ -54,6 +54,12 @@ const SPAWN_MODES_HUMAN: ModeOption[] = [
     desc: 'Spawns as an uncontrolled NPC',
   },
   {
+    value: 'ai',
+    label: 'AI',
+    icon: 'microchip',
+    desc: 'AI-piloted - zombies only for now (moves, hunts and attacks on its own, still ghost-joinable at any time). No-op for a regular job spawn until human AI exists.',
+  },
+  {
     value: 'freed',
     label: 'Available',
     icon: 'ghost',
@@ -64,27 +70,6 @@ const SPAWN_MODES_HUMAN: ModeOption[] = [
     label: 'ERT',
     icon: 'satellite-dish',
     desc: 'Launch as Emergency Response Team',
-  },
-];
-
-const EQUIP_MODES: ModeOption[] = [
-  {
-    value: 'full',
-    label: 'Full Gear',
-    icon: 'vest',
-    desc: 'All standard equipment for the job',
-  },
-  {
-    value: 'no_weapons',
-    label: 'No Weapons',
-    icon: 'shield-alt',
-    desc: 'Gear but no weapons/ammo',
-  },
-  {
-    value: 'no_equipment',
-    label: 'Stripped',
-    icon: 'user',
-    desc: 'No gear except ID card',
   },
 ];
 
@@ -326,8 +311,9 @@ const HumanPanel = () => {
   const [count, setCount] = useState(1);
   const [range, setRange] = useState(0);
   const [spawnAs, setSpawnAs] = useState('npc');
-  const [equipWith, setEquipWith] = useState('full');
   const [queue, setQueue] = useState<HumanQueueRow[]>([]);
+  const [mode, setMode] = useState<'spawn' | 'infect'>('spawn');
+  const [infectTimer, setInfectTimer] = useState(0);
 
   const filtered = search
     ? presets.filter((p) => p.toLowerCase().includes(search.toLowerCase()))
@@ -361,7 +347,6 @@ const HumanPanel = () => {
       queue,
       range,
       spawn_as: spawnAs,
-      equip_with: equipWith,
     });
     if (ui_effects_enabled) {
       new Audio(resolveAsset('admin_spawn_confirm.ogg')).play().catch(() => {});
@@ -372,6 +357,27 @@ const HumanPanel = () => {
 
   return (
     <Stack vertical>
+      <Stack.Item>
+        <Box style={{ display: 'flex', gap: '4px' }}>
+          <Box
+            as="button"
+            onClick={() => setMode('spawn')}
+            style={modePickerStyle(mode === 'spawn', ACCENT)}
+          >
+            Spawn Human
+          </Box>
+          <Box
+            as="button"
+            onClick={() => setMode('infect')}
+            style={modePickerStyle(mode === 'infect', ACCENT)}
+          >
+            Infect (Zombie)
+          </Box>
+        </Box>
+      </Stack.Item>
+
+      {mode === 'spawn' && (
+      <>
       <Stack.Item>
         <Section title="Job / Equipment Preset">
           <input
@@ -531,31 +537,44 @@ const HumanPanel = () => {
           </Box>
         </Section>
       </Stack.Item>
+      </>
+      )}
 
-      <Stack.Item>
-        <Section title="Equipment">
-          <Box style={{ display: 'flex', gap: '4px' }}>
-            {EQUIP_MODES.map((m) => (
-              <Box
-                key={m.value}
-                as="button"
-                onClick={() => setEquipWith(m.value)}
-                style={modePickerStyle(equipWith === m.value, '#4cff88')}
-              >
-                <Icon
-                  name={m.icon}
-                  style={{
-                    display: 'block',
-                    margin: '0 auto 3px',
-                    fontSize: '1rem',
-                  }}
-                />
-                {m.label}
-              </Box>
-            ))}
-          </Box>
-        </Section>
-      </Stack.Item>
+      {mode === 'infect' && (
+        <Stack.Item>
+          <Section title="Zombie Infection">
+            <Box
+              style={{
+                fontSize: '0.75rem',
+                color: 'rgba(255,255,255,0.5)',
+                marginBottom: '3px',
+              }}
+            >
+              Timer (seconds, 0 = instant)
+            </Box>
+            <NumberInput
+              value={infectTimer}
+              minValue={0}
+              maxValue={300}
+              step={5}
+              width="5rem"
+              onChange={(v) => setInfectTimer(v)}
+            />
+            <Box
+              style={{
+                marginTop: '6px',
+                fontSize: '0.75rem',
+                color: 'rgba(255,255,255,0.4)',
+              }}
+            >
+              Click a human (living or dead) on the map to infect them.
+              {infectTimer > 0
+                ? ` Infected instantly, no visible sign - naturally turns in roughly ${infectTimer}s.`
+                : ' Turns into a zombie immediately (visibly, right away).'}
+            </Box>
+          </Section>
+        </Stack.Item>
+      )}
 
       <Stack.Item>
         <Box style={{ padding: '0 4px' }}>
@@ -568,8 +587,37 @@ const HumanPanel = () => {
               style={{ padding: '8px', fontSize: '0.95rem' }}
               onClick={() => act('cancel_spawn')}
             >
-              Click a tile on the map… (Cancel)
+              {mode === 'infect'
+                ? 'Click a human… (Cancel)'
+                : 'Click a tile on the map… (Cancel)'}
             </Button>
+          ) : mode === 'infect' ? (
+            <Button.Confirm
+              fluid
+              icon="skull"
+              confirmContent="This will turn the targeted human into a zombie - confirm?"
+              style={{
+                padding: '8px',
+                fontSize: '0.95rem',
+                backgroundColor: ACCENT,
+                border: `1px solid ${ACCENT}`,
+                color: '#110022',
+              }}
+              onClick={() => {
+                act('spawn', {
+                  panel: 'human',
+                  mode: 'infect',
+                  timer: infectTimer,
+                });
+                if (ui_effects_enabled) {
+                  new Audio(resolveAsset('admin_spawn_confirm.ogg'))
+                    .play()
+                    .catch(() => {});
+                }
+              }}
+            >
+              Arm Zombie Infection
+            </Button.Confirm>
           ) : queue.length > 0 ? (
             <Button.Confirm
               fluid
@@ -1082,6 +1130,14 @@ export const AdminSpawnTerminal = () => {
   const { data } = useBackend<Data>();
   const { default_tab = 'human' } = data;
   const [tab, setTab] = useState<'human' | 'xeno' | 'job'>(default_tab);
+
+  // The backend now reuses one open terminal per admin instead of opening a fresh window per
+  // verb (see open_spawn_terminal(), event_tab.dm) - useState's initial value only applies on
+  // first mount, so without this, re-invoking e.g. "Create Xenos" while the Human tab is already
+  // showing would re-focus the same window without ever switching to the requested tab.
+  useEffect(() => {
+    setTab(default_tab);
+  }, [default_tab]);
 
   return (
     <Window

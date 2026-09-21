@@ -576,6 +576,12 @@
 	if(stat == DEAD)
 		GLOB.dead_mob_list -= src
 		GLOB.alive_mob_list += src
+		// handle_revive() (the real defibrillator's path) does this same add for a human -
+		// this generic admin-panel/topic.dm revive path skipped it, silently leaving a
+		// human invisible to everything that scans GLOB.alive_human_list specifically
+		// (zombie AI target acquisition among others) despite being alive and conscious.
+		if(ishuman(src) && !issynth(src) && !isyautja(src))
+			GLOB.alive_human_list += src
 		tod = null
 		timeofdeath = 0
 

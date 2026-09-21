@@ -877,6 +877,7 @@
 	return TRUE
 
 // ─── Admin Spawn Terminal — TGUI datum (Human/Xeno/Job tabs) ────────────────
+
 /**
  * Admin Spawn Terminal - a single tabbed CRT panel replacing the 2 previously-separate,
  * actually-dead tgui datums (admin_spawn_humans/admin_spawn_xenos - defined but never
@@ -970,6 +971,8 @@
 		to_chat(user, SPAN_NOTICE("Click a human to redress - stays armed until you right-click to cancel."))
 	else if(armed_panel == "xeno" && params["mode"] == "burst")
 		to_chat(user, SPAN_NOTICE("Click a living human to burst - stays armed until you right-click to cancel."))
+	else if(armed_panel == "human" && params["mode"] == "infect")
+		to_chat(user, SPAN_NOTICE("Click a human to infect - stays armed until you right-click to cancel."))
 	else
 		to_chat(user, SPAN_NOTICE("Click tiles to spawn there - stays armed until you right-click to cancel."))
 	SStgui.update_uis(src)
@@ -1013,6 +1016,24 @@
 			addtimer(CALLBACK(src, PROC_REF(do_burst), user, victim, pending_params), burst_timer SECONDS)
 		else
 			do_burst(user, victim, pending_params)
+		return TRUE
+
+	if(armed_panel == "human" && pending_params["mode"] == "infect")
+		var/mob/living/carbon/human/victim = A
+		if(!istype(victim))
+			to_chat(user, SPAN_WARNING("Click a human to infect - right-click to cancel."))
+			return TRUE
+		var/infect_timer = clamp(text2num(pending_params["timer"]) || 0, 0, 300)
+		if(infect_timer > 0)
+			// No visible marker planted on the victim (a previous version used
+			// /obj/effect/warning/explosive here) - the whole point of a delayed infection is
+			// staging an outbreak nobody sees coming, and a countdown telegraph sitting on the
+			// target for the entire wait defeated that. do_infect_zombie_timed() itself is
+			// equally silent - only message here is the admin's own private confirmation.
+			to_chat(user, SPAN_NOTICE("[key_name(victim)] infected - turning in roughly [infect_timer] second\s, no visible sign until then."))
+			do_infect_zombie_timed(user, victim, infect_timer)
+		else
+			do_infect_zombie_instant(user, victim)
 		return TRUE
 
 	var/turf/spawn_turf = get_turf(A)
@@ -1062,6 +1083,9 @@
 			arm_spawn(user, params)
 			return TRUE
 		if(panel == "human")
+			if(params["mode"] == "infect")
+				arm_spawn(user, params)
+				return TRUE
 			var/list/queue = params["queue"]
 			if(!islist(queue) || !length(queue))
 				return TRUE
@@ -1117,7 +1141,6 @@
 		return
 	var/spawn_range = clamp(text2num(params["range"]), 0, 10)
 	var/spawn_as = params["spawn_as"] || "npc"
-	var/equip_with = params["equip_with"] || "full"
 
 	var/list/turfs = list()
 	if(spawn_range)
@@ -1132,12 +1155,14 @@
 		return
 
 	var/list/humans = list()
+	var/ai_attach_failures = 0
 	var/total_count = 0
 	var/list/summary = list()
 	for(var/list/entry in queue)
 		var/job_name = entry["job"]
 		if(!job_name || !(job_name in GLOB.gear_name_presets_list))
 			continue
+		var/is_zombie_entry = (job_name == "Zombie" || job_name == "Zombie Burster") // the pre-existing /datum/equipment_preset/other/zombie and its /burster subtype (other.dm) - their own load_race() already sets SPECIES_ZOMBIE/SPECIES_ZOMBIE_BURSTER.
 		var/count = clamp(text2num(entry["count"]), 1, 100)
 
 		for(var/i = 1 to count)
@@ -1147,24 +1172,24 @@
 				H.create_hud()
 			if(spawn_as == "freed")
 				admin_datum.owner.free_for_ghosts(H)
-			arm_equipment(H, job_name, TRUE, FALSE)
-			humans += H
 
-			if(equip_with == "no_equipment")
-				for(var/obj/item/I in H.contents.Copy()) // Copy first - qdel'ing while iterating H's live contents list skips entries.
-					if(istype(I, /obj/item/card/id))
-						continue
-					qdel(I)
-			else if(equip_with == "no_weapons")
-				for(var/obj/item/I in H.GetAllContents(3).Copy())
-					if(istype(I, /obj/item/ammo_magazine) || istype(I, /obj/item/weapon) || istype(I, /obj/item/explosive))
-						qdel(I)
+			arm_equipment(H, job_name, TRUE, FALSE)
+			// "AI" is the one spawn_as value with no equivalent for a real job/gear human yet -
+			// human AI doesn't exist, so it's a no-op there (see SPAWN_MODES_HUMAN's description
+			// in the tgui frontend).
+			if(is_zombie_entry && spawn_as == "ai")
+				if(!attach_zombie_ai(H))
+					ai_attach_failures++
+			humans += H
 
 		total_count += count
 		summary += "[count]x [job_name]"
 
 	if(!length(humans))
 		return
+
+	if(ai_attach_failures)
+		to_chat(user, SPAN_WARNING("[ai_attach_failures] zombie\s spawned without AI control - the population cap (GLOB.ai_zombie_max_pop=[GLOB.ai_zombie_max_pop]) was reached."))
 
 	if(spawn_as == "ert")
 		var/datum/emergency_call/custom/em_call = new()
@@ -1354,11 +1379,86 @@
 	else if(spawn_as == "ai")
 		attach_xeno_ai(new_hugger, burst_turf)
 
+/**
+ * Human tab's "Infect (Zombie)" mode, timer = 0 case - reuses the real black_goo
+ * zombie_transform() proc (black_goo.dm) instead of reimplementing the turn sequence: it already
+ * handles both a living and an already-dead victim correctly (revives a dead one first, strips
+ * English, pings a ghost, sets species/faction, schedules the AI grace period). Instant means
+ * instant - the public wail sound/vomit/species-change this produces are the expected, visible
+ * "it's happening now" moment for this mode, not something to hide.
+ */
+/datum/admin_spawn_terminal/proc/do_infect_zombie_instant(mob/user, mob/living/carbon/human/victim)
+	if(!victim || QDELETED(victim) || !victim.loc)
+		to_chat(user, SPAN_WARNING("That target is no longer valid."))
+		return
+	if(iszombie(victim))
+		to_chat(user, SPAN_WARNING("[victim] is already a zombie."))
+		return
+
+	var/datum/disease/black_goo/bg = new()
+	bg.zombie_transform(victim)
+
+	message_admins("[key_name_admin(user)] infected [key_name_admin(victim)] with the zombie virus (instant).")
+
+/**
+ * Human tab's "Infect (Zombie)" mode, timer > 0 case - applies the REAL disease immediately
+ * (AddDisease(), same as a bite would give) rather than the old approach of waiting out the timer
+ * and then hard-triggering zombie_transform() directly: that skipped the natural multi-stage
+ * sickness entirely, meant nothing was actually infectious/gradual about it, and (via the
+ * /obj/effect/warning/explosive marker this used to plant on the victim for the whole wait) was a
+ * visible tell that gave away exactly which corpses/mobs had been set up to turn - useless for
+ * staging a surprise outbreak. This instead lets stage_act() progress the sickness for real (see
+ * disease.dm's process()/SSdisease - already fully decoupled from the host's stat/location, so
+ * this behaves identically whether the target is a corpse, still alive, or gets moved/hidden in
+ * the meantime), just with forced_infection_rate (black_goo.dm) scaled so it reaches
+ * transformation at roughly the requested delay instead of the normal dead/alive-based pacing.
+ * Nothing is visible to bystanders until the disease itself actually reaches stage 3 and
+ * transforms the host - the same as a real, naturally-acquired infection.
+ */
+/datum/admin_spawn_terminal/proc/do_infect_zombie_timed(mob/user, mob/living/carbon/human/victim, timer_seconds)
+	if(!victim || QDELETED(victim) || !victim.loc)
+		to_chat(user, SPAN_WARNING("That target is no longer valid."))
+		return
+	if(iszombie(victim))
+		to_chat(user, SPAN_WARNING("[victim] is already a zombie."))
+		return
+	if(locate(/datum/disease/black_goo) in victim.viruses)
+		to_chat(user, SPAN_WARNING("[victim] is already infected."))
+		return
+
+	// Two full stage thresholds (stage 1->2, 2->3) have to pass before zombie_transform() fires at
+	// stage 3 - see black_goo.dm's stage_act(). STAGE_LEVEL_THRESHOLD there is 360 (that file
+	// #undefs it at its own end, so it's not referenced directly here) - 720 total stage_level
+	// needs to accumulate. SSdisease ticks every 2 seconds (disease.dm), so this solves for
+	// whatever flat per-tick infection_rate crosses that distance in roughly timer_seconds.
+	var/datum/disease/black_goo/bg = new()
+	var/ticks_available = max(1, timer_seconds / 2)
+	bg.forced_infection_rate = max(1, round(720 / ticks_available))
+	victim.AddDisease(bg, FALSE)
+
+	message_admins("[key_name_admin(user)] infected [key_name_admin(victim)] with the zombie virus (timed, ~[timer_seconds]s).")
+
 // ─── Entry points ─────────────────────────────────────────────────────────
 
+/// The one open Admin Spawn Terminal for this admin, if any - see open_spawn_terminal()'s doc comment.
+/datum/admins/var/datum/admin_spawn_terminal/spawn_terminal
+
 /datum/admins/proc/open_spawn_terminal(mob/user, mob/living/carbon/human/preset_target_mob, starting_tab)
-	var/datum/admin_spawn_terminal/terminal = new(src, preset_target_mob, starting_tab)
-	terminal.tgui_interact(user)
+	if(!spawn_terminal || QDELETED(spawn_terminal))
+		spawn_terminal = new(src, preset_target_mob, starting_tab)
+		spawn_terminal.tgui_interact(user)
+		return
+
+	if(preset_target_mob)
+		spawn_terminal.preset_target = preset_target_mob
+	if(starting_tab)
+		spawn_terminal.default_tab = starting_tab
+
+	var/datum/tgui/ui = SStgui.get_open_ui(user, spawn_terminal)
+	if(ui)
+		ui.send_full_update()
+	else
+		spawn_terminal.tgui_interact(user) // Was reused but the window itself got closed since - reopen it fresh.
 
 /client/proc/create_humans()
 	set name = "Create Humans"

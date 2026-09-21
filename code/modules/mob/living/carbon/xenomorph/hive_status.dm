@@ -13,6 +13,8 @@
 	var/list/mob/living/carbon/xenomorph/cached_ai_roster = list()
 	/// world.time cached_ai_roster was last rebuilt.
 	var/cached_ai_roster_time = 0
+	/// Per-target pack-assault scan cache backing get_cached_pack_assault_status() - assoc target -> list("inbound"=,"in_range"=,"engaged"=,"time"=). See that proc's doc comment.
+	var/list/cached_pack_assault_status = list()
 	var/egg_planting_range = 15
 	var/slashing_allowed = XENO_SLASH_ALLOWED //This initial var allows the queen to turn on or off slashing. Slashing off means harm intent does much less damage.
 	var/construction_allowed = NORMAL_XENO //Who can place construction nodes for special structures
@@ -425,6 +427,66 @@
 				cached_ai_roster += member
 		cached_ai_roster_time = world.time
 	return cached_ai_roster
+
+/**
+ * Shared, per-target scan feeding check_pack_staging()'s decisions
+ * (xeno_ai_movement.dm) - counts how many of this hive's AI members are
+ * converging on a given target, split by how close each is to joining the
+ * fight. Was previously a full roster scan run fresh on every single
+ * check_pack_staging() call (get_pack_assault_status(), same file) - called
+ * by every AI xeno within AI_XENO_STAGE_RANGE of a not-yet-adjacent target,
+ * up to 10x/second each (AI_XENO_DEFAULT_HEARTBEAT). That's precisely the
+ * "several xenos converging on the same marines mid-fight" scenario - an
+ * O(roster) scan invoked by O(roster) simultaneous callers every tick is
+ * O(roster^2) aggregate cost concentrated in exactly the moments a real fight
+ * is happening, a real candidate for the reported "AI xenos crawl during
+ * combat" - the per-mob movement pacing itself (ai_step()'s next_step_time
+ * gating against movement_delay()) checks out fine in isolation; this is a
+ * population-scaling cost that only shows up with several AI xenos active on
+ * the same target at once, not a single mob's math being wrong.
+ *
+ * Cached per target (not per caller) at AI_HIVE_SCAN_CACHE_INTERVAL, the same
+ * amortization get_cached_ai_roster()/get_cached_target_candidates() already
+ * use - the raw counts here include every approaching/engaged hive AI member
+ * on this target, INCLUDING whichever pilot ends up calling this for the
+ * same target next (this scan is shared across all of them, so it can't be
+ * computed with any one caller already excluded) - get_pack_assault_status()
+ * subtracts the calling pilot's own contribution back out afterward, cheaply.
+ */
+/datum/hive_status/proc/get_cached_pack_assault_status(atom/movable/target)
+	var/list/cached_entry = cached_pack_assault_status[target]
+	if(cached_entry && world.time < cached_entry["time"] + AI_HIVE_SCAN_CACHE_INTERVAL)
+		return cached_entry
+
+	var/inbound = 0
+	var/in_range = 0
+	var/engaged = 0
+	for(var/mob/living/carbon/xenomorph/ally as anything in get_cached_ai_roster())
+		if(ally.stat == DEAD)
+			continue
+		var/datum/xeno_ai_controller/ally_controller = ally.ai_controller
+		if(!ally_controller || ally_controller.current_target != target)
+			continue
+		if(ally_controller.ai_state == AI_STATE_ATTACKING)
+			engaged++
+		else if(ally_controller.ai_state == AI_STATE_APPROACHING)
+			if(get_dist(ally, target) <= AI_XENO_STAGE_RANGE)
+				in_range++
+			else
+				inbound++
+
+	var/list/result = list("inbound" = inbound, "in_range" = in_range, "engaged" = engaged, "time" = world.time)
+	cached_pack_assault_status[target] = result
+	// Opportunistic prune of stale per-target entries (dead/lost targets) - piggybacks on an
+	// already-happening cache write instead of a dedicated cleanup pass, and only triggers once
+	// the table's actually grown enough for it to matter.
+	if(cached_pack_assault_status.len > 20)
+		for(var/key in cached_pack_assault_status)
+			var/list/entry = cached_pack_assault_status[key]
+			if(world.time >= entry["time"] + AI_HIVE_SCAN_CACHE_INTERVAL * 4)
+				cached_pack_assault_status -= key
+
+	return result
 
 /datum/hive_status/proc/setup_evolution_announcements()
 	for(var/time in GLOB.xeno_evolve_times)
