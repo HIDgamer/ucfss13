@@ -133,6 +133,7 @@
 					for(var/obj/structure/barricade/plasteel/cade in get_step(src, direction))
 						cade.update_icon()
 				update_icon()
+				return
 
 		if(BARRICADE_BSTATE_UNSECURED) //Protection panel removed step. Screwdriver to put the panel back, wrench to unsecure the anchor bolts
 			if(HAS_TRAIT(item, TRAIT_TOOL_SCREWDRIVER))

@@ -154,6 +154,8 @@
 			mob_name = H.real_name
 			var/area/A = get_area(H)
 			var/turf/M_turf = get_turf(H)
+			if(!M_turf)
+				continue
 			if(A)
 				area_name = sanitize_area(A.name)
 

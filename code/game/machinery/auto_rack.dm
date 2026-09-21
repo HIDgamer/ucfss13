@@ -33,8 +33,8 @@
 	var/stocked_weapon = null
 	var/max_stored = 4
 	var/initial_stored = 0
-	var/max_restocks = 5
-	var/remaining_restocks = 5
+	var/max_restocks = 1
+	var/remaining_restocks = 1
 	var/restock_cost = 10000
 	var/damage = 500
 	var/penetration = 5000

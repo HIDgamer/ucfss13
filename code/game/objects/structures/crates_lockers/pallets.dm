@@ -68,13 +68,15 @@
 		name = "pallet ([strip_html(newname)])"
 		playsound(src, "paper_writing", 15, TRUE)
 		return
-	if(istype(W, fill_type))
-		if(contents.len >= max_stored)
-			to_chat(user, SPAN_WARNING("[src] is already fully loaded."))
-			return
-		user.drop_inv_item_to_loc(W, src)
-		update_icon()
+	// fill_type only decides what a pallet subtype pre-loads with at map spawn (Initialize()
+	// below) - loading it by hand afterward isn't restricted to that same type, same as any
+	// other open storage container.
+	if(contents.len >= max_stored)
+		to_chat(user, SPAN_WARNING("[src] is already fully loaded."))
 		return
+	user.drop_inv_item_to_loc(W, src)
+	update_icon()
+	return
 
 /obj/structure/pallet/attack_hand(mob/user)
 	. = ..()
