@@ -46,6 +46,18 @@
 	new_tacmap.forceMove(src)
 	ability_chips += new_tacmap
 
+/obj/item/clothing/gloves/synth/black
+	name = "PK-130 SIMI wrist-mounted computer"
+	desc = "Developed by a joint effort between Weyland-Yutani CIART and the USCM R&D Division, the SIMI portable computer is the ultimate solution for situational awareness, personnel monitoring and communication. This one has a matte black finish."
+
+	icon_state = "bracer_black"
+	base_item_slot_state = "bracer_black"
+	item_state_slots = list(
+		WEAR_HANDS = "bracer_black"
+	)
+
+	bracer_color = SIMI_COLOR_BLACK
+
 /obj/item/clothing/gloves/synth/testing
 	name = "XPK-140 SIMI wrist-mounted computer"
 	desc = "Developed by a joint effort between Weyland-Yutani CIART and the USCM R&D Division, the SIMI portable computer is the ultimate solution for situational awareness, personnel monitoring and communication. This one is highly experimental and seems to be overclocked."

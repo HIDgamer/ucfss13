@@ -1,6 +1,7 @@
 // Possible Bracer Colors
 #define SIMI_COLOR_DEFAULT "default"
 #define SIMI_COLOR_WHITE "white"
+#define SIMI_COLOR_BLACK "black"
 
 /// Loads/Reloads the available actions on the computer itself.
 #define SIMI_ACTIONS_LOAD "load"

@@ -444,6 +444,7 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth_snowflake, list(
 GLOBAL_LIST_INIT(cm_vending_synth_tools, list(
 	list("PK-130", 0, null, null, null),
 	list("PK-130 SIMI Wrist-Mounted Computer", 25, /obj/item/clothing/gloves/synth, null, VENDOR_ITEM_REGULAR),
+	list("PK-130 SIMI Wrist-Mounted Computer Black", 25, /obj/item/clothing/gloves/synth/black, null, VENDOR_ITEM_REGULAR),
 	list("PK-130 Motion Detector", 10, /obj/item/device/simi_chip/motion_detector, null, VENDOR_ITEM_REGULAR),
 	list("PK-130 Ocular Upgrade", 10, /obj/item/device/simi_chip/laser_designator, null, VENDOR_ITEM_REGULAR),
 	list("PK-130 Extended Battery", 10, /obj/item/device/simi_chip/battery_upgrade, null, VENDOR_ITEM_REGULAR),
