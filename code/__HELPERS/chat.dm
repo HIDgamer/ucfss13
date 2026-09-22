@@ -26,6 +26,26 @@
 		world.TgsChatBroadcast(message, channels_to_use)
 
 /**
+ * Builds a round-alert chat message with a rich embed (title/colour/fields/timestamp/footer)
+ * instead of a single plain-text line - used by the round-restarted/round-started/round-completed
+ * alerts (mapping.dm, world.dm). text is the plain-text fallback (also where a role mention, if
+ * any, belongs - Discord only reliably pings from the top-level message text, not from inside an
+ * embed) for chat providers that don't render embeds at all (TGS's own doc comment on
+ * /datum/tgs_message_content/var/embed: "Not supported on all chat providers").
+ */
+/proc/build_round_alert_message(text, title, colour, list/datum/tgs_chat_embed/field/fields)
+	var/datum/tgs_message_content/message = new(text)
+	var/datum/tgs_chat_embed/structure/embed = new()
+	embed.title = title
+	embed.colour = colour
+	embed.timestamp = time2text(world.timeofday, "YYYY-MM-DD hh:mm:ss")
+	embed.footer = new(CONFIG_GET(string/servername) || "SS13")
+	if(fields)
+		embed.fields = fields
+	message.embed = embed
+	return message
+
+/**
  * Sends a message to TGS admin chat channels.
  *
  * category - The category of the mssage.

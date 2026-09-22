@@ -257,7 +257,10 @@ GLOBAL_LIST_INIT(reboot_sfx, file2list("config/reboot_sfx.txt"))
 	if(!GLOB.round_statistics)
 		return
 
-	send2chat(new /datum/tgs_message_content("[GLOB.round_statistics.round_name][GLOB.round_id ? " (Round [GLOB.round_id])" : ""] completed!"), CONFIG_GET(string/new_round_alert_channel))
+	var/list/fields = list(new /datum/tgs_chat_embed/field("Mode", GLOB.round_statistics.round_name))
+	if(GLOB.round_id)
+		fields += new /datum/tgs_chat_embed/field("Round ID", "#[GLOB.round_id]")
+	send2chat(build_round_alert_message("", "Round Completed", "#5865F2", fields), CONFIG_GET(string/new_round_alert_channel))
 
 /world/proc/send_reboot_sound()
 	var/reboot_sound = SAFEPICK(GLOB.reboot_sfx)

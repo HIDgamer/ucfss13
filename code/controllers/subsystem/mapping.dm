@@ -68,10 +68,16 @@ SUBSYSTEM_DEF(mapping)
 	initialize_reserved_level(base_transit.z_value)
 	repopulate_sorted_areas()
 
+	// The role mention only belongs in the message text when a role is actually configured -
+	// previously this always emitted "<@&[id]>" even with an empty id, which Discord renders as
+	// a broken literal "<@&>" instead of silently omitting it.
+	var/round_alert_ping = CONFIG_GET(string/new_round_alert_role_id)
+	round_alert_ping = round_alert_ping ? "<@&[round_alert_ping]>" : ""
 	if(configs[GROUND_MAP])
-		send2chat(new /datum/tgs_message_content("<@&[CONFIG_GET(string/new_round_alert_role_id)]> Round restarted! Map is [configs[GROUND_MAP].map_name]"), CONFIG_GET(string/new_round_alert_channel))
+		var/list/fields = list(new /datum/tgs_chat_embed/field("Map", configs[GROUND_MAP].map_name))
+		send2chat(build_round_alert_message(round_alert_ping, "Round Restarted", "#57F287", fields), CONFIG_GET(string/new_round_alert_channel))
 	else
-		send2chat(new /datum/tgs_message_content("<@&[CONFIG_GET(string/new_round_alert_role_id)]> Round started!"), CONFIG_GET(string/new_round_alert_channel))
+		send2chat(build_round_alert_message(round_alert_ping, "Round Started", "#57F287", null), CONFIG_GET(string/new_round_alert_channel))
 
 	return SS_INIT_SUCCESS
 
