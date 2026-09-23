@@ -22142,6 +22142,15 @@
 	},
 /turf/open/floor/almayer/aicore/no_build,
 /area/almayer/command/airoom)
+"eGs" = (
+/obj/vehicle/motorbike{
+	dir = 4
+	},
+/obj/structure/machinery/light/small{
+	dir = 8
+	},
+/turf/open/floor/almayer/cargo,
+/area/almayer/shipboard/panic)
 "eGH" = (
 /obj/structure/machinery/light/small{
 	dir = 4
@@ -35042,6 +35051,15 @@
 	},
 /turf/open/floor/almayer/plate,
 /area/almayer/maint/upper/u_m_s)
+"jXz" = (
+/obj/vehicle/motorbike/grey{
+	dir = 4
+	},
+/obj/structure/machinery/light/small{
+	dir = 8
+	},
+/turf/open/floor/almayer/cargo,
+/area/almayer/shipboard/panic)
 "jXN" = (
 /obj/docking_port/stationary/escape_pod/south,
 /turf/open/floor/plating,
@@ -62259,6 +62277,10 @@
 	pixel_x = -1;
 	pixel_y = 1
 	},
+/obj/structure/machinery/light/small{
+	dir = 1;
+	pixel_y = 20
+	},
 /turf/open/floor/plating/plating_catwalk,
 /area/almayer/hallways/hangar)
 "uJU" = (
@@ -62851,6 +62873,13 @@
 	},
 /turf/open/floor/almayer,
 /area/almayer/shipboard/brig/cells)
+"uVW" = (
+/obj/structure/machinery/light/small{
+	dir = 1;
+	pixel_y = 20
+	},
+/turf/open/floor/almayer/plate,
+/area/almayer/shipboard/panic)
 "uVX" = (
 /obj/structure/machinery/light{
 	dir = 1
@@ -64479,6 +64508,10 @@
 	pixel_x = 1;
 	pixel_y = 2
 	},
+/obj/structure/machinery/light/small{
+	dir = 1;
+	pixel_y = 20
+	},
 /turf/open/floor/plating/plating_catwalk,
 /area/almayer/hallways/hangar)
 "vxu" = (
@@ -65313,6 +65346,15 @@
 	},
 /turf/open/floor/almayer/redcorner/north,
 /area/almayer/hallways/lower/port_fore_hallway)
+"vNk" = (
+/obj/vehicle/motorbike{
+	dir = 8
+	},
+/obj/structure/machinery/light/small{
+	dir = 4
+	},
+/turf/open/floor/almayer/cargo,
+/area/almayer/shipboard/panic)
 "vNo" = (
 /obj/structure/largecrate/random/case/double,
 /obj/structure/machinery/light/small,
@@ -71717,6 +71759,9 @@
 "ykv" = (
 /obj/vehicle/motorbike/green{
 	dir = 8
+	},
+/obj/structure/machinery/light/small{
+	dir = 4
 	},
 /turf/open/floor/almayer/cargo,
 /area/almayer/shipboard/panic)
@@ -88531,7 +88576,7 @@ eWs
 usq
 sbt
 sbt
-sbt
+eGs
 sbt
 nZR
 xcV
@@ -88731,7 +88776,7 @@ aaa
 sGw
 klT
 eWs
-qxI
+uVW
 qxI
 qxI
 qxI
@@ -88937,7 +88982,7 @@ bfs
 kNf
 kNf
 kNf
-kNf
+vNk
 kNf
 kNf
 xcV
@@ -89343,7 +89388,7 @@ bfs
 wVN
 wVN
 wVN
-wFN
+jXz
 wFN
 wFN
 xcV
@@ -89543,7 +89588,7 @@ aaa
 sGw
 onv
 bfs
-qxI
+uVW
 qxI
 qxI
 qxI

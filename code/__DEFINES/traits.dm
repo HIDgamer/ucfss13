@@ -535,3 +535,5 @@ GLOBAL_LIST(trait_name_map)
 #define HACKED_TRAIT "hacked"
 /// traits from chloroform usage
 #define CHLOROFORM_TRAIT "chloroform"
+/// traits from wall leaning
+#define WALL_HIDING_TRAIT "wallhiding"

@@ -647,6 +647,7 @@ note dizziness decrements automatically in the mob's Life() proc.
 /mob/proc/jittery_process()
 	is_jittery = 1
 	while(jitteriness > 100)
+		SEND_SIGNAL(src, COMSIG_MOB_ANIMATING)
 		var/amplitude = min(4, jitteriness / 100)
 		pixel_x = old_x + rand(-amplitude, amplitude)
 		pixel_y = old_y + rand(-amplitude/3, amplitude/3)
