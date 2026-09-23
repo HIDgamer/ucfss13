@@ -8,7 +8,7 @@ fn are_captures_sorted(matches: CaptureMatches, context: &str) -> Result<(), Str
         let capstring = cap.get(0).unwrap().as_str();
         match prev_string.cmp(capstring) {
             Ordering::Greater => {
-                return Err(format!("{} is not sorted in {}", &capstring, &context))
+                return Err(format!("{} is not sorted in {}", &capstring, &context));
             }
             _ => {
                 prev_string = capstring;
@@ -50,7 +50,7 @@ fn test_librs() -> Result<(), String> {
 #[test]
 fn test_cargotoml() -> Result<(), String> {
     let cargotoml = std::fs::read_to_string("Cargo.toml").unwrap();
-    let blocksre = RegexBuilder::new(r"^# default features\r?\n((:?^.+?\r?\n)*)\r?\n# additional features\r?\n((:?^.+?\r?\n)*)\r?\n#").multi_line(true).build().unwrap();
+    let blocksre = RegexBuilder::new(r"^# default features\r?\n((:?^[^#\r\n]+?\r?\n)*)\r?\n# additional features\r?\n((:?^[^#\r\n]+?\r?\n)*)\r?\n#").multi_line(true).build().unwrap();
     let linesre = RegexBuilder::new(r"^(\w.+?)$")
         .multi_line(true)
         .build()

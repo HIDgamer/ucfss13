@@ -18,6 +18,9 @@ thread_local! {
 }
 
 pub unsafe fn parse_args<'a>(argc: c_int, argv: *const *const c_char) -> Vec<Cow<'a, str>> {
+    if argc == 0 || argv.is_null() {
+        return Vec::new();
+    }
     unsafe {
         slice::from_raw_parts(argv, argc as usize)
             .iter()
@@ -51,7 +54,7 @@ pub fn byond_return(value: Option<Vec<u8>>) -> *const c_char {
 #[macro_export]
 macro_rules! byond_fn {
     (fn $name:ident() $body:block) => {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
@@ -63,7 +66,7 @@ macro_rules! byond_fn {
     };
 
     (fn $name:ident($($arg:ident),* $(, ...$rest:ident)?) $body:block) => {
-        #[no_mangle]
+        #[unsafe(no_mangle)]
         #[allow(clippy::missing_safety_doc)]
         pub unsafe extern "C" fn $name(
             _argc: ::std::os::raw::c_int, _argv: *const *const ::std::os::raw::c_char
@@ -95,24 +98,48 @@ byond_fn!(
 /// Print any panics before exiting.
 pub fn set_panic_hook() {
     SET_HOOK.call_once(|| {
-        std::panic::set_hook(Box::new(|panic_info| {
-            let mut file = OpenOptions::new()
+        let default_panic_handler = std::panic::take_hook();
+        std::panic::set_hook(Box::new(move |panic_info| {
+            default_panic_handler(panic_info);
+            let mut file = match OpenOptions::new()
                 .append(true)
                 .create(true)
                 .open("rustg-panic.log")
-                .unwrap();
-            file.write_all(
-                panic_info
-                    .payload()
-                    .downcast_ref::<&'static str>()
-                    .map(|payload| payload.to_string())
-                    .or_else(|| panic_info.payload().downcast_ref::<String>().cloned())
-                    .unwrap()
-                    .as_bytes(),
-            )
-            .expect("Failed to extract error payload");
-            file.write_all(Backtrace::capture().to_string().as_bytes())
-                .expect("Failed to extract error backtrace");
+            {
+                Ok(file) => file,
+                Err(res) => {
+                    eprintln!("panic_hook: Cannot open file: {res:?}");
+                    return;
+                }
+            };
+
+            let payload = match panic_info
+                .payload()
+                .downcast_ref::<&'static str>()
+                .map(|payload| payload.to_string())
+                .or_else(|| panic_info.payload().downcast_ref::<String>().cloned())
+            {
+                Some(pl) => pl,
+                None => {
+                    eprintln!("panic_hook: Failed to extract panic payload");
+                    return;
+                }
+            };
+
+            match file.write_all(payload.as_bytes()) {
+                Ok(_) => {}
+                Err(err) => {
+                    eprintln!("panic_hook: Failed to write error payload: {err:?}");
+                    return;
+                }
+            };
+
+            match file.write_all(Backtrace::capture().to_string().as_bytes()) {
+                Ok(_) => {}
+                Err(err) => {
+                    eprintln!("panic_hook: Failed to extract backtrace: {err:?}");
+                }
+            };
         }))
     });
 }
@@ -120,12 +147,12 @@ pub fn set_panic_hook() {
 #[allow(dead_code)] // Used depending on feature set
 /// Utility for BYOND functions to catch panic unwinds safely and return a Result<String, Error>, as expected.
 /// Usage: catch_panic(|| internal_safe_function(arguments))
-pub fn catch_panic<F>(f: F) -> Result<String, Error>
+pub fn catch_panic<F, R>(f: F) -> Result<R, Error>
 where
-    F: FnOnce() -> Result<String, Error> + std::panic::UnwindSafe,
+    F: FnOnce() -> R + std::panic::UnwindSafe,
 {
     match std::panic::catch_unwind(f) {
-        Ok(o) => o,
+        Ok(o) => Ok(o),
         Err(e) => {
             let message: Option<String> = e
                 .downcast_ref::<&'static str>()

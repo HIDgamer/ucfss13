@@ -1,0 +1,11 @@
+{
+  "configurations": [
+    {
+        "name": "Attach to Dreamseeker (MSVC)",
+        "type": "cppvsdbg",
+        "request": "attach",
+        "processId": "${command:pickProcess}",
+        "symbolSearchPath": "${workspaceFolder}/target/i686-pc-windows-msvc/debug"
+    },
+  ]
+}

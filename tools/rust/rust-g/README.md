@@ -77,7 +77,7 @@ cargo build --release --target i686-unknown-linux-gnu
 
 Windows:
 
-If you are using Visual Studio Code, you may use the `CONTROL + SHIFT + B` hotkey and run the `rust: cargo build (win32)` task.
+If you are using Visual Studio Code, you may use the `CONTROL + SHIFT + B` hotkey and run the `rust: cargo release build (win32)` task.
 
 Alternatively:
 ```sh
@@ -92,29 +92,36 @@ You can't use `--all-features` because of conflicting `native_tls` and `rustls_t
 
 The default features are:
 * acreplace: Aho-Corasick string matching and replacement.
+* cave_system_generator: Generates cave systems, like anthills.
 * cellularnoise: Function to generate cellular automata-based noise.
 * dmi: DMI manipulations which are impossible or degraded from within BYOND.
   Mostly used by the asset cache subsystem to improve load times.
 * file: Faster replacements for `file2text` and `text2file`, as well as reading or checking if files exist.
 * git: Functions for robustly checking the current git revision.
+* hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512.
 * http: Asynchronous HTTP(s) client supporting most standard methods.
+* iconforge: A much faster replacement for various bulk DM /icon operations such as [/tg/station]'s asset subsystem spritesheet generation and GAGS bundle generation.
 * json: Function to check JSON validity.
 * log: Faster log output.
 * noise: 2d Perlin noise.
+* pathfinder: An a* pathfinder used for finding the shortest path in a static node map. Not to be used for a non-static map.
+* sound_len: A mostly codec-agnostic library for reading the duration of an audio file.
 * sql: Asynchronous MySQL/MariaDB client library.
+  * There are also two sub-features: `native_tls` and `rustls_tls`. `rustls_tls` is a default feature, while the former is not.
 * time: High-accuracy time measuring.
 * toml: TOML parser.
 * url: Faster replacements for `url_encode` and `url_decode`.
 
 Additional features are:
+* allow_non_32bit: Disables the forced compile errors on non-32bit targets. Only use this if you know exactly what you are doing.
 * batchnoise: Discrete Batched Perlin-like Noise, fast and multi-threaded - sent over once instead of having to query for every tile.
-* hash: Faster replacement for `md5`, support for SHA-1, SHA-256, and SHA-512. Requires OpenSSL on Linux.
-* iconforge: A much faster replacement for the spritesheet generation system used by [/tg/station].
-* pathfinder: An a* pathfinder used for finding the shortest path in a static node map. Not to be used for a non-static map.
+* dice: Advanced replacement for `roll`, supporting expressive xdy dice notation.
+* ed25519: Ed25519 key generation, public key derivation, signing, and signature verification.
+* poissonnoise: A way to generate a 2D poisson disk distribution ('blue noise'), which is relatively uniform.
 * redis_pubsub: Library for sending and receiving messages through Redis.
 * redis_reliablequeue: Library for using a reliable queue pattern through Redis.
 * unzip: Function to download a .zip from a URL and unzip it to a directory.
-* worleynoise: Function that generates a type of nice looking cellular noise, more expensive than cellularnoise
+* worleynoise: Function that generates a type of nice looking cellular noise, more expensive than cellularnoise.
 
 Regarding rust-analyzer: If you are using a feature set other than the default, you will need to adjust `rust-analyzer.cargo.features`.
 
@@ -129,6 +136,16 @@ of the enabled modules. To use rust-g, copy-paste this file into your project.
 
 `rust_g.dm` can be configured by creating a `rust_g.config.dm`. See the comments
 at the top of `rust_g.dm` for details.
+
+## Debugging
+
+### Windows, Visual Studio Code
+
+In order to debug the library, you must have the [Microsoft C/C++ extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode.cpptools) (`ms-vscode.cpptools`) installed and enabled. Compile the library in development mode, either via pressing `CONTROL + SHIFT + B` and running the `rust: cargo development build (win32)` task, or running the command `cargo build --target i686-pc-windows-msvc` in the terminal. In either way, the debug compiled library will be available in `target/i686-pc-windows-msvc/debug`.
+
+Next, move the compiled debug library to your project. After starting your server, pressing F5 in the rust-g project workspace will open a dialogue window asking you to select a process. Search for the dreamseeker instance and select it; this will attach the debugger to it, allowing you to debug the library.
+
+**Note:** Due to the way the MSVC behaves, sometimes the debugger struggles with matching the lines in the source code to the code running on the server. This seems to be caused by the way rust inlines its macros. If you notice any strange breakpoint behavior on your functions, try clicking on the `byond_fn!` macro and press `ctrl+.`, and select `Inline macro`.
 
 ## Troubleshooting
 
@@ -183,6 +200,8 @@ open("rust_g", O_RDONLY|O_CLOEXEC)      = 4
 open("rust_g", O_RDONLY|O_NONBLOCK|O_LARGEFILE|O_DIRECTORY|O_CLOEXEC) = -1 ENOTDIR (Not a directory)
 ```
 
+---
+
 If you're still having problems, ask in the [Coderbus Discord]'s
 `#tooling-questions` channel.
 
@@ -190,7 +209,7 @@ If you're still having problems, ask in the [Coderbus Discord]'s
 [Rust]: https://rust-lang.org
 [Cargo]: https://doc.rust-lang.org/cargo/
 [rustup]: https://rustup.rs/
-[msvc]: https://visualstudio.microsoft.com/thank-you-downloading-visual-studio/?sku=BuildTools&rel=15
+[msvc]: https://visualstudio.microsoft.com/visual-cpp-build-tools/
 [Coderbus Discord]: https://discord.gg/Vh8TJp9
 
 ## License

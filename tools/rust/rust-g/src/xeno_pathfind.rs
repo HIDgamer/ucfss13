@@ -168,8 +168,11 @@ fn find_path(
 // length string of '0'/'1' characters, row-major. Returns a ';'-separated
 // list of "x,y" grid-local coordinates from start to end inclusive, or an
 // empty string if no path exists or the input was malformed.
+// catch_panic became generic over the closure's return type in rust_g 7.0.0 (previously fixed
+// to Result<String, Error>), so closures here return the plain value directly instead of Ok(..)
+// wrapping it - matches the new call convention rust-g's own iconforge.rs uses.
 byond_fn!(fn xeno_pathfind(grid_desc, blocked_map) {
-    Some(catch_panic(|| Ok(pathfind_impl(grid_desc, blocked_map))).unwrap_or_default())
+    Some(catch_panic(|| pathfind_impl(grid_desc, blocked_map)).unwrap_or_default())
 });
 
 fn pathfind_impl(desc: &str, blocked_str: &str) -> String {
@@ -372,7 +375,7 @@ fn parse_ints(s: &str) -> Vec<i32> {
 // row-major from world tile (1,1). Returns "ok" on success, "" on malformed
 // input.
 byond_fn!(fn xeno_pathfind_init_z(z_desc, packed_cells) {
-    Some(catch_panic(|| Ok(init_z_impl(z_desc, packed_cells))).unwrap_or_default())
+    Some(catch_panic(|| init_z_impl(z_desc, packed_cells)).unwrap_or_default())
 });
 
 fn init_z_impl(desc: &str, cells: &str) -> String {
@@ -405,7 +408,7 @@ fn init_z_impl(desc: &str, cells: &str) -> String {
 // is a cell code (0/1/2/3/4). Unknown z or out-of-bounds entries are skipped
 // (the delta pipeline must never poison the whole batch). Returns "ok".
 byond_fn!(fn xeno_pathfind_update(deltas) {
-    Some(catch_panic(|| Ok(update_impl(deltas))).unwrap_or_default())
+    Some(catch_panic(|| update_impl(deltas)).unwrap_or_default())
 });
 
 fn update_impl(payload: &str) -> String {
@@ -439,7 +442,7 @@ fn update_impl(payload: &str) -> String {
 // start to end inclusive, or "" if the z isn't loaded, input is malformed,
 // or no route exists.
 byond_fn!(fn xeno_pathfind_route(route_desc) {
-    Some(catch_panic(|| Ok(route_impl(route_desc))).unwrap_or_default())
+    Some(catch_panic(|| route_impl(route_desc)).unwrap_or_default())
 });
 
 fn route_impl(desc: &str) -> String {
@@ -466,7 +469,7 @@ fn route_impl(desc: &str) -> String {
 // radius of 2 (amount, then 1/2, then 1/3 of it). Saturating - repeated
 // deaths stack up to u16::MAX. Returns "ok" ("" on malformed input).
 byond_fn!(fn xeno_pathfind_threat(threat_desc) {
-    Some(catch_panic(|| Ok(threat_impl(threat_desc))).unwrap_or_default())
+    Some(catch_panic(|| threat_impl(threat_desc)).unwrap_or_default())
 });
 
 fn threat_impl(desc: &str) -> String {
@@ -505,7 +508,7 @@ byond_fn!(fn xeno_pathfind_decay() {
                 *t /= 2;
             }
         }
-        Ok("ok".to_string())
+        "ok".to_string()
     }).unwrap_or_default())
 });
 
@@ -513,7 +516,7 @@ byond_fn!(fn xeno_pathfind_decay() {
 byond_fn!(fn xeno_pathfind_clear() {
     Some(catch_panic(|| {
         map_lock().clear();
-        Ok("ok".to_string())
+        "ok".to_string()
     }).unwrap_or_default())
 });
 

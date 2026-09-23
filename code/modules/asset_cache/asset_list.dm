@@ -248,7 +248,9 @@ GLOBAL_LIST_EMPTY(asset_datums)
 	text2file("", "data/spritesheets/.keep")
 
 	var/sprites_json = json_encode(iconforge_pending)
-	var/raw_result = rustg_iconforge_generate("data/spritesheets/", name, sprites_json, "0")
+	// rust_g 7.0.0 added generate_dmi/flatten params to iconforge_generate. We still read back a
+	// .png below (not a .dmi), so generate_dmi stays "0" to keep the exact pre-upgrade output format.
+	var/raw_result = rustg_iconforge_generate("data/spritesheets/", name, sprites_json, "0", "0", "0")
 	var/list/result = json_decode(raw_result)
 	if (!result || (result["error"] && length(result["error"])))
 		CRASH("iconforge failed to generate spritesheet [name]: [result ? result["error"] : raw_result]")

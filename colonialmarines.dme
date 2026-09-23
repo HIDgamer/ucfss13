@@ -22,6 +22,7 @@
 #include "code\stylesheet.dm"
 #include "code\__DEFINES\__game.dm"
 #include "code\__DEFINES\__rust_g.dm"
+#include "code\__DEFINES\__rust_g_redis-pubsub.dm"
 #include "code\__DEFINES\__spacemandmm.dm"
 #include "code\__DEFINES\__xeno_pathfind.dm"
 #include "code\__DEFINES\_bitfields.dm"

@@ -54,15 +54,15 @@ fn write(data: &str, path: &str) -> Result<usize> {
         std::fs::create_dir_all(parent)?;
     }
 
-    let mut file = BufWriter::new(File::create(path)?);
-    let written = file.write(data.as_bytes())?;
+    // basically, this is just like, in case the filesystem has an issue, we won't nuke the original file if there is one
+    // write to tmp file first - then rename it to original filename if everything succeeds
+    let tmp_path = path.with_extension("tmp");
+    let mut file = File::create(&tmp_path)?;
+    file.write_all(data.as_bytes())?;
+    file.sync_all()?;
 
-    file.flush()?;
-    file.into_inner()
-        .map_err(|e| std::io::Error::new(e.error().kind(), e.error().to_string()))? // This is god-awful, but the compiler REFUSES to let me get an owned copy of `e`
-        .sync_all()?;
-
-    Ok(written)
+    std::fs::rename(&tmp_path, path)?;
+    Ok(data.len())
 }
 
 fn append(data: &str, path: &str) -> Result<usize> {

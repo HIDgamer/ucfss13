@@ -9,13 +9,21 @@ on:
 jobs:
   build-windows:
     runs-on: windows-latest
+    env:
+      BYOND_MAJOR: 516
+      BYOND_MINOR: 1686
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: dtolnay/rust-toolchain@stable
+      - name: Install BYOND
+        run: |
+          bash scripts/install_byond.sh
+          echo "BYOND_BIN=$env:USERPROFILE\BYOND\byond\bin" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+      - uses: dtolnay/rust-toolchain@1.93
         with:
           targets: i686-pc-windows-msvc
-          components: rustfmt, clippy
+          components: clippy, rustfmt
 
       - uses: Swatinem/rust-cache@v2
 
@@ -25,10 +33,16 @@ jobs:
       - name: Rustfmt
         run: cargo fmt -- --check
 
+      - name: Build (Debug) (all features)
+        run: cargo build --target i686-pc-windows-msvc --locked --features all
+
+      - name: Run tests (all features)
+        run: cargo test --target i686-pc-windows-msvc --locked --features all
+
       - name: Build (release) (default features)
         run: cargo build --target i686-pc-windows-msvc --locked --release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Windows Build
           path: |
@@ -36,25 +50,59 @@ jobs:
             target/i686-pc-windows-msvc/release/rust_g.pdb
             target/rust_g.dm
 
+  build-windows-x64:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: dtolnay/rust-toolchain@1.93
+        with:
+          targets: x86_64-pc-windows-msvc
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: x64 Clippy (all features)
+        run: cargo clippy --target x86_64-pc-windows-msvc --features all,allow_non_32bit --locked -- -D warnings
+
+      - name: Rustfmt
+        run: cargo fmt -- --check
+
+      - name: x64 Build (release) (default features)
+        run: cargo build --target x86_64-pc-windows-msvc --features allow_non_32bit --locked --release
+
+      - name: Rename x64 artifacts
+        run: |
+          Move-Item -Path "target\x86_64-pc-windows-msvc\release\rust_g.dll" -Destination "target\x86_64-pc-windows-msvc\release\rust_g64.dll"
+          Move-Item -Path "target\x86_64-pc-windows-msvc\release\rust_g.pdb" -Destination "target\x86_64-pc-windows-msvc\release\rust_g64.pdb"
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Windows Build x64
+          path: |
+            target/x86_64-pc-windows-msvc/release/rust_g64.dll
+            target/x86_64-pc-windows-msvc/release/rust_g64.pdb
+            target/rust_g.dm
+
   build-linux:
     runs-on: ubuntu-latest
     env:
-      BYOND_MAJOR: 515
-      BYOND_MINOR: 1636
+      BYOND_MAJOR: 516
+      BYOND_MINOR: 1686
       PKG_CONFIG_ALLOW_CROSS: 1
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - run: |
           sudo dpkg --add-architecture i386
           sudo apt-get update
-          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386
+          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386 libcurl4:i386
           ./scripts/install_byond.sh
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@1.93
         with:
-          targets: i686-unknown-linux-gnu
+          targets: i686-unknown-linux-gnu, x86_64-unknown-linux-gnu
 
       - uses: Swatinem/rust-cache@v2
 
@@ -72,9 +120,50 @@ jobs:
       - name: Build (release) (default features)
         run: cargo build --target i686-unknown-linux-gnu --locked --release
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: Linux Build
           path: |
             target/i686-unknown-linux-gnu/release/librust_g.so
+            target/rust_g.dm
+
+  build-linux-x64:
+    runs-on: ubuntu-latest
+    env:
+      BYOND_MAJOR: 516
+      BYOND_MINOR: 1686
+      PKG_CONFIG_ALLOW_CROSS: 1
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - run: |
+          sudo dpkg --add-architecture i386
+          sudo apt-get update
+          sudo apt-get install libgcc-s1:i386 g++-multilib zlib1g-dev:i386 libcurl4:i386
+          ./scripts/install_byond.sh
+
+      - uses: dtolnay/rust-toolchain@1.93
+        with:
+          targets: x86_64-unknown-linux-gnu
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: x64 Check (all features)
+        run: cargo check --target x86_64-unknown-linux-gnu --locked --features all,allow_non_32bit
+
+      - name: x64 Build (Debug) (all features)
+        run: cargo build --target x86_64-unknown-linux-gnu --locked --features all,allow_non_32bit
+
+      - name: x64 Build (release) (default features)
+        run: cargo build --target x86_64-unknown-linux-gnu --locked --features allow_non_32bit --release
+
+      - name: Rename x64 artifacts
+        run: mv target/x86_64-unknown-linux-gnu/release/librust_g.so target/x86_64-unknown-linux-gnu/release/librust_g64.so
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Linux Build x64
+          path: |
+            target/x86_64-unknown-linux-gnu/release/librust_g64.so
             target/rust_g.dm
