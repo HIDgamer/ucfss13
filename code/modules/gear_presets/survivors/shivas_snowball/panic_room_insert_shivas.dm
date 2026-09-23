@@ -89,7 +89,7 @@
 	new_human.equip_to_slot_or_del(new /obj/item/device/radio/headset/distress/pmc/commando/hvh, WEAR_L_EAR)
 	//suit
 	new_human.equip_to_slot_or_del(new /obj/item/clothing/suit/storage/marine/veteran/pmc/commando/damaged, WEAR_JACKET)
-	new_human.equip_to_slot_or_del(new /obj/item/storage/box/MRE/pmc, WEAR_IN_JACKET)
+	new_human.equip_to_slot_or_del(new /obj/item/storage/box/mre/pmc, WEAR_IN_JACKET)
 	new_human.equip_to_slot_or_del(new /obj/item/weapon/gun/rifle/m41a/corporate/detainer, WEAR_J_STORE)
 	//helmet
 	new_human.equip_to_slot_or_del(new /obj/item/clothing/head/helmet/marine/veteran/pmc/enclosed/commando/damaged, WEAR_HEAD)
