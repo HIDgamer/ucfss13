@@ -553,7 +553,6 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	plain_message = "Reopened by [usr.username()]", message_type = "system")
 	var/msg = SPAN_ADMINHELP("Ticket [TicketHref("#[id]")] reopened by [key_name_admin(usr)].")
 	message_admins(msg)
-	log_admin_private(msg)
 	log_ahelp(id, "Reopened", "Reopened by [usr.username()]", usr.ckey)
 
 //private
@@ -585,7 +584,6 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		var/msg = "Ticket [TicketHref("#[id]")] closed by [key_name]."
 		message_admins(msg)
 		log_ahelp(id, "Closed", "Closed by [usr.username()]", null, usr.ckey)
-		log_admin_private(msg)
 
 //Mark open ticket as resolved/legitimate, returns ahelp verb
 /datum/admin_help/proc/Resolve(key_name = key_name_admin(usr), silent = FALSE)
@@ -610,7 +608,6 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		var/msg = "Ticket [TicketHref("#[id]")] resolved by [key_name]"
 		message_admins(msg)
 		log_ahelp(id, "Resolved", "Resolved by [usr.username()]", null, usr.ckey)
-		log_admin_private(msg)
 
 /datum/admin_help/proc/defer_to_mentors()
 	if(state != AHELP_ACTIVE || !initial_message)
@@ -677,7 +674,6 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 	to_chat(initiator, SPAN_ADMINHELP("An admin is preparing to respond to your ticket."))
 	var/msg = "Ticket [TicketHref("#[id]")] marked by [key_name]."
 	message_admins(msg)
-	log_admin_private(msg)
 	log_ahelp(id, "Marked", "Marked by [user.username()]", sender = user.ckey)
 	marked_admin = user.ckey
 
@@ -687,7 +683,6 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		plain_message = "Unmarked by [usr.username()] (previously [marked_admin])", message_type = "system")
 	var/msg = "Ticket [TicketHref("#[id]")] unmarked by [key_name]."
 	message_admins(msg)
-	log_admin_private(msg)
 	log_ahelp(id, "Unmarked", "Unmarked by [usr.username()] (previously [marked_admin])", sender = usr.ckey)
 	marked_admin = null
 
@@ -711,7 +706,6 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 
 	var/msg = "Ticket [TicketHref("#[id]")] rejected by [key_name]"
 	message_admins(msg)
-	log_admin_private(msg)
 	AddInteraction("Rejected by [key_name].",
 		plain_message = "Rejected by [usr.username()]", message_type = "system")
 	log_ahelp(id, "Rejected", "Rejected by [usr.username()]", null, usr.ckey)
@@ -745,7 +739,6 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 
 	msg = "Ticket [TicketHref("#[id]")] marked as [response.title] by [key_name]"
 	message_admins(msg)
-	log_admin_private(msg)
 	AddInteraction("Marked as [response.title] by [key_name]",
 		plain_message = "Marked as [response.title] by [usr.username()]", message_type = "system")
 	log_ahelp(id, "Autoreply", "Marked as [response.title] by [usr.username()]", null,  usr.ckey)
@@ -860,7 +853,6 @@ GLOBAL_DATUM_INIT(ahelp_tickets, /datum/admin_help_tickets, new)
 		//not saying the original name cause it could be a long ass message
 		var/msg = "Ticket [TicketHref("#[id]")] titled [name] by [key_name_admin(usr)]"
 		message_admins(msg)
-		log_admin_private(msg)
 	TicketPanel() //we have to be here to do this
 
 //Forwarded action from admin/Topic

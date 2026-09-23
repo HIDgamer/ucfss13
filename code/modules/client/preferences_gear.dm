@@ -1081,37 +1081,37 @@ GLOBAL_LIST_EMPTY(gear_datums_by_name)
 	category = "Civilian only (restricted)"
 	allowed_origins = list(ORIGIN_CIVILIAN)
 
-/datum/gear/civilian/patch
+/datum/gear/misc/patch_wy
 	display_name = "Weyland-Yutani shoulder patch, black"
 	path = /obj/item/clothing/accessory/patch/wy
 	cost = 1
 	slot = WEAR_IN_ACCESSORY
 
-/datum/gear/civilian/patch/wysquare
+/datum/gear/misc/patch_wy/wysquare
 	display_name = "Weyland-Yutani shoulder patch"
 	path = /obj/item/clothing/accessory/patch/wysquare
 
-/datum/gear/civilian/patch/wy_white
+/datum/gear/misc/patch_wy/wy_white
 	display_name = "Weyland-Yutani shoulder patch, white"
 	path = /obj/item/clothing/accessory/patch/wy_white
 
-/datum/gear/civilian/patch/wy_fury
+/datum/gear/misc/patch_wy/wy_fury
 	display_name = "Weyland-Yutani Fury '161' patch"
 	path = /obj/item/clothing/accessory/patch/wyfury
 
-/datum/gear/civilian/patch/twepatch
+/datum/gear/misc/patch_wy/twepatch
 	display_name = "Three World Empire shoulder patch"
 	path = /obj/item/clothing/accessory/patch/twe
 
-/datum/gear/civilian/patch/cec
+/datum/gear/misc/patch_wy/cec
 	display_name = "Cosmos Exploration Corps shoulder patch"
 	path = /obj/item/clothing/accessory/patch/cec_patch
 
-/datum/gear/civilian/patch/clf
+/datum/gear/misc/patch_wy/clf
 	display_name = "Colonial Liberation Front shoulder patch"
 	path = /obj/item/clothing/accessory/patch/clf_patch
 
-/datum/gear/civilian/patch/hyperdyne
+/datum/gear/misc/patch_wy/hyperdyne
 	display_name = "Hyperdyne Corporation shoulder patch"
 	path = /obj/item/clothing/accessory/patch/hyperdyne_patch
 
@@ -1143,7 +1143,7 @@ GLOBAL_LIST_EMPTY(gear_datums_by_name)
 
 // Hippie Shades
 
-/datum/gear/eyewear/sunglasses/hippie_shades/pink
+/datum/gear/eyewear/sunglasses/hippie_shades
 	display_name = "Suntex-Sightware rounded shades, pink"
 	path = /obj/item/clothing/glasses/sunglasses/hippie
 
