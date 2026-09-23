@@ -2084,6 +2084,24 @@
 	new /obj/item/ammo_magazine/revolver/mateba/highimpact/ap(src)
 	new /obj/item/ammo_magazine/revolver/mateba/highimpact/ap(src)
 
+/**
+ * SLOT_SUIT_STORE (equipment.dm) lets an item be worn in the suit-storage slot (WEAR_J_STORE)
+ * "regardless of suit" - the base rig only supports WEAR_WAIST. Scoped to this one subtype rather
+ * than the shared base item so every other Mateba rig in the game keeps its normal waist-only
+ * behavior; only used by the special_characters.dm commander preset, worn under the trench coat's
+ * suit slot instead of at the waist.
+ */
+/obj/item/storage/belt/gun/mateba/chrismmar
+	flags_equip_slot = SLOT_WAIST|SLOT_SUIT_STORE
+
+/obj/item/storage/belt/gun/mateba/chrismmar/fill_preset_inventory()
+	handle_item_insertion(new /obj/item/weapon/gun/revolver/mateba/engraved())
+	new /obj/item/ammo_magazine/revolver/mateba/highimpact(src)
+	new /obj/item/ammo_magazine/revolver/mateba/highimpact(src)
+	new /obj/item/ammo_magazine/revolver/mateba/highimpact(src)
+	new /obj/item/ammo_magazine/revolver/mateba/highimpact/ap(src)
+	new /obj/item/ammo_magazine/revolver/mateba/highimpact/ap(src)
+
 /obj/item/storage/belt/gun/mateba/cmateba
 	name = "\improper M276 pattern Mateba holster rig"
 	desc = "The M276 is the standard load-bearing equipment of the USCM. It consists of a modular belt with various clips. This version is for the powerful Mateba magnum revolver, along with five small pouches for speedloaders. It was included with the mail-order USCM edition of the Mateba autorevolver in the early 2170s."

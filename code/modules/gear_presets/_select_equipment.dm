@@ -15,6 +15,8 @@
 	var/list/access = list()
 	var/assignment
 	var/rank
+	/// If set, only an admin whose ckey is in this list may apply this preset via the Admin Spawn Terminal (event_tab.dm's do_redress()/do_spawn_humans()) - null/unset means unrestricted, same as every other preset. GLOB.gear_name_presets_list/arm_equipment() themselves stay completely ungated; enforcement lives at the terminal's own call sites since those receive the real acting admin's mob, not the unreliable global usr.
+	var/list/restricted_to_ckeys
 	var/list/paygrades = list("???")
 	var/role_comm_title
 	var/minimum_age

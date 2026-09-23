@@ -28,6 +28,15 @@
 			to_chat(c, SPAN_WARNING("Pick an outfit first."))
 			return
 
+		// dresscode may already be a resolved preset instance (tgui_input_list() maps an assoc
+		// list's picked key back to its value) or a name/path string depending on caller - handle
+		// either so restricted_to_ckeys is actually enforced here too, not just in event_tab.dm/
+		// select_equipment.dm's own admin-terminal paths.
+		var/datum/equipment_preset/resolved_preset = istype(dresscode, /datum/equipment_preset) ? dresscode : (ispath(dresscode) ? GLOB.gear_path_presets_list[dresscode] : GLOB.gear_name_presets_list[dresscode])
+		if(resolved_preset?.restricted_to_ckeys && !(c.ckey in resolved_preset.restricted_to_ckeys))
+			to_chat(c, SPAN_WARNING("[resolved_preset.name] is restricted - you don't have permission to apply it."))
+			return
+
 		for(var/obj/item/I in selected)
 			if(istype(I, /obj/item/implant))
 				continue

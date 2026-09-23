@@ -1122,6 +1122,10 @@
 		return
 	if(!user.client)
 		return
+	var/datum/equipment_preset/preset = GLOB.gear_name_presets_list[job_name]
+	if(preset.restricted_to_ckeys && !(user.ckey in preset.restricted_to_ckeys))
+		to_chat(user, SPAN_WARNING("[job_name] is restricted - you don't have permission to apply it."))
+		return
 	user.client.cmd_admin_dress_human(victim, job_name, no_logs = TRUE)
 	message_admins("[key_name_admin(user)] changed the equipment of [key_name_admin(victim)] to [job_name].")
 
@@ -1161,6 +1165,10 @@
 	for(var/list/entry in queue)
 		var/job_name = entry["job"]
 		if(!job_name || !(job_name in GLOB.gear_name_presets_list))
+			continue
+		var/datum/equipment_preset/entry_preset = GLOB.gear_name_presets_list[job_name]
+		if(entry_preset.restricted_to_ckeys && !(user.ckey in entry_preset.restricted_to_ckeys))
+			to_chat(user, SPAN_WARNING("[job_name] is restricted - skipped."))
 			continue
 		var/is_zombie_entry = (job_name == "Zombie" || job_name == "Zombie Burster") // the pre-existing /datum/equipment_preset/other/zombie and its /burster subtype (other.dm) - their own load_race() already sets SPECIES_ZOMBIE/SPECIES_ZOMBIE_BURSTER.
 		var/count = clamp(text2num(entry["count"]), 1, 100)

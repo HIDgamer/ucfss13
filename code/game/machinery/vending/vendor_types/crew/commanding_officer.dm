@@ -57,13 +57,16 @@ GLOBAL_LIST_INIT(cm_vending_gear_commanding_officer, list(
 		list("Extended Barrel", 15, /obj/item/attachable/extended_barrel, null, VENDOR_ITEM_REGULAR),
 		list("Recoil Compensator", 15, /obj/item/attachable/compensator, null, VENDOR_ITEM_REGULAR),
 		list("Suppressor", 15, /obj/item/attachable/suppressor, null, VENDOR_ITEM_REGULAR),
+
+		list("ARMOR", 0, null, null, null),
+		list("Ceramic Plate", 25, /obj/item/clothing/accessory/health/ceramic_plate, null, VENDOR_ITEM_REGULAR),
 ))
 
 /obj/structure/machinery/cm_vending/gear/commanding_officer
 	name = "\improper ColMarTech Commanding Officer Weapon Rack"
 	desc = "An automated weapons rack for the Commanding Officer. It features a robust selection of weaponry meant only for the USCM's top officers."
 	req_access = list(ACCESS_MARINE_SENIOR)
-	vendor_role = list(JOB_CO, JOB_WO_CO)
+	vendor_role = list(JOB_CO, JOB_WO_CO, "Commander C++")
 	icon_state = "guns"
 	use_snowflake_points = TRUE
 
@@ -143,7 +146,7 @@ GLOBAL_LIST_INIT(cm_vending_clothing_commanding_officer, list(
 	name = "\improper ColMarTech Commanding Officer Equipment Rack"
 	desc = "An automated equipment vendor for the Commanding Officer. Contains a prime selection of equipment for only the USCM's top officers."
 	req_access = list(ACCESS_MARINE_SENIOR)
-	vendor_role = list(JOB_CO, JOB_WO_CO)
+	vendor_role = list(JOB_CO, JOB_WO_CO, "Commander C++")
 
 /obj/structure/machinery/cm_vending/clothing/commanding_officer/get_listed_products(mob/user)
 	return GLOB.cm_vending_clothing_commanding_officer

@@ -111,6 +111,12 @@
 	if(isnull(dresscode))
 		return
 
+	// dresscode is a name string or a type path here (see arm_equipment()'s own lookup below),
+	// never a resolved preset instance - resolve it the same way to check restricted_to_ckeys.
+	var/datum/equipment_preset/resolved_preset = ispath(dresscode) ? GLOB.gear_path_presets_list[dresscode] : GLOB.gear_name_presets_list[dresscode]
+	if(resolved_preset?.restricted_to_ckeys && !(ckey in resolved_preset.restricted_to_ckeys))
+		to_chat(usr, SPAN_WARNING("[resolved_preset.name] is restricted - you don't have permission to apply it."))
+		return
 
 	for (var/obj/item/I in M)
 		if (istype(I, /obj/item/implant))

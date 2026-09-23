@@ -8702,9 +8702,7 @@
 /obj/structure/disposalpipe/junction{
 	dir = 2
 	},
-/obj/structure/pipes/standard/manifold/hidden/supply{
-	dir = 4
-	},
+/obj/structure/pipes/standard/manifold/hidden/supply,
 /turf/open/floor/almayer/dark_sterile,
 /area/almayer/medical/lower_medical_lobby)
 "bdL" = (
@@ -8727,6 +8725,9 @@
 /obj/effect/decal/warning_stripes{
 	icon_state = "E";
 	pixel_x = 1
+	},
+/obj/structure/pipes/standard/simple/hidden/supply{
+	dir = 4
 	},
 /turf/open/floor/almayer/dark_sterile,
 /area/almayer/medical/lower_medical_lobby)
@@ -31117,6 +31118,13 @@
 /obj/structure/machinery/computer/crew,
 /turf/open/floor/almayer,
 /area/almayer/command/cic)
+"iuv" = (
+/obj/structure/machinery/door/firedoor/border_only/almayer{
+	dir = 2
+	},
+/obj/structure/disposalpipe/segment,
+/turf/open/floor/almayer/test_floor4,
+/area/almayer/medical/lower_medical_lobby)
 "iux" = (
 /obj/structure/surface/table/reinforced/prison{
 	climbable = 0
@@ -40196,7 +40204,6 @@
 /area/almayer/shipboard/brig/starboard_hallway)
 "maI" = (
 /obj/structure/disposalpipe/segment,
-/obj/structure/pipes/standard/simple/hidden/supply,
 /turf/open/floor/almayer/sterile_green_side/southeast,
 /area/almayer/medical/lower_medical_lobby)
 "maK" = (
@@ -41576,6 +41583,16 @@
 	},
 /turf/open/floor/almayer/sterile_green_side/north,
 /area/almayer/medical/medical_science)
+"mFr" = (
+/obj/structure/window/framed/almayer/white,
+/obj/structure/machinery/door/firedoor/border_only/almayer{
+	dir = 2
+	},
+/obj/structure/pipes/standard/simple/hidden/supply{
+	dir = 1
+	},
+/turf/open/floor/plating,
+/area/almayer/medical/lower_medical_lobby)
 "mFL" = (
 /obj/effect/projector{
 	name = "Almayer_Up1";
@@ -42279,6 +42296,10 @@
 /obj/structure/disposalpipe/segment,
 /turf/open/floor/almayer/blue,
 /area/almayer/squads/charlie_delta_shared)
+"mSW" = (
+/obj/structure/disposalpipe/segment,
+/turf/open/floor/almayer,
+/area/almayer/hallways/lower/port_fore_hallway)
 "mTc" = (
 /obj/structure/surface/table/woodentable/fancy,
 /obj/structure/machinery/computer/emails{
@@ -50763,6 +50784,9 @@
 	pixel_y = 2;
 	pixel_x = 1
 	},
+/obj/structure/pipes/standard/simple/hidden/supply{
+	dir = 1
+	},
 /turf/open/floor/plating/plating_catwalk,
 /area/almayer/medical/lower_medical_lobby)
 "qit" = (
@@ -52628,6 +52652,9 @@
 /obj/effect/decal/warning_stripes{
 	icon_state = "E";
 	pixel_x = 1
+	},
+/obj/structure/pipes/standard/simple/hidden/supply{
+	dir = 10
 	},
 /turf/open/floor/almayer/flooredge/east,
 /area/almayer/medical/lower_medical_lobby)
@@ -57018,11 +57045,10 @@
 /turf/open/floor/almayer/orange,
 /area/almayer/engineering/ce_room)
 "sAD" = (
-/obj/structure/disposalpipe/segment{
-	dir = 4;
-	icon_state = "pipe-c"
-	},
 /obj/structure/pipes/standard/manifold/fourway/hidden/supply,
+/obj/structure/disposalpipe/junction{
+	dir = 4
+	},
 /turf/open/floor/plating/plating_catwalk,
 /area/almayer/hallways/lower/port_fore_hallway)
 "sAS" = (
@@ -60712,6 +60738,16 @@
 /obj/structure/surface/table/almayer,
 /turf/open/floor/almayer,
 /area/almayer/lifeboat_pumps/north1)
+"uaf" = (
+/obj/structure/pipes/standard/simple/hidden/supply{
+	dir = 4
+	},
+/obj/structure/disposalpipe/segment{
+	dir = 1;
+	icon_state = "pipe-c"
+	},
+/turf/open/floor/plating/plating_catwalk,
+/area/almayer/hallways/lower/port_fore_hallway)
 "uag" = (
 /obj/structure/disposalpipe/segment,
 /turf/open/floor/almayer/plate,
@@ -98668,9 +98704,9 @@ kdB
 kdB
 bdK
 maI
-uLc
-knm
-lLO
+iuv
+mSW
+uaf
 knm
 yfy
 ruL
@@ -98873,7 +98909,7 @@ bdO
 rJD
 hqW
 knm
-lLO
+jZe
 knm
 hnP
 lFp
@@ -99074,7 +99110,7 @@ bfZ
 iaF
 qPS
 qim
-hqW
+mFr
 wwE
 sAD
 cIO
