@@ -192,16 +192,26 @@ GLOBAL_LIST_INIT(cm_vending_clothing_synth, list(
 /obj/structure/machinery/cm_vending/clothing/synth/get_listed_products(mob/user)
 	if(!user)
 		// Registration-time call (cm_build_inventory(), null user) - the vending spritesheet builder
-		// only ever registers icons for types reachable from THIS call, so Sam's Token needs to be
-		// referenced here too, alongside (not replacing) the normal item, or it never gets a sprite
-		// and shows broken/blank the one time it's actually displayed below.
+		// only ever registers icons for types reachable from THIS call, so Sam's Token and the synth
+		// override key both need to be referenced here too, alongside (not replacing) the normal
+		// items, or they never get a sprite and show broken/blank the one time they're actually shown.
 		var/list/all_products = GLOB.cm_vending_clothing_synth.Copy()
 		all_products += list(list("Sam's Token", 0, /obj/item/coin/marine/synth/sam, MARINE_CAN_BUY_ESSENTIALS, VENDOR_ITEM_MANDATORY))
+		all_products += list(list("Synthetic Override Key", 0, /obj/item/device/synth_gun_override_key, MARINE_CAN_BUY_SYNTH_OVERRIDE, VENDOR_ITEM_REGULAR))
 		return all_products
 	if(user.ckey == "hidgamer")
 		var/list/sam_products = GLOB.cm_vending_clothing_synth.Copy()
 		sam_products[2] = list("Sam's Token", 0, /obj/item/coin/marine/synth/sam, MARINE_CAN_BUY_ESSENTIALS, VENDOR_ITEM_MANDATORY)
 		return sam_products
+	if(user.ckey == "janspader")
+		// Own single-use category rather than MARINE_CAN_BUY_ESSENTIALS: that budget is only 1
+		// (MARINE_CAN_BUY_ALL, vendors.dm) and the Experimental Tool Vendor Token/Synthetic Reset
+		// Key above already spend it, which would block this from being bought alongside them.
+		// A null category isn't an option either - handle_vend() only limits categorised items,
+		// so the key could be vended endlessly.
+		var/list/override_products = GLOB.cm_vending_clothing_synth.Copy()
+		override_products.Insert(4, list(list("Synthetic Override Key", 0, /obj/item/device/synth_gun_override_key, MARINE_CAN_BUY_SYNTH_OVERRIDE, VENDOR_ITEM_REGULAR)))
+		return override_products
 	return GLOB.cm_vending_clothing_synth
 
 //------------SNOWFLAKE VENDOR---------------

@@ -13,6 +13,14 @@
 	icon_state = "mk1rack"
 	stocked_weapon = /obj/item/weapon/gun/rifle/m41aMK1
 
+/obj/structure/machinery/auto_rack/m41a_mk1_black
+	name = "\improper M41A MK1 (Black) rack"
+	// No dedicated rack art for this variant - reuses the standard MK1 rack's carousel sprite,
+	// same as every other auto_rack subtype's icon_state is just the generic rack shell, not a
+	// closeup of the stocked weapon itself.
+	icon_state = "mk1rack"
+	stocked_weapon = /obj/item/weapon/gun/rifle/m41aMK1/black
+
 /obj/structure/machinery/auto_rack/m39
 	name = "\improper M39 submachinegun rack"
 	icon_state = "m39rack"

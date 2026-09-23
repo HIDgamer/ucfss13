@@ -486,6 +486,15 @@
 	desc = "A classic M41 MK1 Pulse Rifle painted in a fresh coat of the classic Humbrol 170 camoflauge. This one appears to be used by the Colonial Marine contingent aboard Anchorpoint Station, and is equipped with an underbarrel grenade launcher. Uses 10x24mm caseless ammunition."
 	starting_attachment_types = list(/obj/item/attachable/stock/rifle/collapsible, /obj/item/attachable/attached_gun/grenade/mk1)
 
+/obj/item/weapon/gun/rifle/m41aMK1/black
+	name = "\improper M41A MK1 pulse rifle (Black)"
+	desc = "An older design of the Pulse Rifle commonly used by Colonial Marines, refinished in matte black. Uses 10x24mm caseless ammunition."
+	// Reuses the WY M41A/2's existing black sprite (icons/obj/items/weapons/guns/guns_by_faction/WY/assault_rifles.dmi)
+	// rather than drawing new art - same icon_state/item_state pair the WY elite rifle already uses.
+	icon = 'icons/obj/items/weapons/guns/guns_by_faction/WY/assault_rifles.dmi'
+	icon_state = "m41a2"
+	item_state = "m41a2"
+
 //----------------------------------------------
 //Special gun for the CO to replace the smartgun
 

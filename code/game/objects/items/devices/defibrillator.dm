@@ -437,3 +437,31 @@
 	icon_state = "makeshift_key"
 	should_spark = TRUE
 	sound_success = "sparks"
+
+// A ckey-restricted synth reset key variant (crew/synthetic.dm's clothing vendor, same restriction
+// pattern as Sam's Token) - not a defibrillator subtype, since "used once, can't be recharged" here
+// means a permanent one-shot unlock rather than a charge/dcell cycle to manage. Used on any
+// synthetic mob, it permanently flips allow_gun_usage (the var gun.dm's able_to_fire() gates
+// firearm use on) to TRUE, then consumes itself.
+/obj/item/device/synth_gun_override_key
+	name = "W-Y synthetic override key"
+	desc = "A modified synthetic reset key that bypasses a unit's behavioral inhibitors around firearms instead of rebooting it. Single-use - burns out its one component on activation and can't be recharged."
+	icon = 'icons/obj/items/synth/synth_reset_key.dmi'
+	icon_state = "reset_key"
+	item_state = "synth_reset_key"
+	w_class = SIZE_SMALL
+	force = 0
+	throwforce = 0
+
+/obj/item/device/synth_gun_override_key/attack(mob/living/carbon/human/target, mob/living/carbon/human/user)
+	if(!isspeciessynth(target))
+		to_chat(user, SPAN_WARNING("[src] can only be used on a synthetic."))
+		return
+	if(target.allow_gun_usage)
+		to_chat(user, SPAN_WARNING("[target]'s firearms restrictions are already overridden."))
+		return
+	target.allow_gun_usage = TRUE
+	user.visible_message(SPAN_NOTICE("[user] inserts [src] into [target] and twists it. [src] sparks once and goes dark."),
+		SPAN_NOTICE("You insert [src] into [target] and twist it. It sparks once and goes dark - its single charge spent."))
+	to_chat(target, SPAN_NOTICE("You feel your behavioral inhibitors around weapon use disengage."))
+	qdel(src)
