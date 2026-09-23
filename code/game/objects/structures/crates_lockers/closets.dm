@@ -236,7 +236,7 @@
 					to_chat(user, SPAN_NOTICE("You need more welding fuel to complete this task."))
 					return
 				playsound(src, 'sound/items/Welder.ogg', 25, 1)
-				if(!do_after(user, 10 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
+				if(!do_after(user, 10 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD, src))
 					return
 				new /obj/item/stack/sheet/metal(src.loc)
 				for(var/mob/M as anything in viewers(src))
@@ -246,7 +246,7 @@
 		if(material == MATERIAL_WOOD)
 			if(HAS_TRAIT(W, TRAIT_TOOL_CROWBAR))
 				playsound(src, 'sound/effects/woodhit.ogg')
-				if(!do_after(user, 10 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
+				if(!do_after(user, 10 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD, src))
 					return
 				new /obj/item/stack/sheet/wood(src.loc)
 				user.visible_message(SPAN_NOTICE("[user] has pried apart [src] with [W]."), "You pry apart [src].")
@@ -267,7 +267,7 @@
 		if(!WT.isOn())
 			to_chat(user, SPAN_WARNING("\The [WT] needs to be on!"))
 			return FALSE
-		if(!WT.remove_fuel(0, user))
+		if(!WT.remove_fuel(1, user))
 			to_chat(user, SPAN_NOTICE("You need more welding fuel to complete this task."))
 			return FALSE
 		playsound(src, 'sound/items/Welder.ogg', 25, 1)

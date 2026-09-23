@@ -13,7 +13,8 @@
 	var/temp = "" // output message
 	var/construct_op = 0
 	var/deconstructable = FALSE
-
+	///Whether this is currently being manipulated to prevent doubling up
+	var/construction_busy = FALSE
 
 /obj/structure/machinery/telecomms/attackby(obj/item/P as obj, mob/user as mob)
 
@@ -25,6 +26,10 @@
 		if(!skillcheck(user, SKILL_ENGINEER, SKILL_ENGINEER_TRAINED))
 			to_chat(user, SPAN_WARNING("You stare at \the [src] cluelessly..."))
 			return 0
+
+	if(construction_busy)
+		to_chat(user, SPAN_WARNING("Someone else is already working on [src]."))
+		return
 
 	switch(construct_op)
 		if(0)
@@ -65,7 +70,9 @@
 			if(HAS_TRAIT(P, TRAIT_TOOL_CROWBAR))
 				to_chat(user, "You begin prying out the circuit board other components...")
 				playsound(src.loc, 'sound/items/Crowbar.ogg', 25, 1)
-				if(do_after(user, 60 * user.get_skill_duration_multiplier(SKILL_ENGINEER), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
+				construction_busy = TRUE
+				if(do_after(user, 60 * user.get_skill_duration_multiplier(SKILL_ENGINEER), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD, src))
+					construction_busy = FALSE
 					to_chat(user, "You finish prying out the components.")
 
 					// Drop all the component stuff
@@ -90,6 +97,7 @@
 						// Drop a circuit board too
 						C.forceMove(user.loc)
 					deconstruct()
+				construction_busy = FALSE
 
 /obj/structure/machinery/telecomms/deconstruct(disassembled = TRUE)
 	if(disassembled) // Create a machine frame and delete the current machine

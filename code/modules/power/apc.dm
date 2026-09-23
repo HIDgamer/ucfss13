@@ -578,11 +578,13 @@ GLOBAL_LIST_INIT(apc_wire_descriptions, list(
 
 	if(isRemoteControlling(user) && get_dist(src, user) > 1)
 		return attack_hand(user)
+
+	if(user.action_busy)
+		return
+
 	add_fingerprint(user)
 	if(HAS_TRAIT(W, TRAIT_TOOL_CROWBAR) && opened)
 		if(has_electronics == 1)
-			if(user.action_busy)
-				return
 			if(!skillcheck(user, SKILL_ENGINEER, SKILL_ENGINEER_TRAINED))
 				to_chat(user, SPAN_WARNING("You have no idea how to deconstruct [src]."))
 				return
@@ -721,7 +723,7 @@ GLOBAL_LIST_INIT(apc_wire_descriptions, list(
 		user.visible_message(SPAN_NOTICE("[user] starts removing [src]'s wiring and terminal."),
 		SPAN_NOTICE("You start removing [src]'s wiring and terminal."))
 		playsound(src.loc, 'sound/items/Deconstruct.ogg', 25, 1)
-		if(do_after(user, 50 * user.get_skill_duration_multiplier(SKILL_ENGINEER), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
+		if(do_after(user, 50 * user.get_skill_duration_multiplier(SKILL_ENGINEER), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD, src))
 			if(!terminal)
 				to_chat(user, SPAN_WARNING("\The [src] lacks a terminal to remove."))
 				return
@@ -767,8 +769,8 @@ GLOBAL_LIST_INIT(apc_wire_descriptions, list(
 		user.visible_message(SPAN_NOTICE("[user] starts welding [src]'s frame."),
 		SPAN_NOTICE("You start welding [src]'s frame."))
 		playsound(src.loc, 'sound/items/Welder.ogg', 25, 1)
-		if(do_after(user, 50 * user.get_skill_duration_multiplier(SKILL_ENGINEER), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
-			if(!src || !WT.remove_fuel(3, user))
+		if(do_after(user, 50 * user.get_skill_duration_multiplier(SKILL_ENGINEER), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD, src))
+			if(QDELETED(src) || !WT.remove_fuel(3, user))
 				return
 			user.visible_message(SPAN_NOTICE("[user] welds [src]'s frame apart."), SPAN_NOTICE("You weld [src]'s frame apart."))
 			deconstruct()

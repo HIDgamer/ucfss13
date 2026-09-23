@@ -23,12 +23,15 @@
 	//Vars to help with the icon's name
 	var/facing = "l" //Does the windoor open to the left or right?
 	var/secure = "" //Whether or not this creates a secure windoor
-	var/state = "01" //How far the door assembly has progressed in terms of sprites
+	var/state = WINDOOR_STATE_01 //How far the door assembly has progressed in terms of sprites
+
+	///Whether this is currently being manipulated to prevent doubling up
+	var/construction_busy = FALSE
 
 /obj/structure/windoor_assembly/New(Loc, start_dir=NORTH, constructed=0)
 	..()
 	if(constructed)
-		state = "01"
+		state = WINDOOR_STATE_01
 		anchored = FALSE
 	switch(start_dir)
 		if(NORTH, SOUTH, EAST, WEST)
@@ -45,9 +48,13 @@
 	icon_state = "[facing]_[secure]windoor_assembly[state]"
 
 /obj/structure/windoor_assembly/attackby(obj/item/W as obj, mob/user as mob)
+	if(construction_busy)
+		to_chat(user, SPAN_WARNING("Someone else is already working on [src]."))
+		return
+
 	//I really should have spread this out across more states but thin little windoors are hard to sprite.
 	switch(state)
-		if("01")
+		if(WINDOOR_STATE_01)
 			if(iswelder(W) && !anchored )
 				if(!HAS_TRAIT(W, TRAIT_TOOL_BLOWTORCH))
 					to_chat(user, SPAN_WARNING("You need a stronger blowtorch!"))
@@ -57,11 +64,14 @@
 					user.visible_message("[user] dissassembles the windoor assembly.", "You start to dissassemble the windoor assembly.")
 					playsound(src.loc, 'sound/items/Welder2.ogg', 25, 1)
 
-					if(do_after(user, 40 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
-						if(!src || !WT.isOn())
+					construction_busy = TRUE
+					if(do_after(user, 40 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD, src))
+						construction_busy = FALSE
+						if(QDELETED(src) || !WT.isOn())
 							return
 						to_chat(user, SPAN_NOTICE(" You dissasembled the windoor assembly!"))
 						deconstruct()
+					construction_busy = FALSE
 				else
 					to_chat(user, SPAN_NOTICE(" You need more welding fuel to dissassemble the windoor assembly."))
 					return
@@ -75,8 +85,10 @@
 				playsound(src.loc, 'sound/items/Ratchet.ogg', 25, 1)
 				user.visible_message("[user] secures the windoor assembly to the floor.", "You start to secure the windoor assembly to the floor.")
 
+				construction_busy = TRUE
 				if(do_after(user, 40 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
-					if(!src)
+					construction_busy = FALSE
+					if(QDELETED(src))
 						return
 					to_chat(user, SPAN_NOTICE(" You've secured the windoor assembly!"))
 					src.anchored = TRUE
@@ -84,14 +96,17 @@
 						src.name = "Secure Anchored Windoor Assembly"
 					else
 						src.name = "Anchored Windoor Assembly"
+				construction_busy = FALSE
 
 			//Unwrenching an unsecure assembly un-anchors it. Step 4 undone
 			else if(HAS_TRAIT(W, TRAIT_TOOL_WRENCH) && anchored)
 				playsound(src.loc, 'sound/items/Ratchet.ogg', 25, 1)
 				user.visible_message("[user] unsecures the windoor assembly to the floor.", "You start to unsecure the windoor assembly to the floor.")
 
+				construction_busy = TRUE
 				if(do_after(user, 40 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
-					if(!src)
+					construction_busy = FALSE
+					if(QDELETED(src))
 						return
 					to_chat(user, SPAN_NOTICE(" You've unsecured the windoor assembly!"))
 					src.anchored = FALSE
@@ -99,6 +114,7 @@
 						src.name = "Secure Windoor Assembly"
 					else
 						src.name = "Windoor Assembly"
+				construction_busy = FALSE
 
 			//Adding plasteel makes the assembly a secure windoor assembly. Step 2 (optional) complete.
 			else if(istype(W, /obj/item/stack/rods) && !secure)
@@ -108,6 +124,7 @@
 					return
 				to_chat(user, SPAN_NOTICE("You start to reinforce the windoor with rods."))
 
+				construction_busy = TRUE
 				if(do_after(user, 40 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD) && !secure)
 					if (R.use(4))
 						to_chat(user, SPAN_NOTICE("You reinforce the windoor."))
@@ -116,41 +133,47 @@
 							src.name = "Secure Anchored Windoor Assembly"
 						else
 							src.name = "Secure Windoor Assembly"
+				construction_busy = FALSE
 
 			//Adding cable to the assembly. Step 5 complete.
 			else if(istype(W, /obj/item/stack/cable_coil) && anchored)
 				user.visible_message("[user] wires the windoor assembly.", "You start to wire the windoor assembly.")
 
 				var/obj/item/stack/cable_coil/CC = W
+				construction_busy = TRUE
 				if(do_after(user, 40 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
 					if (CC.use(1))
 						to_chat(user, SPAN_NOTICE("You wire the windoor!"))
-						src.state = "02"
+						src.state = WINDOOR_STATE_02
 						if(src.secure)
 							src.name = "Secure Wired Windoor Assembly"
 						else
 							src.name = "Wired Windoor Assembly"
+				construction_busy = FALSE
 			else
 				. = ..()
 
-		if("02")
+		if(WINDOOR_STATE_02)
 
 			//Removing wire from the assembly. Step 5 undone.
 			if(HAS_TRAIT(W, TRAIT_TOOL_WIRECUTTERS) && !src.electronics)
 				playsound(src.loc, 'sound/items/Wirecutter.ogg', 25, 1)
 				user.visible_message("[user] cuts the wires from the airlock assembly.", "You start to cut the wires from airlock assembly.")
 
+				construction_busy = TRUE
 				if(do_after(user, 40 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
-					if(!src)
+					construction_busy = FALSE
+					if(QDELETED(src))
 						return
 
 					to_chat(user, SPAN_NOTICE(" You cut the windoor wires!"))
 					new/obj/item/stack/cable_coil(get_turf(user), 1)
-					src.state = "01"
+					src.state = WINDOOR_STATE_01
 					if(src.secure)
 						src.name = "Secure Anchored Windoor Assembly"
 					else
 						src.name = "Anchored Windoor Assembly"
+				construction_busy = FALSE
 
 			//Adding airlock electronics for access. Step 6 complete.
 			else if(istype(W, /obj/item/circuitboard/airlock))
@@ -160,8 +183,10 @@
 				playsound(src.loc, 'sound/items/Screwdriver.ogg', 25, 1)
 				user.visible_message("[user] installs the electronics into the airlock assembly.", "You start to install electronics into the airlock assembly.")
 
+				construction_busy = TRUE
 				if(do_after(user, 40 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
-					if(!src)
+					construction_busy = FALSE
+					if(QDELETED(src))
 						return
 
 					user.drop_held_item()
@@ -170,6 +195,7 @@
 					src.name = "Near finished Windoor Assembly"
 					src.electronics = W
 				else
+					construction_busy = FALSE
 					W.forceMove(src.loc)
 
 			//Screwdriver to remove airlock electronics. Step 6 undone.
@@ -177,8 +203,10 @@
 				playsound(src.loc, 'sound/items/Screwdriver.ogg', 25, 1)
 				user.visible_message("[user] removes the electronics from the airlock assembly.", "You start to uninstall electronics from the airlock assembly.")
 
+				construction_busy = TRUE
 				if(do_after(user, 40 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
-					if(!src || !src.electronics)
+					construction_busy = FALSE
+					if(QDELETED(src) || !src.electronics)
 						return
 					to_chat(user, SPAN_NOTICE(" You've removed the airlock electronics!"))
 					if(src.secure)
@@ -188,6 +216,7 @@
 					var/obj/item/circuitboard/airlock/ae = electronics
 					electronics = null
 					ae.forceMove(src.loc)
+				construction_busy = FALSE
 
 			//Crowbar to complete the assembly, Step 7 complete.
 			else if(HAS_TRAIT(W, TRAIT_TOOL_CROWBAR))
@@ -198,9 +227,10 @@
 				playsound(src.loc, 'sound/items/Crowbar.ogg', 25, 1)
 				user.visible_message("[user] pries the windoor into the frame.", "You start prying the windoor into the frame.")
 
+				construction_busy = TRUE
 				if(do_after(user, 40 * user.get_skill_duration_multiplier(SKILL_CONSTRUCTION), INTERRUPT_ALL|BEHAVIOR_IMMOBILE, BUSY_ICON_BUILD))
-
-					if(!src)
+					construction_busy = FALSE
+					if(QDELETED(src))
 						return
 
 					density = TRUE //Shouldn't matter but just incase
@@ -245,7 +275,7 @@
 
 
 					qdel(src)
-
+				construction_busy = FALSE
 
 			else
 				. = ..()
