@@ -270,6 +270,10 @@
 
 		return XENO_NO_DELAY_ACTION
 
+	if(M.action_busy)
+		to_chat(M, SPAN_WARNING("We are already busy with something."))
+		return XENO_NO_DELAY_ACTION
+
 	if(M.anchored)
 		to_chat(M, SPAN_XENOWARNING("We can't climb through a tunnel while immobile."))
 		return XENO_NO_DELAY_ACTION

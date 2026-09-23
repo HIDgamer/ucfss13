@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useBackend } from '../backend';
 import { Box, Button, Flex, Input, Section, Slider, Tabs } from '../components';
 import { Window } from '../layouts';
+import { replaceRegexChars } from './helpers';
 
 type Data = {
   glob_vox_types: Record<string, Record<string, string>>;
@@ -295,7 +296,11 @@ const SoundList = (props) => {
             />
             <Flex wrap="wrap" justify="space-evenly">
               {Object.keys(glob_vox_types[voxType])
-                .filter((val) => val.match(currentSearch))
+                .filter((val) =>
+                  val.match(
+                    currentSearch ? replaceRegexChars(currentSearch) : '',
+                  ),
+                )
                 .map((val) => (
                   <Flex.Item key={val} ml={1} mt={1}>
                     <Button

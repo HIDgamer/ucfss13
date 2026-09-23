@@ -21,6 +21,7 @@ import { Table, TableCell, TableRow } from '../components/Table';
 import { Window } from '../layouts';
 import { ElectricalPanel } from './common/ElectricalPanel';
 import { PrintProgress } from './common/PrintProgress';
+import { replaceRegexChars } from './helpers';
 
 type QueuedItem = {
   name: string;
@@ -183,7 +184,8 @@ const PrintablesSection = () => {
   const filteredPrintables = printables.filter(
     (val) =>
       (val.recipe_category === currentCategory || currentCategory === 'All') &&
-      val.name.toLowerCase().match(currentSearch),
+      (!currentSearch ||
+        val.name.toLowerCase().match(replaceRegexChars(currentSearch))),
   );
 
   return (

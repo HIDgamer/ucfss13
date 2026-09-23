@@ -4,6 +4,7 @@ import { useBackend } from '../backend';
 import { Box, Button, Dropdown, Flex, Input, Section } from '../components';
 import { globalEvents } from '../events';
 import { Window } from '../layouts';
+import { replaceRegexChars } from './helpers';
 
 type Keybind = {
   name: string;
@@ -56,8 +57,10 @@ export const KeyBinds = (props) => {
       ? getAllKeybinds(glob_keybinds)
       : glob_keybinds[selectedTab];
 
-  const filteredKeybinds = keybinds_to_use.filter((val) =>
-    val.full_name.toLowerCase().match(searchTerm),
+  const filteredKeybinds = keybinds_to_use.filter(
+    (val) =>
+      !searchTerm ||
+      val.full_name.toLowerCase().match(replaceRegexChars(searchTerm)),
   );
 
   return (

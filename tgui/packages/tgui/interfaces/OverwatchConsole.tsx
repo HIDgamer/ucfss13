@@ -14,6 +14,7 @@ import {
   Tabs,
 } from '../components';
 import { Window } from '../layouts';
+import { replaceRegexChars } from './helpers';
 
 type Marine = {
   name: string;
@@ -582,7 +583,9 @@ const SquadMonitor = (props) => {
               .filter((marine) => {
                 if (marineSearch) {
                   const searchableString = String(marine.name).toLowerCase();
-                  return searchableString.match(new RegExp(marineSearch, 'i'));
+                  return searchableString.match(
+                    new RegExp(replaceRegexChars(marineSearch), 'i'),
+                  );
                 }
                 return marine;
               })
