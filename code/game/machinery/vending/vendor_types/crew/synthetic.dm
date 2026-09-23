@@ -25,6 +25,8 @@
 
 		list("FIRSTAID KITS", 0, null, null, null),
 		list("Advanced Firstaid Kit", 12, /obj/item/storage/firstaid/adv, null, VENDOR_ITEM_REGULAR),
+		list("Individual First-Aid Kit (Tan)", VENDOR_IFAK_POINT_COST, /obj/item/storage/ifak, null, VENDOR_ITEM_REGULAR),
+		list("Individual First-Aid Kit (Black)", VENDOR_IFAK_POINT_COST, /obj/item/storage/ifak/blk, null, VENDOR_ITEM_REGULAR),
 		list("Firstaid Kit", 5, /obj/item/storage/firstaid/regular, null, VENDOR_ITEM_REGULAR),
 		list("Fire Firstaid Kit", 6, /obj/item/storage/firstaid/fire, null, VENDOR_ITEM_REGULAR),
 		list("Toxin Firstaid Kit", 6, /obj/item/storage/firstaid/toxin, null, VENDOR_ITEM_REGULAR),

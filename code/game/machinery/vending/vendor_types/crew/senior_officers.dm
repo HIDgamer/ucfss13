@@ -295,6 +295,10 @@ GLOBAL_LIST_INIT(cm_vending_clothing_cmo, list(
 		list("Large General Pouch", 0, /obj/item/storage/pouch/general/large, MARINE_CAN_BUY_POUCH, VENDOR_ITEM_REGULAR),
 		list("Sling Pouch", 0, /obj/item/storage/pouch/sling, MARINE_CAN_BUY_POUCH, VENDOR_ITEM_REGULAR),
 
+		list("INDIVIDUAL FIRST-AID KITS", 0, null, null, null),
+		list("Individual First-Aid Kit (Tan)", VENDOR_IFAK_POINT_COST, /obj/item/storage/ifak, null, VENDOR_ITEM_REGULAR),
+		list("Individual First-Aid Kit (Black)", VENDOR_IFAK_POINT_COST, /obj/item/storage/ifak/blk, null, VENDOR_ITEM_REGULAR),
+
 		list("ACCESSORIES (CHOOSE 1)", 0, null, null, null),
 		list("Black Webbing Vest", 0, /obj/item/clothing/accessory/storage/black_vest, MARINE_CAN_BUY_ACCESSORY, VENDOR_ITEM_REGULAR),
 		list("Brown Webbing Vest", 0, /obj/item/clothing/accessory/storage/black_vest/brown_vest, MARINE_CAN_BUY_ACCESSORY, VENDOR_ITEM_REGULAR),

@@ -579,6 +579,54 @@
 	new /obj/item/tool/surgery/synthgraft(src)
 
 
+//---------I-FAKs---------
+/obj/item/storage/ifak
+	name = "I-FAK"
+	desc = "Individual First Aid Kit or I-FAK, a compact emergency medical kit designed for treating trauma, such as gunshot wounds or severe bleeding, in high-risk situations. This is intended for the treament of the wearer not others."
+	icon = 'icons/obj/items/storage/ifak.dmi'
+	icon_state = "afak"
+	item_state = "firstaid"
+	item_icons = list(
+		WEAR_L_HAND = 'icons/mob/humans/onmob/inhands/equipment/medical_lefthand.dmi',
+		WEAR_R_HAND = 'icons/mob/humans/onmob/inhands/equipment/medical_righthand.dmi',
+	)
+	flags_equip_slot = SLOT_STORE|SLOT_SUIT_STORE
+	throw_speed = SPEED_FAST
+	throw_range = 8
+	use_sound = "zipper"
+	can_hold = list(
+		/obj/item/storage/pill_bottle,
+		/obj/item/stack/medical,
+		/obj/item/reagent_container/hypospray,
+	)
+	storage_slots = 10
+	storage_flags = STORAGE_FLAGS_POUCH
+
+/obj/item/storage/ifak/get_examine_text(mob/user)
+	. = ..()
+	. += "Small enough it can be attached to a pocket or stuffed in a backpack."
+
+/obj/item/storage/ifak/update_icon()
+	icon_state = content_watchers ? "afak_open" : "afak"
+
+/obj/item/storage/ifak/fill_preset_inventory()
+	new /obj/item/stack/medical/advanced/bruise_pack(src)
+	new /obj/item/stack/medical/advanced/ointment(src)
+	new /obj/item/stack/medical/splint(src)
+	new /obj/item/reagent_container/hypospray/autoinjector/tricord/skillless(src)
+	new /obj/item/reagent_container/hypospray/autoinjector/bicaridine/skillless(src)
+	new /obj/item/reagent_container/hypospray/autoinjector/kelotane/skillless(src)
+	new /obj/item/reagent_container/hypospray/autoinjector/tramadol/skillless(src)
+	new /obj/item/reagent_container/hypospray/autoinjector/inaprovaline(src)
+	new /obj/item/reagent_container/hypospray/autoinjector/emergency(src)
+	new /obj/item/storage/pill_bottle/packet/oxycodone(src)
+
+/obj/item/storage/ifak/blk
+	icon_state = "afak_blk"
+
+/obj/item/storage/ifak/blk/update_icon()
+	icon_state = content_watchers ? "afak_blk_open" : "afak_blk"
+
 //---------PILL BOTTLES---------
 
 /obj/item/storage/pill_bottle

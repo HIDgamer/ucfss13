@@ -35,6 +35,8 @@
 
 #define MARINE_TOTAL_BUY_POINTS 45
 #define MARINE_TOTAL_SNOWFLAKE_POINTS 120
+/// Point cost of an Individual First-Aid Kit in every vendor that sells one - deliberately over half of MARINE_TOTAL_BUY_POINTS
+#define VENDOR_IFAK_POINT_COST 25
 
 #define VEHICLE_INTEGRAL_AVAILABLE 1
 #define VEHICLE_PRIMARY_AVAILABLE 2
