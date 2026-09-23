@@ -1,6 +1,6 @@
 import { classes } from 'common/react';
 import dateformat from 'dateformat';
-import yaml from 'js-yaml';
+import * as yaml from 'js-yaml';
 import { Component, Fragment } from 'react';
 
 import { resolveAsset } from '../assets';
