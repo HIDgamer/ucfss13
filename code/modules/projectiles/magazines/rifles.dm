@@ -636,6 +636,22 @@
 	ammo_band_color = AMMO_BAND_COLOR_TOXIN
 
 //--------------------------------------------------------
+//L36 HALBERD ASSAULT RIFLE
+
+/obj/item/ammo_magazine/rifle/l36
+	name = "\improper L36 magazine (8.88x51mm)"
+	desc = "An L36 Halberd assault rifle magazine. Holds a generous 50 rounds."
+	caliber = "8.88x51mm"
+	icon = 'icons/obj/items/weapons/guns/ammo_by_faction/TWE/assault_rifles.dmi'
+	icon_state = "l36"
+	item_state = "generic_mag"
+	default_ammo = /datum/ammo/bullet/rifle/l36
+	max_rounds = 50
+	gun_type = /obj/item/weapon/gun/rifle/l36
+	ammo_band_icon = null
+	ammo_band_icon_empty = null
+
+//--------------------------------------------------------
 //XM51 BREACHING SHOTGUN
 
 /obj/item/ammo_magazine/rifle/xm51

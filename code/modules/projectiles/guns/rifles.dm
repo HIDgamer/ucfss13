@@ -2431,6 +2431,74 @@
 		/obj/item/attachable/attached_gun/flamer/advanced,
 	)
 
+//L36 HALBERD ASSAULT RIFLE
+
+/obj/item/weapon/gun/rifle/l36
+	name = "\improper L36 Halberd assault rifle"
+	desc = "One of the fastest-firing rifles in service, and also one of the most accurate and longest ranged. Paired with reasonable recoil and a large magazine, it's easy to see why the Halberd became so popular. It is the Three World Empire Royal Marines Commandos' answer to the M41A pulse rifle, kept in service for its superior armor penetration and stopping power. Uses 8.88x51mm ammunition."
+	desc_lore = "Designed by Weyland-Yutani's UK Weapons Division to the standards of the Three World Empire's 2170 Military Procurement Plan and released in 2172 for the Royal Marines Commandos and the empire's national services, the Halberd was also taken up by the Colonial Marines, private military contractors and colonial militias. Armat Battlefield Systems hotly contested the contract, claiming their own submission met every requirement while coming in twenty percent cheaper. Most Halberds were replaced by the burst-fire LEM StG24 Storm Rifle in 2185 and passed to reserve units or sold on to the civilian market, but the Royal Marines Commandos never let go of theirs."
+	icon = 'icons/obj/items/weapons/guns/guns_by_faction/TWE/l36.dmi'
+	icon_state = "l36"
+	item_state = "l36"
+	fire_sound = 'sound/weapons/gun_l36.ogg'
+	reload_sound = 'sound/weapons/handling/nsg23_reload.ogg'
+	unload_sound = 'sound/weapons/handling/nsg23_unload.ogg'
+	cocked_sound = 'sound/weapons/handling/nsg23_cocked.ogg'
+	aim_slowdown = SLOWDOWN_ADS_QUICK
+	wield_delay = WIELD_DELAY_VERY_FAST
+	current_mag = /obj/item/ammo_magazine/rifle/l36
+	force = 10
+
+	// The stock is part of the sprite, so no stock attachments.
+	attachable_allowed = list(
+		/obj/item/attachable/suppressor,
+		/obj/item/attachable/bayonet,
+		/obj/item/attachable/bayonet/rmc,
+		/obj/item/attachable/bayonet/upp,
+		/obj/item/attachable/reddot,
+		/obj/item/attachable/reflex,
+		/obj/item/attachable/flashlight,
+		/obj/item/attachable/bipod,
+		/obj/item/attachable/extended_barrel,
+		/obj/item/attachable/attached_gun/flamer,
+		/obj/item/attachable/attached_gun/flamer/advanced,
+		/obj/item/attachable/attached_gun/grenade,
+		/obj/item/attachable/attached_gun/grenade/u1rmc,
+		/obj/item/attachable/attached_gun/shotgun,
+		/obj/item/attachable/verticalgrip,
+		/obj/item/attachable/angledgrip,
+		/obj/item/attachable/scope/mini/nsg23,
+		/obj/item/attachable/scope/mini,
+		/obj/item/attachable/scope/variable_zoom/twe,
+	)
+
+	flags_gun_features = GUN_AUTO_EJECTOR|GUN_CAN_POINTBLANK|GUN_AMMO_COUNTER|GUN_SMOKE_PARTICLES
+	start_semiauto = FALSE
+	start_automatic = TRUE
+
+/obj/item/weapon/gun/rifle/l36/Initialize(mapload, spawn_empty)
+	. = ..()
+	// No back / suit storage sprites are drawn for the L36 yet - borrow the L23's so it isn't invisible when carried.
+	LAZYSET(item_state_slots, WEAR_BACK, "l23")
+	LAZYSET(item_state_slots, WEAR_J_STORE, "l23")
+	update_icon()
+
+/obj/item/weapon/gun/rifle/l36/set_gun_attachment_offsets()
+	attachable_offset = list("muzzle_x" = 62, "muzzle_y" = 20, "rail_x" = 28, "rail_y" = 24, "under_x" = 46, "under_y" = 14, "stock_x" = 5, "stock_y" = 20)
+
+/obj/item/weapon/gun/rifle/l36/set_gun_config_values()
+	..()
+	set_fire_delay(FIRE_DELAY_TIER_11 - FIRE_DELAY_TIER_12/4)
+	accuracy_mult = BASE_ACCURACY_MULT + HIT_ACCURACY_MULT_TIER_5 + HIT_ACCURACY_MULT_TIER_1
+	accuracy_mult_unwielded = BASE_ACCURACY_MULT - HIT_ACCURACY_MULT_TIER_7
+	scatter = SCATTER_AMOUNT_TIER_9
+	scatter_unwielded = SCATTER_AMOUNT_TIER_2
+	damage_mult = BASE_BULLET_DAMAGE_MULT + BULLET_DAMAGE_MULT_TIER_2
+	recoil = RECOIL_AMOUNT_TIER_5
+	recoil_unwielded = RECOIL_AMOUNT_TIER_2
+	damage_falloff_mult = 0
+	fa_max_scatter = SCATTER_AMOUNT_TIER_5
+
 //L42A3 Battle Rifle
 
 /obj/item/weapon/gun/rifle/l42a3

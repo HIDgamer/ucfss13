@@ -286,3 +286,14 @@
 	damage = 0
 	stamina_damage = 22
 	shrapnel_chance = 0
+
+/// The L36 Halberd's round - a little more armor penetration and stopping power than the M41A's, and the flattest, most accurate trajectory of the TWE rifles.
+/datum/ammo/bullet/rifle/l36
+	name = "8.88mm high-velocity rifle bullet"
+
+	damage = 45
+	penetration = ARMOR_PENETRATION_TIER_3
+	accuracy = HIT_ACCURACY_TIER_5
+	accurate_range = 20
+	effective_range_max = 9
+	damage_falloff = DAMAGE_FALLOFF_TIER_8
