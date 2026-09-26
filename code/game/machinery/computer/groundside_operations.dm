@@ -122,13 +122,23 @@
 		data["currentSquad"] = current_squad ? current_squad.name : null
 
 		if(show_command_squad)
-			get_marine_list_data(data, list(GLOB.marine_leaders[JOB_CO], GLOB.marine_leaders[JOB_XO]) + GLOB.marine_leaders[JOB_SO])
+			get_marine_list_data(data, get_command_roster())
 		else if(current_squad)
 			get_marine_list_data(data, current_squad.marines_list)
 
 	return data
 
 // end tgui data \\
+
+/// Everyone the Command roster lists: the CO, the XO, staff officers and synthetics. Synthetics are
+/// registered by their job the moment they spawn, so they show up here without needing a squad or gear.
+/obj/structure/machinery/computer/groundside_operations/proc/get_command_roster()
+	var/list/roster = list(GLOB.marine_leaders[JOB_CO], GLOB.marine_leaders[JOB_XO])
+	if(islist(GLOB.marine_leaders[JOB_SO]))
+		roster += GLOB.marine_leaders[JOB_SO]
+	if(islist(GLOB.marine_leaders[JOB_SYNTH]))
+		roster += GLOB.marine_leaders[JOB_SYNTH]
+	return roster
 
 /obj/structure/machinery/computer/groundside_operations/proc/get_marine_list_data(list/data, list/marine_list)
 	var/list/rows = list()
@@ -175,15 +185,16 @@
 				else
 					continue
 
+			// Everyone alive is listed, wherever they are (like the overwatch console): shipboard, camera-less
+			// and disconnected marines still count towards the header totals but are marked instead of hidden.
 			if(!is_ground_level(M_turf.z))
 				almayer_count++
-				continue
-			if(!H.get_camera_holder())
+			var/has_camera = !!H.get_camera_holder()
+			if(!has_camera)
 				helmetless_count++
-				continue
 			if(!H.key || !H.client)
 				SSD_count++
-				continue
+				mob_state += " (SSD)"
 			if(current_squad)
 				if(H == current_squad.squad_leader && role != JOB_SQUAD_LEADER)
 					act_sl = " (ASL)"
@@ -195,6 +206,7 @@
 				"actingSl" = act_sl,
 				"state" = mob_state,
 				"areaName" = area_name,
+				"hasCamera" = has_camera,
 			))
 
 	data["marines"] = rows

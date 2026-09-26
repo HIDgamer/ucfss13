@@ -760,6 +760,9 @@
 
 /// checks if the human has an overwatch camera at all
 /obj/structure/machinery/computer/overwatch/proc/marine_has_camera(mob/living/carbon/human/marine)
+	// A synthetic can switch their camera feed off from the Synthetic tab.
+	if(!marine.can_broadcast_camera())
+		return FALSE
 	if(istype(marine.head, /obj/item/clothing/head/helmet/marine))
 		return TRUE
 	if(istype(marine.wear_l_ear, /obj/item/device/overwatch_camera) || istype(marine.wear_r_ear, /obj/item/device/overwatch_camera))
@@ -782,8 +785,26 @@
 /// A synthetic's own inherent overwatch camera - see get_camera_holder() below. Null until first requested, then cached and reused for the rest of their life.
 /mob/living/carbon/human/var/obj/item/device/overwatch_camera/synth_internal_camera
 
+/// Whether a synthetic's camera (their inherent one and any helmet/camera gear they wear) can be watched from the overwatch and groundside operations consoles. Toggled from the Synthetic tab.
+/mob/living/carbon/human/var/synth_camera_enabled = TRUE
+
+/// FALSE while a synthetic has switched their camera feed off (see synth_camera_enabled). Always TRUE for everyone else.
+/mob/living/carbon/human/proc/can_broadcast_camera()
+	return !issynth(src) || synth_camera_enabled
+
+/// Applies can_broadcast_camera() to the physical cameras, so consoles already watching this synth lose the feed straight away (their check_eye() drops any camera that can't be used).
+/mob/living/carbon/human/proc/sync_synth_camera_status()
+	var/list/camera_gear = list(head, wear_l_ear, wear_r_ear, synth_internal_camera)
+	for(var/obj/item/gear in camera_gear)
+		var/obj/structure/machinery/camera/gear_camera = gear.get_camera()
+		if(gear_camera)
+			gear_camera.status = can_broadcast_camera()
+
 ///returns camera holder
 /mob/living/carbon/human/proc/get_camera_holder()
+	// A synthetic can switch their camera feed off from the Synthetic tab.
+	if(!can_broadcast_camera())
+		return null
 	if(istype(head, /obj/item/clothing/head/helmet/marine))
 		var/obj/item/clothing/head/helmet/marine/helm = head
 		return helm

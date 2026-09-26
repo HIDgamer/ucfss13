@@ -335,7 +335,7 @@
 /obj/item/device/overwatch_camera/equipped(mob/living/carbon/human/mob, slot)
 	if(camera)
 		camera.c_tag = mob.name
-		camera.status = TRUE
+		camera.status = mob.can_broadcast_camera()
 		icon_state = "cam_gear_on"
 		update_icon()
 	..()

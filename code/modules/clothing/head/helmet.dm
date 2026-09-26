@@ -640,6 +640,7 @@ GLOBAL_LIST_INIT(allowed_helmet_items, list(
 /obj/item/clothing/head/helmet/marine/equipped(mob/living/carbon/human/mob, slot)
 	if(camera)
 		camera.c_tag = mob.name
+		camera.status = mob.can_broadcast_camera()
 	if(active_visor)
 		recalculate_visors(mob)
 	..()

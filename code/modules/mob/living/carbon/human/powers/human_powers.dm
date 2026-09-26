@@ -302,6 +302,22 @@
 
 	to_chat(src, SPAN_NOTICE("Your vision is now set to <b>[default_lighting_alpha == LIGHTING_PLANE_ALPHA_VISIBLE ? "Normal Vision" : "Nightvision"]</b>."))
 
+/mob/living/carbon/human/proc/toggle_eye_camera()
+	set category = "Synthetic"
+	set name = "Toggle Eye Camera"
+	set desc = "Toggles whether the overwatch and groundside operations consoles can see through your eye camera."
+
+	if(!issynth(src) || is_mob_incapacitated())
+		return
+
+	synth_camera_enabled = !synth_camera_enabled
+	sync_synth_camera_status()
+
+	if(synth_camera_enabled)
+		to_chat(src, SPAN_NOTICE("Your eye camera is now <b>broadcasting</b> to the overwatch and groundside operations consoles."))
+	else
+		to_chat(src, SPAN_NOTICE("Your eye camera is now <b>hidden</b> from the overwatch and groundside operations consoles."))
+
 // Used for synthetics
 /mob/living/carbon/human/synthetic/proc/toggle_HUD()
 	set category = "Synthetic"

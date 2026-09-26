@@ -46,6 +46,19 @@
 		total_positions_so_far = positions
 	return positions
 
+/datum/job/civilian/synthetic/generate_entry_conditions(mob/living/M, whitelist_status)
+	. = ..()
+	// Synthetics are command staff: register them the moment they spawn so command consoles
+	// (e.g. the groundside operations console's Command roster) list them right away.
+	if(!islist(GLOB.marine_leaders[JOB_SYNTH]))
+		GLOB.marine_leaders[JOB_SYNTH] = list()
+	GLOB.marine_leaders[JOB_SYNTH] += M
+	RegisterSignal(M, COMSIG_PARENT_QDELETING, PROC_REF(cleanup_leader_candidate))
+
+/datum/job/civilian/synthetic/proc/cleanup_leader_candidate(mob/M)
+	SIGNAL_HANDLER
+	GLOB.marine_leaders[JOB_SYNTH] -= M
+
 /obj/effect/landmark/start/synthetic
 	name = JOB_SYNTH
 	icon_state = "syn_spawn"

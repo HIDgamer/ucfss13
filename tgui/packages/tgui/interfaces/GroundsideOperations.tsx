@@ -20,6 +20,7 @@ type Marine = {
   actingSl: string;
   state: string;
   areaName: string;
+  hasCamera: boolean;
 };
 
 type Data = {
@@ -325,6 +326,8 @@ const MarineRoster = () => {
             <Table.Row key={marine.ref}>
               <Table.Cell collapsing>
                 <Button
+                  disabled={!marine.hasCamera}
+                  tooltip={marine.hasCamera ? undefined : 'No camera'}
                   onClick={() => act('use_cam', { target_ref: marine.ref })}
                 >
                   {marine.name}
