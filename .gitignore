@@ -38,3 +38,6 @@ colonialmarines.json
 
 # Claude Code agent config/state - not part of the project
 .claude/
+
+# Working plan docs - not part of the shipped project
+HIVE_SPAWNER_ROADMAP.md

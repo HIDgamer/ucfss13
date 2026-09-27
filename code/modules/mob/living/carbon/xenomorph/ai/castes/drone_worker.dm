@@ -46,7 +46,7 @@
 		return
 	if(attempt_sacrifice())
 		return
-	if(attempt_help_queen_build_core())
+	if(attempt_help_build_hive_structure())
 		idle_activity = IDLE_ACTIVITY_BUILD
 		return
 	// "All they do is plant eggs, never building the hive and building

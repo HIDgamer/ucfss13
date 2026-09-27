@@ -1048,9 +1048,10 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
  * original version picked a perimeter turf and immediately tried to build on
  * it with no regard for where the pilot actually was standing. build_resin()
  * (Powers.dm) hard-requires get_dist(pilot, target) <= caste.max_build_dist,
- * which is 0 for a Drone - meaning it only ever worked by pure chance that
- * the randomly-picked perimeter turf happened to already be the pilot's own
- * tile. Now walks to the committed build site first (re-rolling a fresh
+ * which is 0 for a Queen or Burrower (Drone/Hivelord both override it to 1,
+ * Drone.dm/Hivelord.dm) - meaning it only ever worked by pure chance that
+ * the randomly-picked perimeter turf happened to already be within the
+ * pilot's own build reach. Now walks to the committed build site first (re-rolling a fresh
  * candidate every call, like the old version did, would have the pilot
  * flip-flop between different perimeter turfs and never arrive at any of
  * them) and only actually builds once in range.
@@ -1750,17 +1751,50 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		nearest_egg.attack_alien(pilot) // Picks it up into a free hand, same as a player's own unarmed click.
 	return TRUE
 
-/**
- * "They don't even help the queen build her core" - travels to and weeds
- * the Queen's own tile whenever the hive has no Hive Core yet, instead of
- * every builder independently weeding/building wherever it happens to be
- * standing with no regard for what she actually needs ground for right now.
- * Shared by drone_worker.dm/hivelord.dm/burrower.dm, checked before their
- * own independent build rolls.
- */
-/datum/xeno_ai_controller/proc/attempt_help_queen_build_core()
-	if(!pilot || !pilot.hive || pilot.hive.has_structure(XENO_STRUCTURE_CORE))
+/// Finds a nearby hive-linked, incomplete construction node. structure_name filters to one structure type; null matches any.
+/datum/xeno_ai_controller/proc/find_nearby_hive_node(structure_name, radius = AI_HIVE_NODE_SEARCH_RADIUS)
+	if(!pilot?.hive)
+		return null
+	var/turf/pilot_turf = get_turf(pilot)
+	if(!pilot_turf)
+		return null
+
+	var/obj/effect/alien/resin/construction/own_tile_node = locate(/obj/effect/alien/resin/construction) in pilot_turf
+	if(own_tile_node && own_tile_node.linked_hive == pilot.hive && (!structure_name || own_tile_node.template?.name == structure_name))
+		return own_tile_node
+
+	for(var/obj/effect/alien/resin/construction/node in range(radius, pilot_turf))
+		if(node.linked_hive != pilot.hive)
+			continue
+		if(structure_name && node.template?.name != structure_name)
+			continue
+		return node
+	return null
+
+/// Travels to and feeds plasma into an already-placed construction node. Any same-hive xeno can do this.
+/datum/xeno_ai_controller/proc/attempt_feed_hive_node(obj/effect/alien/resin/construction/node)
+	if(!node || QDELETED(node) || !pilot)
 		return FALSE
+	if(!pilot.Adjacent(node))
+		travel_to(node, 0)
+		return TRUE
+	if(pilot.plasma_stored <= 0)
+		return FALSE
+	pilot.a_intent = INTENT_HELP // attack_alien() destroys the node under INTENT_HARM instead of feeding it.
+	node.attack_alien(pilot)
+	return TRUE
+
+/// Feeds any nearby in-progress hive construction node. Falls back to weeding the Queen's tile if no Core exists yet and no node is in range. Shared by drone_worker.dm/hivelord.dm/burrower.dm.
+/datum/xeno_ai_controller/proc/attempt_help_build_hive_structure()
+	if(!pilot || !pilot.hive)
+		return FALSE
+
+	var/obj/effect/alien/resin/construction/node = find_nearby_hive_node(null, AI_HIVE_BUILD_HELP_RADIUS)
+	if(node)
+		return attempt_feed_hive_node(node)
+
+	if(pilot.hive.has_structure(XENO_STRUCTURE_CORE))
+		return FALSE // Nothing in progress nearby, and the one structure worth pre-weeding for is already built.
 	var/mob/living/carbon/xenomorph/queen/living_queen = pilot.hive.living_xeno_queen
 	if(!living_queen || living_queen == pilot || living_queen.stat == DEAD)
 		return FALSE
@@ -2208,6 +2242,12 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
  * once the expensive part (discovering candidates) is a shared, already-cheap
  * list instead of a fresh map walk.
  */
+/// attack_distance scaled by the admin difficulty slider - unlimited on Whiskey Outpost instead.
+/datum/xeno_ai_controller/proc/get_effective_attack_distance()
+	if(Check_WO())
+		return INFINITY
+	return round(attack_distance * GLOB.ai_distance_multiplier)
+
 /datum/xeno_ai_controller/proc/process_target()
 	if(!pilot)
 		return
@@ -2215,17 +2255,15 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 	if(!pilot_turf)
 		return
 
-	// True focus-fire - prefer the hive's shared high-priority lead (broadcast_focus_target()) over
-	// independently picking our own nearest candidate below, so a cluster of marines collapses onto
-	// one target at a time instead of drawing one xeno each. Still bounded by attack_distance (the
-	// same scan range the independent search uses) and is_valid_target() - this only ever redirects
-	// toward something this pilot could have found on her own anyway, just prioritized correctly.
+	var/scaled_attack_distance = get_effective_attack_distance()
+
+	// True focus-fire - prefer the hive's shared high-priority lead over independently picking our
+	// own nearest candidate below, so a cluster of marines collapses onto one target at a time.
 	var/atom/movable/shared_focus = pilot.hive?.focus_target
-	if(shared_focus && world.time - pilot.hive.focus_target_time <= AI_FOCUS_TARGET_WINDOW && is_valid_target(shared_focus) && get_dist(pilot, shared_focus) <= attack_distance)
+	if(shared_focus && world.time - pilot.hive.focus_target_time <= AI_FOCUS_TARGET_WINDOW && is_valid_target(shared_focus) && get_dist(pilot, shared_focus) <= scaled_attack_distance)
 		acquire_target(shared_focus, "focus")
 		return
 
-	var/scaled_attack_distance = round(attack_distance * GLOB.ai_distance_multiplier)
 	var/atom/movable/best_candidate
 	var/best_dist = INFINITY
 	for(var/atom/movable/candidate as anything in get_cached_target_candidates())
@@ -2771,6 +2809,9 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 
 /datum/xeno_ai_controller/proc/should_disengage()
 	if(!pilot || !anchor_turf || !current_target)
+		return FALSE
+	// No leash on Whiskey Outpost - matches get_effective_attack_distance()'s unlimited range there.
+	if(Check_WO())
 		return FALSE
 	return get_dist(pilot, anchor_turf) > round(return_distance * GLOB.ai_distance_multiplier)
 

@@ -23,6 +23,16 @@
 	if(!pilot || !goal)
 		return FALSE
 
+	// ai_step()'s own per-tile pacing gate (next_step_time) hasn't come up yet - this is normal
+	// movement_delay() cooldown, not an obstruction, so it must not be treated as a failed/blocked
+	// attempt below (see process_movement()'s blocked_attempts, which used to increment on every
+	// one of these and gave up on reachable targets within a fraction of a second of engaging -
+	// "the AI moves slowly instead of like a real player"). Also skips the route/obstacle/sidestep
+	// checks entirely on a tick that could never actually move anyway, instead of recomputing a
+	// fresh route and re-scanning for something to smash every single heartbeat.
+	if(world.time < next_step_time)
+		return TRUE
+
 	// A goal already close is stepped at directly - routing to a moving
 	// nearby goal (a pack buddy, a shifting target) plans to where it WAS,
 	// walks the stale route the wrong way, replans, turns around - which is

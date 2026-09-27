@@ -52,7 +52,7 @@
 	if(respond_to_hive_alert())
 		idle_activity = IDLE_ACTIVITY_ALERT
 		return
-	if(attempt_help_queen_build_core())
+	if(attempt_help_build_hive_structure())
 		idle_activity = IDLE_ACTIVITY_BUILD
 		return
 	if(prob(AI_DEFENSE_BUILD_CHANCE) && attempt_build_defense())

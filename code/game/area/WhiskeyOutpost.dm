@@ -183,6 +183,7 @@
 	power_equip = FALSE
 	power_environ = FALSE
 	minimap_color = MINIMAP_AREA_CONTESTED_ZONE
+	unoviable_timer = FALSE
 
 /area/whiskey_outpost/inside/caves/tunnel
 	name = "\improper Tunnel"

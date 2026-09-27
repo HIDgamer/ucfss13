@@ -223,6 +223,10 @@
 #define AI_DRONE_BUILD_CHANCE 8
 /// Percent chance per idle tick that an eligible builder caste (Drone/Hivelord/Burrower) attempts a defensive resin wall at the hive perimeter instead of just weeding - see attempt_build_defense().
 #define AI_DEFENSE_BUILD_CHANCE 6
+/// Search radius (tiles) for find_nearby_hive_node().
+#define AI_HIVE_NODE_SEARCH_RADIUS 3
+/// Search radius (tiles) for attempt_help_build_hive_structure()'s node search.
+#define AI_HIVE_BUILD_HELP_RADIUS 8
 /// Nearest a defensive perimeter wall is allowed to anchor_turf - keeps walls from boxing in the hive core itself.
 #define AI_XENO_DEFENSE_PERIMETER_MIN_RADIUS 4
 /// Farthest a defensive perimeter wall is allowed from anchor_turf.
@@ -472,6 +476,10 @@
 #define XENO_FRONTIER_CONTEST_RADIUS 10
 /// A spawn-point landmark closer than this to a living marine is skipped entirely - puts new xenos near the action without landing directly on top of the fight.
 #define XENO_SPAWNER_PLACEMENT_MIN_MARINE_DIST 10
+/// Random-turf samples spawner_sample_fallback_ground_turfs() tries before giving up.
+#define XENO_SPAWNER_FALLBACK_SAMPLE_ATTEMPTS 200
+/// How many valid fallback turfs spawner_sample_fallback_ground_turfs() collects before stopping.
+#define XENO_SPAWNER_FALLBACK_SAMPLE_TARGET 20
 /// How many tiles wider than the single nearest-to-a-marine spawn point spawner_pick_spawn_turf() still considers "tied" and picks randomly among - same reasoning as find_cover_turf()'s AI_XENO_COVER_VARIETY_TOLERANCE, spreads reinforcements across a wider band of landmarks instead of clustering on whichever is closest to the fight.
 #define XENO_SPAWNER_PLACEMENT_VARIETY_TOLERANCE 16
 /// Weight applied to hive.count_active_human_caps() before it's added to spawner_target_population() - softens the direct feedback loop ("marines already losing people to caps face a bigger spawn target as a direct consequence") without removing the mechanic entirely.

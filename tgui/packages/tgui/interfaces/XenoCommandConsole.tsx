@@ -27,12 +27,20 @@ type Xeno = {
   ordered: number;
 };
 
+type HiveStructure = {
+  name: string;
+  count: number;
+  limit: number;
+  worst_health_percent: number | null;
+};
+
 type Data = {
   is_admin_session: number;
   selecting_mode: number;
   armed_order_type: string | null;
   hive_name: string;
   has_rally_point: number;
+  hive_structures: HiveStructure[];
   landing_zones: { id: string; name: string }[];
   roster: Xeno[];
   selected_count: number;
@@ -74,6 +82,19 @@ const healthColor = (health: number, maxHealth: number) => {
   return 'good';
 };
 
+const percentColor = (percent: number) => {
+  if (percent <= 25) {
+    return 'bad';
+  }
+  if (percent <= 60) {
+    return 'average';
+  }
+  return 'good';
+};
+
+const titleCase = (text: string) =>
+  text.replace(/\w\S*/g, (word) => word[0].toUpperCase() + word.slice(1));
+
 export const XenoCommandConsole = () => {
   const { act, data } = useBackend<Data>();
   const {
@@ -82,6 +103,7 @@ export const XenoCommandConsole = () => {
     armed_order_type,
     hive_name = 'Unknown',
     has_rally_point,
+    hive_structures = [],
     landing_zones = [],
     roster = [],
     selected_count = 0,
@@ -123,6 +145,53 @@ export const XenoCommandConsole = () => {
                 enemy on the map to issue a move or attack order. Only
                 AI-piloted xenos can be selected or ordered.
               </Box>
+            </Section>
+          </Stack.Item>
+
+          <Stack.Item>
+            <Section title="Hive Structures">
+              {hive_structures.length === 0 ? (
+                <Box color="grey">No structure data.</Box>
+              ) : (
+                <Table>
+                  <Table.Row header>
+                    <Table.Cell>Structure</Table.Cell>
+                    <Table.Cell>Built</Table.Cell>
+                    <Table.Cell>Worst Health</Table.Cell>
+                  </Table.Row>
+                  {hive_structures.map((structure) => (
+                    <Table.Row key={structure.name}>
+                      <Table.Cell
+                        bold
+                        color={
+                          structure.name === 'hive core' && structure.count === 0
+                            ? 'bad'
+                            : undefined
+                        }
+                      >
+                        {titleCase(structure.name)}
+                        {structure.name === 'hive core' &&
+                          structure.count === 0 &&
+                          ' - NO REINFORCEMENTS'}
+                      </Table.Cell>
+                      <Table.Cell>
+                        {structure.count} / {structure.limit}
+                      </Table.Cell>
+                      <Table.Cell
+                        color={
+                          structure.worst_health_percent === null
+                            ? 'grey'
+                            : percentColor(structure.worst_health_percent)
+                        }
+                      >
+                        {structure.worst_health_percent === null
+                          ? '—'
+                          : `${structure.worst_health_percent}%`}
+                      </Table.Cell>
+                    </Table.Row>
+                  ))}
+                </Table>
+              )}
             </Section>
           </Stack.Item>
 

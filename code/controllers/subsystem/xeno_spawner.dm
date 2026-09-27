@@ -417,6 +417,30 @@ GLOBAL_LIST_INIT(xeno_spawner_caste_weights, list(
 		return null
 	return pick_weight(available)
 
+/// Fallback for spawner_build_spawn_candidates() when the map has no xeno_spawn landmarks. Samples random ground-level turfs, rejecting anything dense, not fully weedable, or outside a resin-allowed area. area_type restricts candidates to that area (and subtypes) when given, e.g. Whiskey Outpost's caves - not the whole map.
+/proc/spawner_sample_fallback_ground_turfs(area_type)
+	var/list/ground_levels = SSmapping.levels_by_trait(ZTRAIT_GROUND)
+	if(!length(ground_levels))
+		return list()
+
+	var/list/found = list()
+	for(var/attempt in 1 to XENO_SPAWNER_FALLBACK_SAMPLE_ATTEMPTS)
+		var/z = pick(ground_levels)
+		var/turf/candidate = locate(rand(1, world.maxx), rand(1, world.maxy), z)
+		if(!candidate || candidate.density)
+			continue
+		if(candidate.is_weedable() < FULLY_WEEDABLE)
+			continue
+		var/area/candidate_area = get_area(candidate)
+		if(!candidate_area || !candidate_area.is_resin_allowed)
+			continue
+		if(area_type && !istype(candidate_area, area_type))
+			continue
+		found += candidate
+		if(length(found) >= XENO_SPAWNER_FALLBACK_SAMPLE_TARGET)
+			break
+	return found
+
 /**
  * Builds the "which landmark is near which marine" table spawner_pick_spawn_turf() picks
  * from. Split out from that proc so a batch of several spawns in the same
@@ -425,16 +449,31 @@ GLOBAL_LIST_INIT(xeno_spawner_caste_weights, list(
  * first scan can change the answer anyway. Returns an assoc list: "all" = every candidate
  * turf, "dists" = assoc turf -> nearest living marine distance (only for turfs past
  * XENO_SPAWNER_PLACEMENT_MIN_MARINE_DIST), "any_marines" = whether a living marine exists at all.
+ *
+ * On Whiskey Outpost, samples the map's own cave areas instead of the whole map - that mode's
+ * one mapped xenospawn landmark is a scripted wave-approach point (lane/three_north), not a hive
+ * origin, so it's deliberately not used here. Falls back to spawner_sample_fallback_ground_turfs()
+ * (whole map) when neither list has anything.
  */
 /proc/spawner_build_spawn_candidates()
 	var/list/all_candidates = list()
 	var/list/candidate_dists = list()
 	var/any_marines = FALSE
 
-	for(var/obj/effect/landmark/xeno_spawn/spawn_point in GLOB.xeno_spawns)
-		var/turf/candidate = get_turf(spawn_point)
-		if(!candidate)
-			continue
+	var/list/spawn_turfs = list()
+	if(length(GLOB.xeno_spawns))
+		for(var/obj/effect/landmark/xeno_spawn/spawn_point in GLOB.xeno_spawns)
+			var/turf/candidate = get_turf(spawn_point)
+			if(candidate)
+				spawn_turfs += candidate
+	else if(Check_WO())
+		spawn_turfs = spawner_sample_fallback_ground_turfs(/area/whiskey_outpost/inside/caves)
+		if(!length(spawn_turfs))
+			spawn_turfs = spawner_sample_fallback_ground_turfs()
+	else
+		spawn_turfs = spawner_sample_fallback_ground_turfs()
+
+	for(var/turf/candidate as anything in spawn_turfs)
 		all_candidates += candidate
 
 		var/nearest_marine_dist = INFINITY
@@ -468,8 +507,6 @@ GLOBAL_LIST_INIT(xeno_spawner_caste_weights, list(
  * spawner_ensure_queen()'s single Queen-placement call.
  */
 /proc/spawner_pick_spawn_turf(list/spawn_candidates)
-	if(!length(GLOB.xeno_spawns))
-		return null
 	if(!spawn_candidates)
 		spawn_candidates = spawner_build_spawn_candidates()
 

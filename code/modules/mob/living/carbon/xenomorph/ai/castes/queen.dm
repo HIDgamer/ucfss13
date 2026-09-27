@@ -1,70 +1,24 @@
 /**
- * Queen AI - fundamentally different from every other caste's controller:
- * her default loop is hive economy (build the hive, sit her throne), not
- * chase-and-attack. She only drops into the shared combat loop (via ..() ->
- * the base tick()'s normal state machine) when a threat is actually visible,
- * matching the user's design: "if the hive is under heavy attack she would
- * assist if all other conditions such as the hive not needing eggs or
- * anything else check out."
- *
- * There is only ever one living Queen per hive at a time, so unlike every
- * other controller in this file, her AI is deliberately NOT budgeted for
- * population scale - she gets a wider awareness radius
+ * Queen AI. Default loop is hive economy (build, weed, sit the ovipositor), not chase-and-attack -
+ * only drops into the shared combat state machine when a threat is actually visible. Not
+ * population-budgeted like other castes (only one Queen per hive); gets a wider awareness radius
  * (AI_QUEEN_ATTACK_DISTANCE/RETURN_DISTANCE).
  *
- * Capabilities:
- * - Throne + Hive Core: this is the hive's actual objective, not "commanding"
- *   flavor - "keep the hive core and ovipositor, allowing there to be an
- *   objective, if the hive core and the queen die, the xenos stop spawning."
- *   Builds the Hive Core on the ground before she's earned her throne, then
- *   once it's up and nothing's actively threatening her, mounts the
- *   ovipositor for real - "she can ovi for roleplay." Staying mounted keeps
- *   laying eggs (Life()'s own passive accumulation, unchanged) and, since
- *   Screech/the spit macro/shift_spits get force-granted to her the instant
- *   she mounts regardless of maturity (mount_ovipositor(), Queen.dm), she's
- *   never actually defenseless while sitting there even if she hasn't aged up
- *   naturally. She isn't idle on the throne either: she periodically uses
- *   expand_weeds (an ovi-exclusive remote-targeted ability) to grow the
- *   hive's territory without needing to physically move. Dismounting is
- *   always instant and unthrottled - a real threat is a reflex, not a
- *   decision - but re-mounting afterward waits out AI_QUEEN_REMOUNT_COOLDOWN
- *   so a borderline threat-check can't thrash her in and out of ovi tick
- *   after tick.
- * - Command: broadcasts a hive-wide alert (hive_status.dm's
- *   queen_alert_turf/queen_alert_time) whenever she has a live target -
- *   every other same-hive AI xeno checks this during idle patrol
- *   (xeno_ai_controller.dm's respond_to_hive_alert()) and heads there
- *   instead of wandering. This is how she "commands" the hive without a
- *   hard command hierarchy - deliberately the ONLY commanding behavior she
- *   has left; scout orders and threat-tier-driven LZ-siege-joining were
- *   removed as part of ripping out the Hive Population Director system
- *   (both were tied to it, and "the queen ordering the other aliens
- *   shouldn't be the only way they behave" - the rest of the hive scouts/
- *   weeds/patrols on its own initiative via the base controller's own
- *   long-patrol/wander machinery).
- * - Screech: "Screech is her most powerful ability" - opens any real
- *   engagement the moment it's off cooldown, not saved for a crowd.
- * - Confident melee/ranged hybrid: "the smartest AI, and the most dangerous
- *   only beaten by the king" - she closes and finishes a lone or already-
- *   weakened target in melee (should_close_to_melee()) instead of only ever
- *   fighting at range, but still kites and spits down a real cluster
- *   (AI_QUEEN_GROUP_SCREECH_THRESHOLD+ hostiles within
- *   AI_QUEEN_GROUP_SCREECH_RADIUS) rather than wading into all of them at
- *   once.
- * - Last stand: overrides should_flee() so that when the base logic says
- *   she'd retreat (critically wounded/on fire) but she's the hive's only
- *   living member (or already backed by enough escorting daughters), she
- *   stands and fights instead - retreating would only delay the inevitable
- *   while abandoning the fight for nothing.
+ * Capabilities: builds the Hive Core, then mounts the ovipositor once it exists and nothing's
+ * threatening her, laying eggs and periodically using expand_weeds from the throne. Broadcasts a
+ * hive-wide alert whenever she has a live target, which idle same-hive xenos respond to
+ * (xeno_ai_controller.dm's respond_to_hive_alert()). Opens engagements with Screech. Closes to
+ * melee against a weakened or lone target, kites and spits a real cluster. Overrides should_flee()
+ * to stand and fight when she's the hive's last defender or already escorted.
  */
 /datum/xeno_ai_controller/queen
-	/// Successful plant_weeds actions committed since spawning - see AI_QUEEN_MIN_INITIAL_BUILDS/tick()'s build-before-ovi gate.
+	/// Successful plant_weeds actions committed since spawning.
 	var/initial_builds_done = 0
-	/// world.time she's next willing to mount the ovipositor - set on dismount, see AI_QUEEN_REMOUNT_COOLDOWN.
+	/// world.time she's next willing to mount the ovipositor.
 	var/next_mount_attempt = 0
-	/// world.time she can next use expand_weeds from the throne - throttles attempt_expand_weeds().
+	/// world.time she can next use expand_weeds from the throne.
 	var/next_expand_weeds_attempt = 0
-	/// world.time until which tick()'s distant-engagement gate is skipped entirely once she's committed to a fight - see tick()'s own doc comment on the flicker this prevents.
+	/// world.time until which tick()'s distant-engagement gate is skipped once she's committed to a fight.
 	var/distant_engage_committed_until = 0
 
 /datum/xeno_ai_controller/queen/New(mob/living/carbon/xenomorph/new_pilot)
@@ -72,21 +26,14 @@
 	attack_distance = AI_QUEEN_ATTACK_DISTANCE
 	return_distance = AI_QUEEN_RETURN_DISTANCE
 
-// No /proc/ keyword - overriding the base tick(), which itself overrides
-// /datum/proc/process(delta_time) (see xeno_ai_controller.dm's own note on
-// this). Deliberately does not call ..() at the top the way a normal
-// override might - the Queen's decision loop replaces the base one, only
-// falling through to it (via explicit ..() calls below) once she's
-// committed to fighting.
+// Overrides the base tick() directly instead of calling ..() at the top - only falls through to
+// the shared state machine (via explicit ..() calls below) once she's committed to fighting.
 /datum/xeno_ai_controller/queen/tick()
 	var/mob/living/carbon/xenomorph/queen/queen_pilot = pilot
 	if(!istype(queen_pilot))
 		return
 
-	// Keep scanning for danger even while mounted (immobilized) - the one
-	// exception to the base tick()'s "incapacitated means do nothing"
-	// shortcut, since a mounted Queen still needs to notice a threat in
-	// order to decide to dismount.
+	// Keeps scanning for danger while mounted/immobilized so she can notice a threat to dismount for.
 	if(!current_target)
 		process_target()
 
@@ -96,68 +43,45 @@
 
 	if(queen_pilot.ovipositor)
 		if(current_target)
-			queen_pilot.dismount_ovipositor(TRUE) // TRUE = instant, no confirmation dialog, no player-facing channel - she needs to react immediately, not wait through the flavor animation a player would.
+			queen_pilot.dismount_ovipositor(TRUE) // Instant, no confirmation dialog.
 			next_mount_attempt = world.time + AI_QUEEN_REMOUNT_COOLDOWN
 			return
 		if(should_reinforce_frontline(queen_pilot))
-			queen_pilot.dismount_ovipositor() // Graceful, not instant - a considered strategic choice, not a reflex, so the normal dismount animation/hive-wide announcement plays.
+			queen_pilot.dismount_ovipositor() // Graceful, normal dismount animation/announcement.
 			next_mount_attempt = world.time + AI_QUEEN_REMOUNT_COOLDOWN
 			if(GLOB.ai_debug_pathing)
 				log_debug("XENO AI QUEEN REINFORCING: [queen_pilot] left the ovipositor to reinforce a struggling frontline - [get_ai_debug_snapshot()]")
-			return // patrol()'s respond_to_hive_alert() (reached next tick, now that she's off ovi) carries her the rest of the way there - no new movement code needed.
-		// Still active from the throne, not just laying eggs and waiting -
-		// keeps growing its territory (expand_weeds, an ovi-exclusive remote
-		// ability) instead of going fully dormant the moment she sits down.
+			return // respond_to_hive_alert() (patrol(), next tick) carries her the rest of the way there.
 		attempt_expand_weeds(queen_pilot)
-		// "When the Queen is on ovi it should say Queen is either commanding
-		// or idle" - AI_STATE_IDLE alone doesn't distinguish "mounted and
-		// actively directing the hive via an alert/escort broadcast this
-		// tick" from "mounted with nothing going on."
 		var/broadcasting = queen_pilot.hive && (world.time - queen_pilot.hive.queen_alert_time <= AI_XENO_HIVE_ALERT_WINDOW || world.time - queen_pilot.hive.queen_escort_time <= AI_XENO_HIVE_ALERT_WINDOW)
 		idle_activity = broadcasting ? IDLE_ACTIVITY_COMMANDING : IDLE_ACTIVITY_BUILD
-		return // Otherwise stay mounted - TRAIT_IMMOBILIZED already prevents movement/melee, and everything above is remote/passive.
+		return // TRAIT_IMMOBILIZED already prevents movement/melee; everything above is remote/passive.
 
 	if(queen_pilot.is_mob_incapacitated() || HAS_TRAIT(queen_pilot, TRAIT_IMMOBILIZED))
 		return
 
 	if(current_target)
-		// "Stays in the hive unless needed for an attack and the hive is
-		// strong enough" / "should rely on her subjects but not be scared to
-		// approach a group she can win against" - a DISTANT fight is optional
-		// for the hive's mother. She only marches out when the hive can spare
-		// her (population near the Spawner's target) and daughters are
-		// actually at her side. NEVER gated: a threat already close, or
-		// anything once she's taken damage at all - a Queen being shot from
-		// beyond the self-defense ring must fight back, not stand there
-		// tanking rounds while "on economy."
+		// A distant fight is optional - she only marches out once the hive can spare her and has
+		// an escort. Never gated once she's already been hit, or the threat is already close.
 		var/being_hurt = queen_pilot.maxHealth && queen_pilot.health < queen_pilot.maxHealth * 0.95
-		// Commit window - once engaged, stays committed for AI_QUEEN_DISTANT_ENGAGE_COMMIT_TIME rather than re-evaluating every tick.
 		if(world.time < distant_engage_committed_until)
 			return ..()
 		if(!being_hurt && get_dist(queen_pilot, current_target) > AI_QUEEN_SELF_DEFENSE_RANGE && !hive_strong_enough_to_attack())
 			drop_target()
 		else
 			distant_engage_committed_until = world.time + AI_QUEEN_DISTANT_ENGAGE_COMMIT_TIME
-			return ..() // Hand off to the shared approach/attack/leash state machine - she defends herself and the hive normally once committed.
+			return ..() // Hands off to the shared approach/attack/leash state machine.
 
 	if(should_flee())
-		return ..() // Critically wounded/on fire and not the hive's last defender - let the base flee-and-resist logic run even though she's not mounted.
+		return ..()
 
-	// She won't mount the ovipositor at all until the Hive Core actually exists (should_mount_ovipositor()
-	// below checks this too), and the Spawner (xeno_spawner.dm) refuses to reinforce the hive until it
-	// exists either. No time cap on these build gates - she keeps building for as long as it takes,
-	// checking plasma properly each time.
+	// Won't mount the ovipositor until the Hive Core exists - build it first.
 	if(queen_pilot.hive && !queen_pilot.hive.has_structure(XENO_STRUCTURE_CORE))
 		idle_activity = IDLE_ACTIVITY_BUILD
-		// Weed her own tile first if it isn't hers yet, only attempt the actual core once she's
-		// standing on real hive weeds.
 		var/obj/effect/alien/weeds/own_weeds = locate(/obj/effect/alien/weeds) in get_turf(queen_pilot)
 		if(!own_weeds || own_weeds.linked_hive.hivenumber != queen_pilot.hivenumber)
 			attempt_plant_weeds()
 			return
-		// Both the placement path (place_construction's own use_ability()) and the feed path check
-		// their own plasma sufficiency internally, so this is safe to call every tick regardless of
-		// her current plasma.
 		attempt_build_hive_core(queen_pilot)
 		return
 
@@ -167,10 +91,6 @@
 		patrol()
 		return
 
-	// "She can ovi for roleplay" - the hive's actually built and there's
-	// nothing pressing to do on foot, so she settles onto her throne. Still
-	// productive once there (see the ovipositor branch above), and instant
-	// to snap out of the moment that stops being true.
 	if(should_mount_ovipositor(queen_pilot))
 		var/datum/action/xeno_action/onclick/grow_ovipositor/mount_ability = get_ability(/datum/action/xeno_action/onclick/grow_ovipositor)
 		mount_ability?.use_ability(queen_pilot)
@@ -178,17 +98,7 @@
 
 	patrol()
 
-/**
- * Gates mounting the ovipositor: the hive needs its Core already (the
- * throne is earned, not a shortcut around unfinished building), she needs
- * to actually be standing on her own hive's weeds (mount_ovipositor() has no
- * location requirement of its own, but a Queen anchoring herself in a
- * random hallway would be a strange place to hold court), the remount
- * cooldown from her last dismount needs to have passed, and grow_ovipositor
- * needs to still be off cooldown (it's the same action a player mounts
- * with, and use_ability() already no-ops safely if it isn't ready).
- */
-/// Whether the hive can afford its mother marching to a distant, optional fight: population near the Spawner's target and any nearby ally escort. See tick()'s economy gate and commit-window guard.
+/// Whether the hive can afford its mother marching to a distant fight: population near the Spawner's target, plus a nearby ally escort.
 /datum/xeno_ai_controller/queen/proc/hive_strong_enough_to_attack()
 	if(count_nearby_hive_allies(AI_QUEEN_ATTACK_ESCORT_RADIUS) < AI_QUEEN_ATTACK_MIN_ESCORT)
 		return FALSE
@@ -201,6 +111,7 @@
 			current++
 	return current >= target_pop * AI_QUEEN_ATTACK_STRENGTH_PERCENT
 
+/// Gates mounting the ovipositor: Core built, standing on own hive weeds, remount cooldown passed, ability off cooldown.
 /datum/xeno_ai_controller/queen/proc/should_mount_ovipositor(mob/living/carbon/xenomorph/queen/queen_pilot)
 	if(queen_pilot.ovipositor || world.time < next_mount_attempt)
 		return FALSE
@@ -212,38 +123,17 @@
 	var/datum/action/xeno_action/onclick/grow_ovipositor/mount_ability = get_ability(/datum/action/xeno_action/onclick/grow_ovipositor)
 	return mount_ability && mount_ability.action_cooldown_check()
 
-/**
- * "The queen should be able to deovi and go to the frontline to help if
- * possible" - distinct from tick()'s existing reactive dismount (a direct
- * personal threat, instant, no judgment needed): this is a proactive
- * strategic call, checked only while she's mounted with nothing already
- * attacking her. Two things both have to be true - a real hive-wide crisis
- * actually exists (reuses assault_alert_turf, the same "the hive begins
- * marching to the fob/LZ" signal respond_to_hive_alert() already answers
- * for every other idle xeno - not a new pressure metric), and there aren't
- * already enough daughters there without her. Leaving the ovipositor to
- * join a fight that's already well-staffed would just be gambling the
- * hive's only queen for nothing, so both conditions have to hold, not just
- * one.
- */
+/// Whether to leave the ovipositor and reinforce a struggling frontline: a live hive-wide push exists, the economy can spare her, and there aren't already enough responders.
 /datum/xeno_ai_controller/queen/proc/should_reinforce_frontline(mob/living/carbon/xenomorph/queen/queen_pilot)
 	if(!queen_pilot.hive)
 		return FALSE
 	if(!queen_pilot.hive.assault_alert_turf || world.time - queen_pilot.hive.assault_alert_time > AI_XENO_HIVE_ALERT_WINDOW)
-		return FALSE // No live hive-wide push happening - nothing to reinforce.
+		return FALSE
 	if(queen_pilot.hive.stored_larva < AI_QUEEN_DEOVI_MIN_LARVA)
-		return FALSE // Economy's too fragile to spare her right now - stay and keep laying.
+		return FALSE
 	return count_nearby_hive_members(queen_pilot.hive.assault_alert_turf, AI_XENO_HIVE_ALERT_RESPONDER_RADIUS) < AI_QUEEN_DEOVI_RESPONDER_THRESHOLD
 
-/**
- * Ovi-exclusive remote-targeted build ability (mount_ovipositor()'s
- * immobile_abilities list, Queen.dm) - lets her keep growing the hive's
- * weed footprint from the throne instead of that work stopping dead the
- * moment she mounts. Picks a plain nearby candidate rather than a careful
- * frontier search - expand_weeds' own use_ability() already validates
- * weedability/area eligibility and just silently no-ops on a bad tile, so a
- * wasted attempt here and there costs nothing.
- */
+/// Ovi-exclusive remote-targeted weed expansion, rolled periodically while mounted.
 /datum/xeno_ai_controller/queen/proc/attempt_expand_weeds(mob/living/carbon/xenomorph/queen/queen_pilot)
 	if(world.time < next_expand_weeds_attempt)
 		return
@@ -257,49 +147,20 @@
 		if(candidate.density || candidate.is_weedable() < FULLY_WEEDABLE)
 			continue
 		if(locate(/obj/effect/alien/weeds) in candidate)
-			continue // Already weeded - nothing to expand there.
+			continue
 		candidates += candidate
 	if(!length(candidates))
 		return
 	expand_ability.use_ability(pick(candidates))
 
-/**
- * "She is unable to finish building the hive core once its construction
- * node is built (you have to keep filling it with plasma as you regenerate
- * plasma, don't spam it either just wait long enough)" - place_construction
- * can never re-place the Hive Core once the empty node exists
- * (check_alien_construction(), XenoProcs.dm, treats the node itself as an
- * obstacle and refuses), so retrying it forever was a dead end: the plasma
- * cost she was banking for a re-placement was never the real requirement.
- * The node's actual 1000-plasma build cost (construction_template_xenomorph.dm -
- * a completely separate number from the 400-plasma placement fee below) is
- * meant to be fed
- * incrementally by attacking the standing node with something other than
- * harm intent (construction_node.dm's attack_alien() -> add_crystal(),
- * which drains her current plasma into it and makes her stand still for
- * its own 4-second windup) - exactly the real "wait for plasma, feed again,
- * don't spam" mechanic. Locates the node once it exists and feeds it
- * instead of endlessly retrying the placement ability against it.
- */
+/// Builds the Hive Core: feeds an in-progress node if one exists, otherwise orders one placed.
 /datum/xeno_ai_controller/queen/proc/attempt_build_hive_core(mob/living/carbon/xenomorph/queen/queen_pilot)
 	if(!queen_pilot.hive || queen_pilot.hive.has_structure(XENO_STRUCTURE_CORE))
 		return
 
-	var/obj/effect/alien/resin/construction/node = locate(/obj/effect/alien/resin/construction) in get_turf(queen_pilot)
-	if(!node)
-		for(var/obj/effect/alien/resin/construction/nearby_node in range(3, queen_pilot))
-			if(nearby_node.linked_hive == queen_pilot.hive)
-				node = nearby_node
-				break
-
-	if(node && node.linked_hive == queen_pilot.hive)
-		if(!queen_pilot.Adjacent(node))
-			travel_to(node, 0)
-			return
-		if(queen_pilot.plasma_stored <= 0)
-			return // "Don't spam it either, just wait long enough" - nothing to contribute yet, don't burn the feed windup for free.
-		queen_pilot.a_intent = INTENT_HELP // attack_alien() destroys the node under INTENT_HARM instead of feeding it.
-		node.attack_alien(queen_pilot)
+	var/obj/effect/alien/resin/construction/node = find_nearby_hive_node(XENO_STRUCTURE_CORE)
+	if(node)
+		attempt_feed_hive_node(node)
 		return
 
 	if(queen_pilot.hive.hivecore_cooldown)
@@ -307,49 +168,28 @@
 	var/datum/action/xeno_action/activable/place_construction/action = get_ability(/datum/action/xeno_action/activable/place_construction)
 	if(!action)
 		return
-	action.use_ability(get_turf(queen_pilot)) // Safe to call speculatively even without enough plasma yet - use_ability() checks check_plasma(400) itself before deducting anything.
+	// Only orders a Core - the ability's own structure picker (general_powers.dm) needs a client
+	// to answer once other structure types are available, which an AI xeno doesn't have.
+	action.use_ability(get_turf(queen_pilot))
 
-/**
- * She has plant_weeds in her own base_actions same as a Drone (see
- * Queen.dm) but the base controller never called it for her - same
- * build-duty pattern as drone_worker.dm, just her own (higher, since
- * she's one unit rather than a population) chance.
- */
+/// Adds plant_weeds duty (same base_actions entry as a Drone) to the shared patrol().
 /datum/xeno_ai_controller/queen/patrol()
 	if(respond_to_hive_alert())
 		idle_activity = IDLE_ACTIVITY_ALERT
 		return
-	// Side effects only, side by side with everything else patrol() already tries - a real hive
-	// commander tends to nearby daughters (heal/plasma) and designates a lieutenant (leader) while
-	// otherwise going about her business, not as its own dedicated idle state.
 	attempt_queen_heal()
 	attempt_queen_give_plasma()
 	attempt_promote_leader()
 	if(prob(AI_QUEEN_BUILD_CHANCE) && attempt_plant_weeds())
 		idle_activity = IDLE_ACTIVITY_BUILD
 		return
-	// "Queen should weed like drones" - attempt_plant_weeds() only ever
-	// weeds whatever tile she's already standing on, same as a Drone, but
-	// falling straight to wander() (rather than the base patrol()'s full
-	// idle state machine - long patrols, pack cohesion) kept her drifting
-	// over the same small patch near anchor_turf instead of covering ground
-	// the way a Drone's own patrol() fallthrough does.
 	return ..()
 
-/// Higher than the population default - "she is big and slow and easy to kill," a huge investment that's hard to save if she overcommits, so she breaks off earlier than a disposable population-scale caste would.
+/// Higher than the population default - a costly, hard-to-replace unit breaks off earlier.
 /datum/xeno_ai_controller/queen/get_flee_threshold()
 	return AI_QUEEN_FLEE_HEALTH_PERCENT
 
-/**
- * Only flees if the base logic would AND she isn't the hive's last living
- * member AND she isn't already backed up - if she's alone, retreating
- * accomplishes nothing but delaying the inevitable, so she makes her stand
- * instead; "she can easily attack with her escort instead of retreating" is
- * the same reasoning extended to any fight where enough daughters
- * (broadcast_escort_call() already rallies them to her every tick she has a
- * target) are actually fighting alongside her against the exact same
- * target, not only the single all-alone edge case.
- */
+/// Only flees if the base logic would, and she isn't the hive's last living member, and she isn't already backed by enough escorting daughters.
 /datum/xeno_ai_controller/queen/should_flee()
 	if(!..())
 		return FALSE
@@ -374,17 +214,7 @@
 		return FALSE
 	return TRUE
 
-/**
- * Confident hybrid, not purely reactive-melee: she's "the smartest AI, and
- * the most dangerous only beaten by the king," so a lone or already-weakened
- * target just gets closed on and finished, not peppered with spit from a
- * safe distance forever - should_close_to_melee() makes that call. Only a
- * real cluster (the case a spit-and-kite policy actually earns its keep
- * against) keeps her at range softening things up first, same as
- * Boiler/Sentinel's own kiting behavior. Screech opens any real engagement
- * now, not only group ones - "her most powerful ability" is worth using
- * whenever it's up, not saved for a crowd.
- */
+/// Closes to melee and finishes a weakened or lone target; stays ranged and softens a real cluster.
 /datum/xeno_ai_controller/queen/process_attack()
 	var/mob/living/carbon/xenomorph/queen/queen_pilot = pilot
 	if(!istype(queen_pilot) || !current_target)
@@ -394,40 +224,28 @@
 		drop_target()
 		return
 
-	attempt_screech() // No-ops silently off cooldown - safe to call every tick she's committed to a fight.
+	attempt_screech()
 
-	if(pilot.Adjacent(current_target)) // Cornered, or she's chosen to close - fight back.
+	if(pilot.Adjacent(current_target))
 		execute_attack(current_target)
-		if(stale_attack_ticks >= AI_PRIORITY_STALE_ATTACK_GIVEUP) // This override replaces the base process_attack() entirely instead of calling ..() - without this she'd claw an undamageable target forever instead of giving up like every other caste does.
+		if(stale_attack_ticks >= AI_PRIORITY_STALE_ATTACK_GIVEUP)
 			drop_target()
 		return
 
 	if(should_close_to_melee(current_target))
-		ai_state = AI_STATE_APPROACHING // process_movement() closes the gap instead of kiting - see should_close_to_melee().
+		ai_state = AI_STATE_APPROACHING
 		return
 
-	attempt_ranged_spit(current_target) // No-ops silently if it's on cooldown - safe to call speculatively.
-	ai_state = AI_STATE_APPROACHING // Always re-decide positioning next tick.
+	attempt_ranged_spit(current_target)
+	ai_state = AI_STATE_APPROACHING
 
-/**
- * The melee-vs-ranged decision itself: closes in against anything she can
- * confidently just win against outright - already weakened past
- * AI_QUEEN_MELEE_TARGET_HEALTH_PERCENT, or genuinely alone (fewer than
- * AI_QUEEN_GROUP_SCREECH_THRESHOLD other hostiles clustered within
- * AI_QUEEN_GROUP_SCREECH_RADIUS of it). A real cluster is the one case
- * spit-and-kite still earns its keep - softening several targets from range
- * beats wading into all of them at once, even for her.
- */
+/// Melee-vs-ranged decision: closes on anything already weakened, or genuinely alone; stays ranged against a real cluster.
 /datum/xeno_ai_controller/queen/proc/should_close_to_melee(mob/living/target)
 	if(!istype(target))
 		return FALSE
 	if(target.maxHealth && target.health <= target.maxHealth * AI_QUEEN_MELEE_TARGET_HEALTH_PERCENT)
 		return TRUE
-	// An immature Queen (Queen.dm's mobile_aged_abilities, granted only after
-	// XENO_QUEEN_AGE_TIME) has no ranged spit at all - staying at range to
-	// "soften up" a group she can't actually hit from range just means
-	// backing away dealing zero damage. The spit-and-kite tradeoff below only
-	// earns its keep once she can actually spit.
+	// An immature Queen has no ranged spit yet - staying at range would deal zero damage.
 	if(!get_ability(/datum/action/xeno_action/activable/xeno_spit/queen_macro))
 		return TRUE
 	var/nearby_hostiles = 0
@@ -436,16 +254,10 @@
 			continue
 		nearby_hostiles++
 		if(nearby_hostiles >= AI_QUEEN_GROUP_SCREECH_THRESHOLD)
-			return FALSE // A real group - stay ranged and soften them up instead.
+			return FALSE
 	return TRUE
 
-/**
- * "Weeds heal, slow enemies, speed up xenos" - a real tactical move
- * mid-fight, not just idle economy. Reuses the same attempt_plant_weeds()
- * idle callers already use (xeno_ai_controller.dm) - its own internal
- * checks (weedable ground, hive ownership) already handle a bad tile
- * silently, so this is safe to roll speculatively without breaking stride.
- */
+/// Weeds mid-fight for the heal/slow/speed effect, not just as idle economy.
 /datum/xeno_ai_controller/queen/process_movement()
 	if(!pilot || !current_target)
 		return
@@ -463,18 +275,7 @@
 	else
 		maintain_kiting_distance(current_target, AI_XENO_RANGED_PREFERRED_DISTANCE)
 
-/**
- * "Spitting is her main ability in combat, make sure she switches between
- * neuro spit and acid spit on demand, not at random" - shift_spits is a
- * plain toggle (cycles to whichever ammo type comes next in
- * caste.spit_types), so with exactly two entries "on demand" just means
- * comparing her current ammo against the one the situation calls for and
- * toggling only when they differ, instead of never touching it at all
- * (leaving her stuck on whichever type she happened to spawn with for the
- * whole round). Acid Spatter up close for the bigger single hit, Neurotoxin
- * at range for the harassing DoT/slow while she's still closing or holding
- * distance.
- */
+/// Switches spit ammo to match range - Acid Spatter up close, Neurotoxin at range.
 /datum/xeno_ai_controller/queen/proc/select_spit_type(mob/living/target)
 	var/mob/living/carbon/xenomorph/queen/queen_pilot = pilot
 	if(!istype(queen_pilot) || !queen_pilot.caste)
@@ -493,7 +294,7 @@
 	pilot.setDir(get_dir(pilot, target))
 	spit.use_ability(target)
 
-/// AoE fear/disorient - "she should use her special ability Screech too." Opportunistic, no real downside to firing it the moment it's off cooldown while cornered into melee.
+/// AoE fear/disorient, fired the moment it's off cooldown.
 /datum/xeno_ai_controller/queen/proc/attempt_screech()
 	var/datum/action/xeno_action/onclick/screech/screech = get_ability(/datum/action/xeno_action/onclick/screech)
 	if(!screech || !screech.action_cooldown_check())
@@ -501,21 +302,13 @@
 	screech.use_ability(pilot)
 	return TRUE
 
-/**
- * Only offensive melee special she has worth reaching for as an AI: an
- * 8-second, fully-interruptible windup that instantly gibs whatever's
- * adjacent when it completes (queen_gut() in Queen.dm). Only used to finish
- * something already down (dead or floored/incapacitated), never as a
- * mid-fight opener against something still fighting back - the windup is far
- * too long to commit against a live, mobile opponent that can just walk or
- * hit her out of it.
- */
+/// Gut, an 8-second windup that instantly gibs on completion - only used to finish an already-helpless target, never as an opener.
 /datum/xeno_ai_controller/queen/use_caste_ability(mob/living/target)
 	var/mob/living/carbon/xenomorph/queen/queen_pilot = pilot
 	if(!istype(queen_pilot))
 		return FALSE
 
-	attempt_screech() // Side effect only (own cooldown/plasma cost) - never blocks also gutting/slashing the same tick below.
+	attempt_screech()
 
 	var/target_helpless = target.stat == DEAD || HAS_TRAIT(target, TRAIT_FLOORED) || target.is_mob_incapacitated()
 	if(target_helpless)
@@ -525,13 +318,13 @@
 				if(nearby == target)
 					continue
 				if(is_valid_target(nearby))
-					return attempt_tail_stab(target) // Not a clean opportunity - something else could interrupt the windup or jump her while she's committed.
+					return attempt_tail_stab(target) // Not a clean opportunity - could be interrupted mid-windup.
 			gut_ability.use_ability(target)
 			return TRUE
 
 	return attempt_tail_stab(target)
 
-/// Cast on the most badly hurt nearby daughter within AI_QUEEN_SUPPORT_RADIUS.
+/// Heals the most badly hurt nearby daughter within AI_QUEEN_SUPPORT_RADIUS.
 /datum/xeno_ai_controller/queen/proc/attempt_queen_heal()
 	if(!pilot)
 		return FALSE
@@ -552,7 +345,7 @@
 	heal.use_ability(hurt_ally)
 	return TRUE
 
-/// Cast on the most plasma-starved nearby daughter within AI_QUEEN_SUPPORT_RADIUS.
+/// Gives plasma to the most plasma-starved nearby daughter within AI_QUEEN_SUPPORT_RADIUS.
 /datum/xeno_ai_controller/queen/proc/attempt_queen_give_plasma()
 	if(!pilot)
 		return FALSE
@@ -573,12 +366,12 @@
 	give.use_ability(needy_ally)
 	return TRUE
 
-/// Promotes a worthy nearby combat-capable (T2+) daughter to Hive Leader once, if the hive currently has none.
+/// Promotes a worthy nearby combat-capable (T2+) daughter to Hive Leader if the hive has none.
 /datum/xeno_ai_controller/queen/proc/attempt_promote_leader()
 	if(!pilot?.hive)
 		return FALSE
 	if(length(pilot.hive.open_xeno_leader_positions) < pilot.hive.queen_leader_limit)
-		return FALSE // Already has at least one leader - don't keep promoting more every idle tick.
+		return FALSE
 	var/mob/living/carbon/xenomorph/best_candidate
 	for(var/mob/living/carbon/xenomorph/nearby in range(AI_QUEEN_SUPPORT_RADIUS, pilot))
 		if(nearby == pilot || nearby.hivenumber != pilot.hivenumber || nearby.stat == DEAD || nearby.hive_pos != NORMAL_XENO)
@@ -591,8 +384,5 @@
 		return FALSE
 	return pilot.hive.add_hive_leader(best_candidate)
 
-// broadcast_hive_alert()/count_nearby_escorts()/broadcast_escort_call() now
-// live on the base controller (xeno_ai_controller.dm) - promoted there so
-// King can share them too ("coordination with other AI xenos is very
-// poor" - he never had an equivalent before). Queen inherits the identical
-// behavior automatically.
+// broadcast_hive_alert()/count_nearby_escorts()/broadcast_escort_call() live on the base
+// controller (xeno_ai_controller.dm) - Queen inherits them, King shares them too.

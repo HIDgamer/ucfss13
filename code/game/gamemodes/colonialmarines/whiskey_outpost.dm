@@ -1,4 +1,6 @@
 #define WO_MAX_WAVE 15
+/// Minutes the AI Xeno Spawner stays disabled at round start - see hive_spawner_countdown().
+#define WO_HIVE_SPAWNER_DELAY_MINUTES 5
 
 //Global proc for checking if the game is whiskey outpost so I dont need to type if(gamemode == whiskey outpost) 50000 times
 /proc/Check_WO()
@@ -97,6 +99,10 @@
 	for(var/obj/effect/landmark/whiskey_outpost/supplydrops/S)
 		supply_spawns += S.loc
 
+	// AI Xeno Spawner target hive is set now, but stays disabled until hive_spawner_countdown() enables it - see post_setup().
+	GLOB.xeno_spawner_enabled = FALSE
+	GLOB.xeno_spawner_hive = XENO_HIVE_NORMAL
+
 
 	//  WO waves
 	var/list/paths = typesof(/datum/whiskey_outpost_wave) - /datum/whiskey_outpost_wave - /datum/whiskey_outpost_wave/random
@@ -131,7 +137,25 @@
 		if(0)
 			marine_announcement("This is Captain Hans Naiche, commander of the 3rd Battalion 'Dust Raiders' forces here on LV-624. In our attempts to establish a base on this planet, several of our patrols were wiped out by hostile creatures.  We're setting up a distress call, but we need you to hold [SSmapping.configs[GROUND_MAP].map_name] in order for our engineers to set up the relay. We're prepping several M402 mortar units to provide fire support. If they overrun your positon, we will be wiped out with no way to call for help. Hold the line or we all die.", "Captain Naiche, 3rd Battalion Command, LV-624 Garrison")
 	addtimer(CALLBACK(src, PROC_REF(story_announce), 0), 3 MINUTES)
+	addtimer(CALLBACK(src, PROC_REF(hive_spawner_countdown), 1), 1 MINUTES)
 	return ..()
+
+/// Screen-alerts all living marines once a minute for 5 minutes, then enables the AI Xeno Spawner.
+/datum/game_mode/whiskey_outpost/proc/hive_spawner_countdown(minute)
+	var/minutes_left = WO_HIVE_SPAWNER_DELAY_MINUTES - minute
+	var/text = minutes_left > 0 ? "The Hive stirs in the dark... [minutes_left] minute[minutes_left == 1 ? "" : "s"] remain." : "The Hive is coming."
+	var/list/recipients = list()
+	for(var/mob/living/carbon/human/marine as anything in GLOB.alive_human_list)
+		if(marine.faction == FACTION_MARINE)
+			recipients += marine
+	recipients += GLOB.observer_list
+	for(var/mob/recipient as anything in recipients)
+		recipient.play_screen_text(text, /atom/movable/screen/text/screen_text/command_order)
+
+	if(minute >= WO_HIVE_SPAWNER_DELAY_MINUTES)
+		GLOB.xeno_spawner_enabled = TRUE
+		return
+	addtimer(CALLBACK(src, PROC_REF(hive_spawner_countdown), minute + 1), 1 MINUTES)
 
 /datum/game_mode/whiskey_outpost/proc/story_announce(time)
 	switch(time)

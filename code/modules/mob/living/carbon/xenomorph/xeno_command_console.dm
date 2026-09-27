@@ -82,6 +82,26 @@
 	data["hive_name"] = hive?.name
 	data["has_rally_point"] = !!hive?.rally_turf
 
+	// Structure build status, per type - visible to Hive Leaders too, not just admins.
+	var/list/structure_status = list()
+	if(hive)
+		for(var/structure_name in list(XENO_STRUCTURE_CORE, XENO_STRUCTURE_CLUSTER, XENO_STRUCTURE_EGGMORPH, XENO_STRUCTURE_RECOVERY, XENO_STRUCTURE_PYLON))
+			var/list/built = hive.hive_structures[structure_name]
+			var/worst_health_percent
+			for(var/obj/effect/alien/resin/special/structure as anything in built)
+				if(!structure.maxhealth)
+					continue
+				var/fraction = round(structure.health / structure.maxhealth * 100)
+				if(isnull(worst_health_percent) || fraction < worst_health_percent)
+					worst_health_percent = fraction
+			structure_status += list(list(
+				"name" = structure_name,
+				"count" = LAZYLEN(built),
+				"limit" = hive.hive_structures_limit[structure_name],
+				"worst_health_percent" = worst_health_percent, // null when none are built yet.
+			))
+	data["hive_structures"] = structure_status
+
 	var/list/landing_zones = list()
 	for(var/lz_id in get_all_marine_lz_turfs())
 		var/obj/docking_port/stationary/dock = SSshuttle.getDock(lz_id)
