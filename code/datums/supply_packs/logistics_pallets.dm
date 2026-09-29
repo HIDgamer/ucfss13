@@ -74,45 +74,45 @@
 	group = "Supplies"
 
 /datum/supply_packs/rack_mk1_heap
-	name = "MK1 HEAP magazine rack"
+	name = "MK1 HEAP magazine box rack"
 	cost = 100
 	containertype = /obj/structure/machinery/auto_rack/mk1_heap
-	containername = "MK1 HEAP magazine rack"
+	containername = "MK1 HEAP magazine box rack"
 	group = "Supplies"
 
 /datum/supply_packs/rack_m4ra_heap
-	name = "M4RA HEAP magazine rack"
+	name = "M4RA HEAP magazine box rack"
 	cost = 100
 	containertype = /obj/structure/machinery/auto_rack/m4ra_heap
-	containername = "M4RA HEAP magazine rack"
+	containername = "M4RA HEAP magazine box rack"
 	group = "Supplies"
 
 /datum/supply_packs/rack_m39_heap
-	name = "M39 HEAP magazine rack"
+	name = "M39 HEAP magazine box rack"
 	cost = 100
 	containertype = /obj/structure/machinery/auto_rack/m39_heap
-	containername = "M39 HEAP magazine rack"
+	containername = "M39 HEAP magazine box rack"
 	group = "Supplies"
 
 /datum/supply_packs/rack_buckshot
-	name = "buckshot tin rack"
+	name = "buckshot shell box rack"
 	cost = 90
 	containertype = /obj/structure/machinery/auto_rack/buckshot
-	containername = "buckshot tin rack"
+	containername = "buckshot shell box rack"
 	group = "Supplies"
 
 /datum/supply_packs/rack_shotgun_slugs
-	name = "slug tin rack"
+	name = "slug shell box rack"
 	cost = 90
 	containertype = /obj/structure/machinery/auto_rack/shotgun_slugs
-	containername = "slug tin rack"
+	containername = "slug shell box rack"
 	group = "Supplies"
 
 /datum/supply_packs/rack_beanbag
-	name = "beanbag tin rack"
+	name = "beanbag shell box rack"
 	cost = 90
 	containertype = /obj/structure/machinery/auto_rack/beanbag
-	containername = "beanbag tin rack"
+	containername = "beanbag shell box rack"
 	group = "Supplies"
 
 /datum/supply_packs/rack_smartgun_ammo

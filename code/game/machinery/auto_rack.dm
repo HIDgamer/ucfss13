@@ -31,6 +31,8 @@
 	var/working = FALSE
 	/// Type of weapon/ammo this specific rack stocks - set per subtype.
 	var/stocked_weapon = null
+	///Only accepts back the exact stocked type, not its subtypes
+	var/exact_stock = FALSE
 	var/max_stored = 4
 	var/initial_stored = 0
 	var/max_restocks = 1
@@ -79,7 +81,7 @@
 	if(locked)
 		to_chat(user, SPAN_WARNING("[src] is locked."))
 		return
-	if(!istype(W, stocked_weapon))
+	if(exact_stock ? W.type != stocked_weapon : !istype(W, stocked_weapon))
 		return
 	if(contents.len >= max_stored)
 		to_chat(user, SPAN_WARNING("[src] is already fully stocked."))

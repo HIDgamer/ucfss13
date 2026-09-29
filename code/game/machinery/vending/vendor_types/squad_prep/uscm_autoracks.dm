@@ -38,39 +38,45 @@
 	stocked_weapon = /obj/item/weapon/gun/shotgun/combat
 
 /obj/structure/machinery/auto_rack/mk1_heap
-	name = "\improper MK1 HEAP magazine rack"
+	name = "\improper MK1 HEAP magazine box rack"
 	icon_state = "mk1_magrack"
-	stocked_weapon = /obj/item/ammo_magazine/rifle/m41aMK1/heap
+	stocked_weapon = /obj/item/ammo_box/magazine/mk1/heap
+	exact_stock = TRUE
 	max_stored = 4
 
 /obj/structure/machinery/auto_rack/m4ra_heap
-	name = "\improper M4RA HEAP magazine rack"
+	name = "\improper M4RA HEAP magazine box rack"
 	icon_state = "m4ra_magrack"
-	stocked_weapon = /obj/item/ammo_magazine/rifle/m4ra/heap
+	stocked_weapon = /obj/item/ammo_box/magazine/m4ra/heap
+	exact_stock = TRUE
 	max_stored = 4
 
 /obj/structure/machinery/auto_rack/m39_heap
-	name = "\improper M39 HEAP magazine rack"
+	name = "\improper M39 HEAP magazine box rack"
 	icon_state = "m39_magrack"
-	stocked_weapon = /obj/item/ammo_magazine/smg/m39/heap
+	stocked_weapon = /obj/item/ammo_box/magazine/m39/heap
+	exact_stock = TRUE
 	max_stored = 4
 
 /obj/structure/machinery/auto_rack/buckshot
-	name = "\improper buckshot tin rack"
+	name = "\improper buckshot shell box rack"
 	icon_state = "buckshot_magrack"
-	stocked_weapon = /obj/item/ammo_magazine/shotgun/buckshot
+	stocked_weapon = /obj/item/ammo_box/magazine/shotgun/buckshot
+	exact_stock = TRUE
 	max_stored = 4
 
 /obj/structure/machinery/auto_rack/shotgun_slugs
-	name = "\improper slug tin rack"
+	name = "\improper slug shell box rack"
 	icon_state = "slugs_magrack"
-	stocked_weapon = /obj/item/ammo_magazine/shotgun/slugs
+	stocked_weapon = /obj/item/ammo_box/magazine/shotgun
+	exact_stock = TRUE
 	max_stored = 3
 
 /obj/structure/machinery/auto_rack/beanbag
-	name = "\improper beanbag tin rack"
+	name = "\improper beanbag shell box rack"
 	icon_state = "beanbag_magrack"
-	stocked_weapon = /obj/item/ammo_magazine/shotgun/beanbag
+	stocked_weapon = /obj/item/ammo_box/magazine/shotgun/beanbag
+	exact_stock = TRUE
 	max_stored = 4
 
 /obj/structure/machinery/auto_rack/smartgun_ammo
