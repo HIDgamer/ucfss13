@@ -339,6 +339,7 @@
 					var/new_color = initial(item.color)
 					if(!isnull(new_color) && new_color != "#FFFFFF")
 						new_icon.Blend(new_color, ICON_MULTIPLY)
+					new_icon.Scale(32, 32)
 				else
 					new_icon = getFlatIcon(item)
 					if(!new_icon)

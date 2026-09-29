@@ -402,7 +402,7 @@ Timer Delayed/Looping Procs
 	internal_relocation_in_progress = FALSE
 	SSshuttle.refresh_dropship_destination_lists()
 	INVOKE_NEXT_TICK(docked_mobile, TYPE_PROC_REF(/obj/docking_port/mobile/marine_dropship, dropship_freefall))
-	docked_mobile.update_ambience()
+	docked_mobile.request_ambience_update()
 
 	// The dropship has now actually left — nobody remains to press the airlock controls from
 	// here, so reseal the hull automatically instead of leaving the airlock stuck open forever.

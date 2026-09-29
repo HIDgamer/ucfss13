@@ -71,6 +71,12 @@ IN_USE used for vending/denying
 
 /obj/structure/machinery/cm_vending/Initialize()
 	. = ..()
+	// Deferred one tick, not called directly - a subtype's get_listed_products() can prompt an admin
+	// interactively (super_snowflake, dress.dm), and Initialize() itself is must-not-sleep. Negligible
+	// delay for every other vending machine (nothing can interact with one before the round starts).
+	INVOKE_ASYNC(src, PROC_REF(build_initial_inventory))
+
+/obj/structure/machinery/cm_vending/proc/build_initial_inventory()
 	cm_build_inventory(get_listed_products(), 1, 3)
 
 /obj/structure/machinery/cm_vending/update_icon()

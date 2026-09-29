@@ -538,6 +538,10 @@
 		if(is_in_shuttle_bounds(C?.mob))
 			C?.soundOutput.update_ambience()
 
+/// Public trigger for update_ambience() - that proc is PROTECTED_PROC (only this type's own code may call it), but external code with a legitimate reason to request a refresh (e.g. the stationary airlock mid-departure) still needs a way in.
+/obj/docking_port/mobile/proc/request_ambience_update()
+	update_ambience()
+
 // Called after the shuttle is loaded from template
 /obj/docking_port/mobile/proc/linkup(datum/map_template/shuttle/template, obj/docking_port/stationary/dock)
 

@@ -30,7 +30,7 @@
 	var/z_size = 0
 
 	/// List of the bottom left turfs. Indexed by what their z index for this reservation is
-	var/list/bottom_left_turfs = list()
+	var/list/turf/bottom_left_turfs = list()
 
 	/// List of the top right turfs. Indexed by what their z index for this reservation is
 	var/list/top_right_turfs = list()
