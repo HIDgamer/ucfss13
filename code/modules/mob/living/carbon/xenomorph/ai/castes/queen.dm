@@ -96,7 +96,12 @@
 		mount_ability?.use_ability(queen_pilot)
 		return
 
-	patrol()
+	// The base tick()'s idle branch checks this before patrol() - the Queen's own tick() override
+	// never reaches that shared code, so a MOVE/HOLD order to her was never polled at all.
+	if(respond_to_player_order())
+		idle_activity = IDLE_ACTIVITY_ORDERED
+	else
+		patrol()
 
 /// Whether the hive can afford its mother marching to a distant fight: population near the Spawner's target, plus a nearby ally escort.
 /datum/xeno_ai_controller/queen/proc/hive_strong_enough_to_attack()

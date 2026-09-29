@@ -80,6 +80,8 @@
 #define AI_XENO_RISKY_APPROACH_RANGE 5
 /// How long an AI xeno will keep investigating a lost target's last known position before giving up.
 #define AI_XENO_SEARCH_TIMEOUT 15 SECONDS
+/// How long a target dropped for being unreachable (drop_target(TRUE)) is excluded from process_target()'s candidate scan - matches AI_XENO_SEARCH_TIMEOUT so it stays excluded for the whole search cycle instead of being re-picked mid-search.
+#define AI_XENO_MOVEMENT_GIVEUP_COOLDOWN 15 SECONDS
 /// Largest local grid (width*height tiles) handed to the native pathfinder. Beyond this the old greedy step_towards() chase handles it fine - this is for routing around nearby obstacles, not long-range travel.
 #define XENO_PATHFIND_MAX_CELLS 900
 /// Floor on compute_path()'s search margin around the direct pilot-goal bounding box.

@@ -137,12 +137,23 @@
 		if(0)
 			marine_announcement("This is Captain Hans Naiche, commander of the 3rd Battalion 'Dust Raiders' forces here on LV-624. In our attempts to establish a base on this planet, several of our patrols were wiped out by hostile creatures.  We're setting up a distress call, but we need you to hold [SSmapping.configs[GROUND_MAP].map_name] in order for our engineers to set up the relay. We're prepping several M402 mortar units to provide fire support. If they overrun your positon, we will be wiped out with no way to call for help. Hold the line or we all die.", "Captain Naiche, 3rd Battalion Command, LV-624 Garrison")
 	addtimer(CALLBACK(src, PROC_REF(story_announce), 0), 3 MINUTES)
-	addtimer(CALLBACK(src, PROC_REF(hive_spawner_countdown), 1), 1 MINUTES)
+	// Each minute is scheduled independently up front rather than each one re-scheduling the next -
+	// a chained/recursive addtimer means one exception on minute 3 (say) silently cancels minutes 4
+	// and 5 forever, since the callback that would have scheduled them never ran. Scheduling all of
+	// them now means minute 5 (the actual enable) fires on its own absolute timer regardless of
+	// whether any earlier minute's announcement had a problem.
+	for(var/minute in 1 to WO_HIVE_SPAWNER_DELAY_MINUTES)
+		addtimer(CALLBACK(src, PROC_REF(hive_spawner_countdown_tick), minute), minute MINUTES)
 	return ..()
 
-/// Screen-alerts all living marines once a minute for 5 minutes, then enables the AI Xeno Spawner.
-/datum/game_mode/whiskey_outpost/proc/hive_spawner_countdown(minute)
+/// Screen-alerts all living marines for a given minute of the countdown; the final minute also enables the AI Xeno Spawner.
+/datum/game_mode/whiskey_outpost/proc/hive_spawner_countdown_tick(minute)
 	var/minutes_left = WO_HIVE_SPAWNER_DELAY_MINUTES - minute
+	// Enabling the spawner is the whole point of this proc - set it before the announcement loop
+	// below, not after, so nothing in that loop can ever prevent it from happening.
+	if(minute >= WO_HIVE_SPAWNER_DELAY_MINUTES)
+		GLOB.xeno_spawner_enabled = TRUE
+
 	var/text = minutes_left > 0 ? "The Hive stirs in the dark... [minutes_left] minute[minutes_left == 1 ? "" : "s"] remain." : "The Hive is coming."
 	var/list/recipients = list()
 	for(var/mob/living/carbon/human/marine as anything in GLOB.alive_human_list)
@@ -151,11 +162,6 @@
 	recipients += GLOB.observer_list
 	for(var/mob/recipient as anything in recipients)
 		recipient.play_screen_text(text, /atom/movable/screen/text/screen_text/command_order)
-
-	if(minute >= WO_HIVE_SPAWNER_DELAY_MINUTES)
-		GLOB.xeno_spawner_enabled = TRUE
-		return
-	addtimer(CALLBACK(src, PROC_REF(hive_spawner_countdown), minute + 1), 1 MINUTES)
 
 /datum/game_mode/whiskey_outpost/proc/story_announce(time)
 	switch(time)

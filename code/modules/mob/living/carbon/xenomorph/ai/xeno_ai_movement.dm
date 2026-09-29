@@ -280,13 +280,13 @@
 		return list("inbound" = 0, "in_range" = 0, "engaged" = 0)
 
 	var/list/status = pilot.hive.get_cached_pack_assault_status(current_target).Copy()
-	if(ai_state == AI_STATE_ATTACKING)
-		status["engaged"] = max(status["engaged"] - 1, 0)
-	else if(ai_state == AI_STATE_APPROACHING)
-		if(get_dist(pilot, current_target) <= AI_XENO_STAGE_RANGE)
-			status["in_range"] = max(status["in_range"] - 1, 0)
-		else
-			status["inbound"] = max(status["inbound"] - 1, 0)
+	// Exact lookup, not a live re-derivation - src's own ai_state/distance can have moved on since
+	// the shared scan ran (it's cached for up to AI_HIVE_SCAN_CACHE_INTERVAL), which used to
+	// decrement whichever bucket src is in RIGHT NOW even when the scan itself counted src in a
+	// different one (or not at all yet).
+	var/my_bucket = status["buckets"] ? status["buckets"][src] : null
+	if(my_bucket)
+		status[my_bucket] = max(status[my_bucket] - 1, 0)
 	return status
 
 /**

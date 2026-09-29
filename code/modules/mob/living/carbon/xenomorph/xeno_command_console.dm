@@ -211,8 +211,7 @@
 				xeno.ai_controller?.drop_target()
 			return TRUE
 		if("order_hold")
-			for(var/mob/living/carbon/xenomorph/xeno as anything in selection.get_selected(hive?.hivenumber))
-				xeno.ai_controller?.receive_hold_order()
+			issue_hold_order(selection.get_selected(hive?.hivenumber))
 			return TRUE
 		if("order_gather_here")
 			var/turf/gather_turf = get_turf(user)
@@ -256,8 +255,9 @@
 			return TRUE
 		if("order_retreat")
 			for(var/mob/living/carbon/xenomorph/xeno as anything in selection.get_selected(hive?.hivenumber))
-				if(xeno.ai_controller?.anchor_turf)
-					xeno.ai_controller.receive_move_order(xeno.ai_controller.anchor_turf)
+				if(QDELETED(xeno) || !xeno.is_ai_controlled || xeno.client || !xeno.ai_controller || !xeno.ai_controller.anchor_turf)
+					continue
+				xeno.ai_controller.receive_move_order(xeno.ai_controller.anchor_turf)
 			return TRUE
 		if("arm_go_to_area")
 			armed_order_type = "go_to_area"
@@ -458,6 +458,13 @@
 		if(QDELETED(xeno) || !xeno.is_ai_controlled || xeno.client || !xeno.ai_controller)
 			continue
 		xeno.ai_controller.receive_move_order(destination)
+
+/// Sole entry point for a HOLD order - see issue_move_order()'s doc comment, same discipline.
+/datum/xeno_command_console/proc/issue_hold_order(list/mob/living/carbon/xenomorph/xenos)
+	for(var/mob/living/carbon/xenomorph/xeno as anything in xenos)
+		if(QDELETED(xeno) || !xeno.is_ai_controlled || xeno.client || !xeno.ai_controller)
+			continue
+		xeno.ai_controller.receive_hold_order()
 
 /// Sole entry point for an ATTACK order - see issue_move_order()'s doc comment, same discipline.
 /datum/xeno_command_console/proc/issue_attack_order(list/mob/living/carbon/xenomorph/xenos, atom/movable/target)

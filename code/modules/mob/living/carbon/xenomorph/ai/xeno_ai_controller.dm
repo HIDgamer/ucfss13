@@ -28,6 +28,10 @@
 	var/detached = FALSE
 	/// Consecutive failed movement attempts against the current target; used to give up rather than loop forever against an unreachable target (this AI does not pathfind).
 	var/blocked_attempts = 0
+	/// Target drop_target(TRUE) most recently gave up on for being unreachable - excluded from process_target()'s candidate scan until movement_giveup_until so reacquisition can't immediately re-lock onto the same doomed target.
+	var/atom/movable/movement_giveup_target
+	/// world.time movement_giveup_target's exclusion expires.
+	var/movement_giveup_until = 0
 	/// Distance to approach_goal as of the last no-progress check - see check_movement_progress(). Null until the first check.
 	var/last_progress_distance
 	/// world.time check_movement_progress() last sampled the distance to approach_goal.
@@ -2110,6 +2114,10 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 /datum/xeno_ai_controller/proc/step_away_from_target()
 	if(!pilot || !current_target)
 		return FALSE
+	// Same pacing-gate distinction travel_to() makes - not yet time for another step is not the same
+	// as genuinely cornered, and callers cancel the whole retreat the moment this returns FALSE.
+	if(world.time < next_step_time)
+		return TRUE
 	var/away_dir = get_dir(current_target, pilot)
 	if(ai_step(away_dir))
 		return TRUE
@@ -2260,14 +2268,19 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 	// True focus-fire - prefer the hive's shared high-priority lead over independently picking our
 	// own nearest candidate below, so a cluster of marines collapses onto one target at a time.
 	var/atom/movable/shared_focus = pilot.hive?.focus_target
-	if(shared_focus && world.time - pilot.hive.focus_target_time <= AI_FOCUS_TARGET_WINDOW && is_valid_target(shared_focus) && get_dist(pilot, shared_focus) <= scaled_attack_distance)
+	if(shared_focus && shared_focus != movement_giveup_target && world.time - pilot.hive.focus_target_time <= AI_FOCUS_TARGET_WINDOW && is_valid_target(shared_focus) && get_dist(pilot, shared_focus) <= scaled_attack_distance)
 		acquire_target(shared_focus, "focus")
 		return
 
 	var/atom/movable/best_candidate
 	var/best_dist = INFINITY
+	if(movement_giveup_target && world.time >= movement_giveup_until)
+		movement_giveup_target = null
+
 	for(var/atom/movable/candidate as anything in get_cached_target_candidates())
 		if(candidate == pilot || candidate.z != pilot_turf.z)
+			continue
+		if(candidate == movement_giveup_target)
 			continue
 		var/dist = get_dist(pilot, candidate)
 		if(dist > scaled_attack_distance || dist >= best_dist)
@@ -2293,6 +2306,8 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 		var/list/near_ties = list(best_candidate)
 		for(var/atom/movable/candidate as anything in get_cached_target_candidates())
 			if(candidate == pilot || candidate == best_candidate || candidate.z != pilot_turf.z)
+				continue
+			if(candidate == movement_giveup_target)
 				continue
 			var/dist = get_dist(pilot, candidate)
 			if(dist > best_dist + tie_margin)
@@ -2784,13 +2799,18 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 /datum/xeno_ai_controller/proc/drop_target(should_search = FALSE)
 	if(GLOB.ai_debug_pathing && current_target)
 		log_debug("XENO AI TARGET DROPPED: [pilot] ([pilot?.type]) dropped [current_target] (search=[should_search]) - [get_ai_debug_snapshot()]")
-	// The single choke point every give-up/timeout/death path already funnels
-	// through - clearing any active player order here too (xeno_ai_orders.dm)
-	// means order cleanup is automatic everywhere a chase already ends
-	// (target death in process_attack(), obstacle giveup, search timeout,
-	// leash disengage, fleeing) instead of needing every one of those sites
-	// updated individually.
-	clear_player_order()
+	// Only an ATTACK order is actually tied to current_target (applied once via acquire_target() at
+	// issuance) - a MOVE/HOLD order is polled independently by respond_to_player_order() and was never
+	// touched by whatever fight is ending here, so clearing it as a side effect would silently discard
+	// an order the pilot hasn't even had a chance to act on yet.
+	if(player_order_type == PLAYER_ORDER_ATTACK)
+		clear_player_order()
+	// should_search=TRUE only ever means "gave up because movement/pathing failed" (blocked_attempts/
+	// check_movement_progress giveups) - remember the target briefly so the very next reacquisition
+	// can't immediately re-lock onto the same unreachable one and loop forever.
+	if(should_search && current_target)
+		movement_giveup_target = current_target
+		movement_giveup_until = world.time + AI_XENO_MOVEMENT_GIVEUP_COOLDOWN
 	current_target = null
 	blocked_attempts = 0
 	path_queue = null

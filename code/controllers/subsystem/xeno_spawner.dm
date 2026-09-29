@@ -45,7 +45,8 @@ SUBSYSTEM_DEF(xeno_spawner)
 		return
 	update_hive_phase(hive)
 	if(hive_phase == HIVE_PHASE_LULL)
-		spawner_ensure_queen(hive) // A Queen loss is never gated behind pacing - only regular reinforcement pauses.
+		if(!Check_WO())
+			spawner_ensure_queen(hive) // A Queen loss is never gated behind pacing - only regular reinforcement pauses.
 		return
 	spawner_maintain_population(hive, hive_phase == HIVE_PHASE_ASSAULT)
 
@@ -244,22 +245,27 @@ GLOBAL_LIST_INIT(xeno_spawner_caste_weights, list(
  * objective, not the Queen-bootstrap step.
  */
 /proc/spawner_maintain_population(datum/hive_status/hive, assaulting = FALSE)
-	spawner_ensure_queen(hive)
+	// Whiskey Outpost runs its own wave/siege structure instead of the Queen/Core economy this
+	// gate exists for - no Queen bootstrap, no Core requirement, no Queen-alive-and-on-ovi
+	// requirement. Population reinforcement there is driven purely by spawner_target_population()
+	// below, exactly like every other gate/cap on this loop still applies.
+	if(!Check_WO())
+		spawner_ensure_queen(hive)
 
-	// The objective gate - see this file's doc comment. Checked first, before the actual
-	// reinforcement loop: no Hive Core, no reinforcement, full stop.
-	if(!hive.has_structure(XENO_STRUCTURE_CORE))
-		return
+		// The objective gate - see this file's doc comment. Checked first, before the actual
+		// reinforcement loop: no Hive Core, no reinforcement, full stop.
+		if(!hive.has_structure(XENO_STRUCTURE_CORE))
+			return
 
-	// "The queen has to be alive, and the core has to be built with the queen on ovi, for
-	// xenomorphs to keep spawning" - the Core gate above only ever checked the structure, never
-	// the Queen herself; a hive could keep reinforcing indefinitely with a dead/missing Queen (the
-	// spawner_ensure_queen() call above this proc handles replacing her, but that can take a
-	// while - see spawner_ensure_queen()/next_queen_spawn_attempt) or with a live Queen who's
-	// simply not on her ovipositor (mirrors the exact ovipositor_check update_progression()
-	// already gates real player evolution progress on, life.dm's own Queen-on-ovi read).
-	if(!hive.living_xeno_queen || QDELETED(hive.living_xeno_queen) || hive.living_xeno_queen.stat == DEAD || !hive.living_xeno_queen.ovipositor)
-		return
+		// "The queen has to be alive, and the core has to be built with the queen on ovi, for
+		// xenomorphs to keep spawning" - the Core gate above only ever checked the structure, never
+		// the Queen herself; a hive could keep reinforcing indefinitely with a dead/missing Queen (the
+		// spawner_ensure_queen() call above this proc handles replacing her, but that can take a
+		// while - see spawner_ensure_queen()/next_queen_spawn_attempt) or with a live Queen who's
+		// simply not on her ovipositor (mirrors the exact ovipositor_check update_progression()
+		// already gates real player evolution progress on, life.dm's own Queen-on-ovi read).
+		if(!hive.living_xeno_queen || QDELETED(hive.living_xeno_queen) || hive.living_xeno_queen.stat == DEAD || !hive.living_xeno_queen.ovipositor)
+			return
 
 	var/target = spawner_target_population(hive)
 	// Counts against hive.totalXenos, the real whole-hive roster (add_xeno()/remove_xeno(),

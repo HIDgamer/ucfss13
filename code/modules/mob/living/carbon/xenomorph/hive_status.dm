@@ -461,6 +461,11 @@
 	var/inbound = 0
 	var/in_range = 0
 	var/engaged = 0
+	// Per-controller bucket each ally actually landed in during THIS scan - get_pack_assault_status()
+	// looks itself up here instead of re-deriving its own bucket live, so a pilot that crosses the
+	// AI_XENO_STAGE_RANGE boundary while this cache entry is still valid can't get self-subtracted
+	// from a bucket the stale scan never actually counted it in.
+	var/list/buckets = list()
 	for(var/mob/living/carbon/xenomorph/ally as anything in get_cached_ai_roster())
 		if(ally.stat == DEAD)
 			continue
@@ -469,13 +474,16 @@
 			continue
 		if(ally_controller.ai_state == AI_STATE_ATTACKING)
 			engaged++
+			buckets[ally_controller] = "engaged"
 		else if(ally_controller.ai_state == AI_STATE_APPROACHING)
 			if(get_dist(ally, target) <= AI_XENO_STAGE_RANGE)
 				in_range++
+				buckets[ally_controller] = "in_range"
 			else
 				inbound++
+				buckets[ally_controller] = "inbound"
 
-	var/list/result = list("inbound" = inbound, "in_range" = in_range, "engaged" = engaged, "time" = world.time)
+	var/list/result = list("inbound" = inbound, "in_range" = in_range, "engaged" = engaged, "buckets" = buckets, "time" = world.time)
 	cached_pack_assault_status[target] = result
 	// Opportunistic prune of stale per-target entries (dead/lost targets) - piggybacks on an
 	// already-happening cache write instead of a dedicated cleanup pass, and only triggers once
