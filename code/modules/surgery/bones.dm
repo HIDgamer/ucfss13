@@ -10,6 +10,7 @@
 	invasiveness = list(SURGERY_DEPTH_SHALLOW)
 	required_surgery_skill = SKILL_SURGERY_TRAINED
 	pain_reduction_required = PAIN_REDUCTION_HEAVY
+	self_operable_expert = TRUE
 	steps = list(
 		/datum/surgery_step/mend_bones,
 		/datum/surgery_step/set_bones,
@@ -50,6 +51,12 @@
 			to_chat(user, SPAN_BOLDWARNING("[gel] is empty!"))
 			return FALSE
 
+	else if(istype(tool, /obj/item/weapon/gun/smg/nailgun)) //If nailgun, check its nails
+		var/obj/item/weapon/gun/smg/nailgun/nailgun = tool
+		if(!nailgun.has_nails(NAILGUN_BONE_REPAIR_NAILS))
+			to_chat(user, SPAN_BOLDWARNING("[nailgun] needs at least [NAILGUN_BONE_REPAIR_NAILS] nails loaded to pin [target]'s [surgery.affected_limb.display_name]."))
+			return FALSE
+
 	else //Otherwise, use metal rods
 		var/obj/item/stack/rods/rods = user.get_inactive_hand()
 		if(!istype(rods))
@@ -75,7 +82,11 @@
 				SPAN_NOTICE("[user] begins to drive reinforcing pins into [target]'s [surgery.affected_bone] with \the [tool]."))
 
 			target.custom_pain("You can feel something grinding in your [surgery.affected_bone]!", 1)
-			playsound(target.loc, 'sound/items/Screwdriver.ogg', 25, TRUE)
+			if(istype(tool, /obj/item/weapon/gun/smg/nailgun))
+				var/obj/item/weapon/gun/smg/nailgun/nailgun = tool
+				playsound(target.loc, nailgun.repair_sound, 25, TRUE)
+			else
+				playsound(target.loc, 'sound/items/Screwdriver.ogg', 25, TRUE)
 	else
 		if(tool_type == /obj/item/tool/surgery/bonegel)
 			user.affected_message(target,
@@ -122,6 +133,10 @@
 				SPAN_NOTICE("[user] crudely reinforces the bones in your [surgery.affected_limb.display_name] like [improvised_desc]."),
 				SPAN_NOTICE("[user] crudely reinforces the bones in [target]'s [surgery.affected_limb.display_name] like [improvised_desc]."))
 
+	if(istype(tool, /obj/item/weapon/gun/smg/nailgun))
+		var/obj/item/weapon/gun/smg/nailgun/nailgun = tool
+		nailgun.spend_nails(NAILGUN_BONE_REPAIR_NAILS)
+
 	log_interact(user, target, "[key_name(user)] successfully began repairing bones in [key_name(target)]'s [surgery.affected_limb.display_name] with \the [tool], starting [surgery].")
 
 /datum/surgery_step/mend_bones/failure(mob/user, mob/living/carbon/target, target_zone, obj/item/tool, tool_type, datum/surgery/bone_repair/surgery)
@@ -139,7 +154,7 @@
 	target.apply_damage(10, BRUTE, target_zone)
 	log_interact(user, target, "[key_name(user)] failed to begin repairing bones in [key_name(target)]'s [surgery.affected_limb.display_name] with \the [tool], aborting [surgery].")
 
-	if(tool_type != /obj/item/tool/surgery/bonegel)
+	if(tool_type == /obj/item/tool/screwdriver)
 		to_chat(user, SPAN_NOTICE("The metal rods used on [target]'s [surgery.affected_limb.display_name] fall loose from their [surgery.affected_limb]."))
 		var/obj/item/stack/rods/rods = new /obj/item/stack/rods(get_turf(target))
 		rods.amount = 2 //Refund 2 rods on failure

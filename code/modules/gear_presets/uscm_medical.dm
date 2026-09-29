@@ -87,6 +87,7 @@
 /datum/equipment_preset/uscm_ship/uscm_medical/doctor/surgeon
 	name = "USCM Surgeon"
 	assignment = JOB_SURGEON
+	skills = /datum/skills/surgeon
 
 /datum/equipment_preset/uscm_ship/uscm_medical/doctor/surgeon/load_gear(mob/living/carbon/human/new_human)
 	var/back_item = /obj/item/storage/backpack/marine/satchel

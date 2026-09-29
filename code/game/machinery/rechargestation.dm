@@ -159,11 +159,18 @@
 /obj/structure/machinery/recharge_station/proc/process_occupant()
 	if(src.occupant)
 		var/doing_stuff = FALSE
+		var/needs_surgery = FALSE
 		if (issynth(occupant))
 			var/mob/living/carbon/human/humanoid_occupant = occupant //for special synth surgeries
-			if(occupant.getBruteLoss() > 0 || occupant.getFireLoss() > 0 || occupant.getBrainLoss() > 0)
+			var/datum/internal_organ/synth_brain = humanoid_occupant.internal_organs_by_name["brain"]
+			var/brain_serviceable = TRUE
+			if(synth_brain && synth_brain.requires_complex_repair() && synth_brain.organ_status >= ORGAN_BROKEN)
+				brain_serviceable = FALSE
+				needs_surgery = TRUE
+			if(occupant.getBruteLoss() > 0 || occupant.getFireLoss() > 0 || (brain_serviceable && occupant.getBrainLoss() > 0))
 				occupant.heal_overall_damage(10, 10, TRUE)
-				occupant.apply_damage(-10, BRAIN)
+				if(brain_serviceable)
+					occupant.apply_damage(-10, BRAIN)
 				current_internal_charge = max(current_internal_charge - 500, 0)
 				to_chat(occupant, "Structural damage detected. Repairing...")
 				doing_stuff = TRUE
@@ -186,6 +193,9 @@
 								to_chat(occupant, "Foreign object removed.")
 				for(var/datum/internal_organ/current_organ in humanoid_occupant.internal_organs)
 					if(current_organ.robotic == ORGAN_ASSISTED||current_organ.robotic == ORGAN_ROBOT) //this time the machine can *only* fix robotic organs
+						if(current_organ.requires_complex_repair() && current_organ.organ_status >= ORGAN_BROKEN)
+							needs_surgery = TRUE
+							continue
 						if(current_organ.damage > 0)
 							to_chat(occupant, "Damaged internal component detected. Beginning repair process.")
 							doing_stuff = TRUE
@@ -194,7 +204,10 @@
 							to_chat(occupant, "Internal component repaired.")
 
 		if(!doing_stuff)
-			to_chat(occupant, "Maintenance cycle completed. All systems nominal.")
+			if(needs_surgery)
+				to_chat(occupant, "Maintenance cycle completed. Critical component fault detected - manual service required.")
+			else
+				to_chat(occupant, "Maintenance cycle completed. All systems nominal.")
 			go_out()
 
 

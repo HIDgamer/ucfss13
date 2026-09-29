@@ -31,6 +31,20 @@
 					E.wounds += internal_bleed
 					custom_pain("You feel broken bones cutting at you in your [E.display_name]!", 1)
 					pain.apply_pain(damage * 1.5)
+				// Breached synthetic chassis damages internal components while moving
+				if(E.is_chassis_breached() && prob(SYNTH_CHASSIS_STRAIN_CHANCE))
+					var/datum/internal_organ/component = pick(E.internal_organs)
+					var/component_name = component.name
+					switch(component_name)
+						if("heart")
+							component_name = "fluid pump"
+						if("brain")
+							component_name = "cortex"
+					component.take_damage(rand(2,4), TRUE)
+					to_chat(src, SPAN_DANGER("Your damaged [E.display_name] grinds against your [component_name]!"))
+					var/datum/effect_system/spark_spread/sparks = new /datum/effect_system/spark_spread
+					sparks.set_up(3, 1, get_turf(src))
+					sparks.start()
 
 	if(body_position == STANDING_UP && !buckled && prob(2))
 		var/left_leg_crippled = FALSE

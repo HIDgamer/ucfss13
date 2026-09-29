@@ -17,7 +17,7 @@
 		return FALSE
 	else
 		if(!istype(T) || !T.supports_surgery)
-			if(tool.flags_item & CAN_DIG_SHRAPNEL) //Both shrapnel removal and prosthetic repair shouldn't be affected by being on the dropship.
+			if(tool.flags_item & CAN_DIG_SHRAPNEL) //Both shrapnel removal and prosthetic repair shouldn't be affected by unsuitable ground.
 				tool.dig_out_shrapnel_check(target, user)
 				return TRUE //Otherwise you get 'poked' by the knife.
 			if(HAS_TRAIT(tool, TRAIT_TOOL_BLOWTORCH) && affecting)
@@ -45,7 +45,7 @@
 		if(surgeryloop.lying_required && target.body_position != LYING_DOWN)
 			continue
 
-		if(!surgeryloop.self_operable && target == user)
+		if(target == user && !surgeryloop.can_self_operate(user, target_zone))
 			continue
 
 		//Species check.

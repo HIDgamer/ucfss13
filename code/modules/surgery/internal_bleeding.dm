@@ -9,6 +9,7 @@
 	invasiveness = list(SURGERY_DEPTH_SHALLOW, SURGERY_DEPTH_DEEP)
 	required_surgery_skill = SKILL_SURGERY_NOVICE
 	pain_reduction_required = PAIN_REDUCTION_HEAVY
+	self_operable_expert = TRUE
 	steps = list(/datum/surgery_step/fix_vein)
 
 /datum/surgery/internal_bleeding/can_start(mob/user, mob/living/carbon/patient, obj/limb/L, obj/item/tool)

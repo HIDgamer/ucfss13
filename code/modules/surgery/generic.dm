@@ -379,6 +379,7 @@
 		/datum/surgery_step/mend_encased,
 	)
 	pain_reduction_required = PAIN_REDUCTION_HEAVY
+	self_operable_expert = TRUE
 
 //------------------------------------
 
@@ -517,6 +518,7 @@
 		/datum/surgery_step/mend_encased,
 	)
 	pain_reduction_required = PAIN_REDUCTION_HEAVY
+	self_operable_expert = TRUE
 
 //------------------------------------
 
@@ -583,6 +585,12 @@
 			to_chat(user, SPAN_BOLDWARNING("[gel] is empty!"))
 			return FALSE
 
+	else if(istype(tool, /obj/item/weapon/gun/smg/nailgun)) //If nailgun, check its nails
+		var/obj/item/weapon/gun/smg/nailgun/nailgun = tool
+		if(!nailgun.has_nails(NAILGUN_BONE_REPAIR_NAILS))
+			to_chat(user, SPAN_BOLDWARNING("[nailgun] needs at least [NAILGUN_BONE_REPAIR_NAILS] nails loaded to pin [target]'s [surgery.affected_limb.encased]."))
+			return FALSE
+
 	else //Otherwise, use metal rods
 		var/obj/item/stack/rods/rods = user.get_inactive_hand()
 		if(!istype(rods))
@@ -600,6 +608,15 @@
 			SPAN_NOTICE("[user] starts to apply \the [tool] to [target]'s [surgery.affected_limb.encased]."))
 
 		target.custom_pain("Something stings inside your [surgery.affected_limb.display_name]!", 1)
+	else if(tool_type == /obj/item/weapon/gun/smg/nailgun)
+		var/obj/item/weapon/gun/smg/nailgun/nailgun = tool
+		user.affected_message(target,
+			SPAN_NOTICE("You begin pinning [target]'s [surgery.affected_limb.encased] back together with nails from \the [tool]."),
+			SPAN_NOTICE("[user] begins to pin your [surgery.affected_limb.encased] back together with nails from \the [tool]."),
+			SPAN_NOTICE("[user] begins to pin [target]'s [surgery.affected_limb.encased] back together with nails from \the [tool]."))
+
+		target.custom_pain("You can feel something hammering into your [surgery.affected_limb.encased]!", 1)
+		playsound(target.loc, nailgun.repair_sound, 25, TRUE)
 	else
 		user.affected_message(target,
 			SPAN_NOTICE("You begin screwing a reinforcing plate to [target]'s [surgery.affected_limb.encased] with \the [tool]."),
@@ -624,6 +641,10 @@
 			SPAN_NOTICE("[user] haphazardly repairs your [surgery.affected_limb.encased] like some kind of [improvised_desc]."),
 			SPAN_NOTICE("[user] haphazardly repairs [target]'s [surgery.affected_limb.encased] like some kind of [improvised_desc]."))
 
+		if(tool_type == /obj/item/weapon/gun/smg/nailgun)
+			var/obj/item/weapon/gun/smg/nailgun/nailgun = tool
+			nailgun.spend_nails(NAILGUN_BONE_REPAIR_NAILS)
+
 	if(surgery.affected_limb.status & LIMB_BROKEN)
 		to_chat(user, SPAN_NOTICE("You've repaired the damage done by prying it open, but it's still fractured."))
 	log_interact(user, target, "[key_name(user)] mended [key_name(target)]'s [surgery.affected_limb.encased], ending [surgery].")
@@ -645,7 +666,7 @@
 	target.apply_damage(10, BRUTE, target_zone)
 	log_interact(user, target, "[key_name(user)] failed to mend [key_name(target)]'s [surgery.affected_limb.encased].")
 
-	if(tool_type != /obj/item/tool/surgery/bonegel)
+	if(tool_type == /obj/item/tool/screwdriver)
 		to_chat(user, SPAN_NOTICE("The metal rods used on [target]'s [surgery.affected_limb.display_name] fall loose from their [surgery.affected_limb]."))
 		var/obj/item/stack/rods/rods = new /obj/item/stack/rods(get_turf(target))
 		rods.amount = 2 //Refund 2 rods on failure

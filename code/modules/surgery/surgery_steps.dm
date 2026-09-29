@@ -93,6 +93,7 @@ affected_limb, or location vars. Also, in that case there may be a wait between 
 	var/tool_modifier
 	var/surface_modifier
 	var/failure_penalties = 0
+	var/conditions_ignored = skillcheck(user, SKILL_SURGERY, SURGERY_SKILL_IGNORES_CONDITIONS)
 
 	//Skill speed modifier.
 	step_duration *= user.get_skill_duration_multiplier(SKILL_SURGERY)
@@ -103,7 +104,8 @@ affected_limb, or location vars. Also, in that case there may be a wait between 
 
 	if(ispath(tool_type)) //Tool speed modifier. This means hand & any item are 100% efficient as surgical tools.
 		tool_modifier = tools[tool_type]
-		step_duration *= tool_modifier
+		if(!conditions_ignored)
+			step_duration *= tool_modifier
 
 	if(surgery.lying_required) //Surgery surface modifier.
 		surface_modifier = target.buckled?.surgery_duration_multiplier //If they're buckled, use the surface modifier of the thing they're buckled to.
@@ -113,7 +115,8 @@ affected_limb, or location vars. Also, in that case there may be a wait between 
 				if(surface_modifier > surface.surgery_duration_multiplier)
 					surface_modifier = surface.surgery_duration_multiplier
 
-		step_duration *= surface_modifier
+		if(!conditions_ignored)
+			step_duration *= surface_modifier
 
 	var/list/human_modifiers = list("surgery_speed" = 1.0, "pain_reduction" = 0)
 	SEND_SIGNAL(user, COMSIG_HUMAN_SURGERY_APPLY_MODIFIERS, human_modifiers)
@@ -126,31 +129,35 @@ affected_limb, or location vars. Also, in that case there may be a wait between 
 	else if(!repeating) //Looping steps only play the start message on the first iteration; deliberate failure only plays the failure message.
 		preop(user, target, target_zone, tool, tool_type, surgery)
 		var/list/message = new() //Duration hint messages.
+		var/list/condition_hints = new()
 
 		if(self_surgery)
 			message += "[pick("performing surgery", "working")] on [pick("yourself", "your own body")] is [pick("awkward", "tricky")]"
 
 		switch(tool_modifier) //Implicitly means tool exists as accept_any_item item or accept_hand would = 1x. No message for 1x - that's the default.
 			if(SURGERY_TOOL_MULT_SUBOPTIMAL)
-				message += "this tool is[pick("n't ideal", " not the best")]"
+				condition_hints += "this tool is[pick("n't ideal", " not the best")]"
 			if(SURGERY_TOOL_MULT_SUBSTITUTE)
-				message += "this tool is[pick("n't suitable", " a bad fit", " difficult to use")]"
+				condition_hints += "this tool is[pick("n't suitable", " a bad fit", " difficult to use")]"
 			if(SURGERY_TOOL_MULT_BAD_SUBSTITUTE)
-				message += "this tool is [pick("awful", "barely usable")]"
+				condition_hints += "this tool is [pick("awful", "barely usable")]"
 				failure_penalties += 1
 			if(SURGERY_TOOL_MULT_AWFUL)
-				message += "this tool is [pick("awful", "barely usable")]"
+				condition_hints += "this tool is [pick("awful", "barely usable")]"
 				failure_penalties += 2
 
 		switch(surface_modifier)
 			if(SURGERY_SURFACE_MULT_ADEQUATE)
-				message += "[pick("it isn't easy, working", "it's tricky to perform complex surgeries", "this would be quicker if you weren't working")] [pick("in the field", "under these conditions", "without a proper surgical theatre")]"
+				condition_hints += "[pick("it isn't easy, working", "it's tricky to perform complex surgeries", "this would be quicker if you weren't working")] [pick("in the field", "under these conditions", "without a proper surgical theatre")]"
 			if(SURGERY_SURFACE_MULT_UNSUITED)
-				message += "[pick("it's difficult to work", "it's slow going, working", "you need to take your time")] in these [pick("primitive", "rough", "crude")] conditions"
+				condition_hints += "[pick("it's difficult to work", "it's slow going, working", "you need to take your time")] in these [pick("primitive", "rough", "crude")] conditions"
 				failure_penalties += 1
 			if(SURGERY_SURFACE_MULT_AWFUL)
-				message += "[pick("you need to work slowly and carefully", "you need to be very careful", "this is delicate work, especially")] [pick("in these", "under such")] [pick("terrible", "awful", "utterly unsuitable")] conditions"
+				condition_hints += "[pick("you need to work slowly and carefully", "you need to be very careful", "this is delicate work, especially")] [pick("in these", "under such")] [pick("terrible", "awful", "utterly unsuitable")] conditions"
 				failure_penalties += 2
+
+		if(!conditions_ignored)
+			message += condition_hints
 
 		if(length(message))
 			to_chat(user, SPAN_WARNING("[capitalize(english_list(message, final_comma_text = ","))]."))
@@ -172,6 +179,9 @@ affected_limb, or location vars. Also, in that case there may be a wait between 
 	else if(failure_penalties > 2)
 		surgery_failure_chance = SURGERY_FAILURE_LIKELY
 
+	var/deep_self_surgery = self_surgery && surgery.self_operable_expert
+	var/self_failure_chance = deep_self_surgery ? SELF_SURGERY_FAILURE_CHANCE : 0
+
 	play_preop_sound(user, target, target_zone, tool, surgery)
 
 	if(tool?.flags_item & ANIMATED_SURGICAL_TOOL) //If we have an animated tool sprite, run it while we do any do_afters.
@@ -192,6 +202,17 @@ affected_limb, or location vars. Also, in that case there may be a wait between 
 		target.emote("pain")
 		play_failure_sound(user, target, target_zone, tool, surgery)
 
+	else if(prob(self_failure_chance))
+		do_after(user, max(rand(step_duration * 0.1, step_duration * 0.5), 0.5), INTERRUPT_ALL|INTERRUPT_DIFF_INTENT,
+				BUSY_ICON_FRIENDLY, target, INTERRUPT_MOVED, BUSY_ICON_MEDICAL)
+		user.visible_message(SPAN_DANGER("[user]'s hands falter halfway through operating on themselves!"),
+			SPAN_DANGER("Your hands falter - it's nearly impossible to work steadily on your own body!"))
+		if(failure(user, target, target_zone, tool, tool_type, surgery))
+			advance = TRUE
+		self_surgery_fallout(user, target_zone)
+		play_failure_sound(user, target, target_zone, tool, surgery)
+		msg_admin_niche("[user] botched a [surgery] step on themselves ([self_failure_chance]% self-surgery failure chance)")
+
 	else if(prob(surgery_failure_chance))
 		do_after(user, max(rand(step_duration * 0.1, step_duration * 0.5), 0.5), INTERRUPT_ALL|INTERRUPT_DIFF_INTENT,
 				BUSY_ICON_FRIENDLY, target, INTERRUPT_MOVED, BUSY_ICON_MEDICAL) //Brief do_after so that the interrupt doesn't happen instantly.
@@ -208,6 +229,8 @@ affected_limb, or location vars. Also, in that case there may be a wait between 
 			success(user, target, target_zone, tool, tool_type, surgery)
 			advance = TRUE
 			play_success_sound(user, target, target_zone, tool, surgery)
+			if(deep_self_surgery)
+				self_surgery_mess(user, target_zone)
 			if(repeat_step && repeat_step_criteria(user, target, target_zone, tool, tool_type, surgery))
 				surgery.step_in_progress = FALSE
 				INVOKE_ASYNC(surgery, TYPE_PROC_REF(/datum/surgery, attempt_next_step), user, tool, TRUE)
@@ -267,6 +290,39 @@ tool_type may be a typepath or simply '1'. Note that a first step done on help-i
 	if(!failure_sound)
 		return
 	playsound(get_turf(target), failure_sound, vol = 40, sound_range = 1)
+
+///Splashes fluid and dirties the hands after a step of a deep self-operation
+/datum/surgery_step/proc/self_surgery_mess(mob/living/user, target_zone)
+	if(!ishuman(user))
+		return
+	var/mob/living/carbon/human/surgeon = user
+	surgeon.add_splatter_floor(get_turf(surgeon), TRUE)
+	surgeon.add_blood(surgeon.get_blood_color(), BLOOD_HANDS)
+	if(issynth(surgeon))
+		self_surgery_sparks(surgeon)
+	else
+		surgeon.custom_pain("You grit your teeth as you work on your own [parse_zone(target_zone)]!", 1)
+
+///Damages the surgeon after a botched step of a deep self-operation
+/datum/surgery_step/proc/self_surgery_fallout(mob/living/user, target_zone)
+	if(!ishuman(user))
+		return
+	var/mob/living/carbon/human/surgeon = user
+	surgeon.apply_damage(rand(SELF_SURGERY_FALLOUT_MIN, SELF_SURGERY_FALLOUT_MAX), BRUTE, target_zone)
+	surgeon.add_splatter_floor(get_turf(surgeon))
+	if(issynth(surgeon))
+		self_surgery_sparks(surgeon)
+		return
+	if(surgeon.pain?.feels_pain && surgeon.pain.reduction_pain < PAIN_REDUCTION_HEAVY)
+		to_chat(surgeon, SPAN_HIGHDANGER("The pain is blinding - you black out for a moment!"))
+		surgeon.KnockOut(1)
+
+///Sparks from a synthetic being worked on
+/datum/surgery_step/proc/self_surgery_sparks(mob/living/carbon/human/surgeon)
+	var/datum/effect_system/spark_spread/sparks = new /datum/effect_system/spark_spread
+	sparks.set_up(3, 1, get_turf(surgeon))
+	sparks.start()
+	playsound(surgeon.loc, "sparks", 25, TRUE)
 
 ///Finishes the surgery and removes it from the target's lists.
 /datum/surgery_step/proc/complete(mob/living/carbon/target, datum/surgery/surgery, cancelled)

@@ -170,6 +170,9 @@
 #define ORGAN_BRUISED 2
 #define ORGAN_BROKEN 3
 
+///Chance (%) per Life tick that a breached synthetic chassis damages an internal component while moving
+#define SYNTH_CHASSIS_STRAIN_CHANCE 5
+
 //=================================================
 
 //Languages!

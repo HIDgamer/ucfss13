@@ -5,6 +5,25 @@
 
 ///Multiplier to surgery times when working on yourself.
 #define SELF_SURGERY_SLOWDOWN 1.5
+///Extra failure chance (%) per step of a deep self-operation
+#define SELF_SURGERY_FAILURE_CHANCE 25
+///Damage range when a step of a deep self-operation goes wrong
+#define SELF_SURGERY_FALLOUT_MIN 6
+#define SELF_SURGERY_FALLOUT_MAX 12
+
+///Duration multiplier for level 3 surgeons
+#define SURGERY_EXPERT_SPEED_MULT 1
+///Lowest surgery skill that ignores tool and surface speed penalties
+#define SURGERY_SKILL_IGNORES_CONDITIONS SKILL_SURGERY_EXPERT
+///Nails a nailgun spends pinning a fracture
+#define NAILGUN_BONE_REPAIR_NAILS 4
+
+///Cable used rewiring a synthetic cortex
+#define CORTEX_REWIRE_CABLE_COST 5
+///Welding fuel used resealing a fluid pump housing
+#define PUMP_WELD_FUEL_COST 2
+///Nanopaste used flushing a fluid pump
+#define PUMP_FLUSH_PASTE_COST 2
 
 ///No incision.
 #define SURGERY_DEPTH_SURFACE "surface"
@@ -78,7 +97,9 @@ unless the surgical tool is completely unsuited to what it's being used for.*/
 	/obj/item/tool/pen,\
 	/obj/item/stack/rods,\
 	/obj/item/tool/surgery/surgical_line,\
-	/obj/item/tool/surgery/synthgraft\
+	/obj/item/tool/surgery/synthgraft,\
+	/obj/item/tool/wrench,\
+	/obj/item/device/multitool\
 	)
 
 /////////////////////////////
@@ -175,7 +196,8 @@ See also /datum/surgery_step/saw_off_limb/failure var/list/cannot_hack, listing 
 ///Tools used to patch lightly damaged bones or before setting. May need surgical line in future.
 #define SURGERY_TOOLS_BONE_MEND list(\
 	/obj/item/tool/surgery/bonegel = SURGERY_TOOL_MULT_IDEAL,\
-	/obj/item/tool/screwdriver = SURGERY_TOOL_MULT_SUBSTITUTE\
+	/obj/item/tool/screwdriver = SURGERY_TOOL_MULT_SUBSTITUTE,\
+	/obj/item/weapon/gun/smg/nailgun = SURGERY_TOOL_MULT_SUBSTITUTE\
 	)
 
 /////////////////////////////

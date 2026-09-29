@@ -485,7 +485,7 @@ GLOBAL_LIST_INIT(last_announcement_time, list(FACTION_MARINE = 0))
 // Surgeon
 		if(SKILL_SURGERY)
 			if(skillcheck(src, SKILL_SURGERY, SKILL_SURGERY_EXPERT))
-				return 0.6
+				return SURGERY_EXPERT_SPEED_MULT
 			if(skillcheck(src, SKILL_SURGERY, SKILL_SURGERY_TRAINED))
 				return 1
 			else if(skillcheck(src, SKILL_SURGERY, SKILL_SURGERY_NOVICE))

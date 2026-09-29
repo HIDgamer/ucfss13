@@ -29,6 +29,8 @@
 	var/lying_required = TRUE
 	///Can the surgery be performed on yourself?
 	var/self_operable = FALSE
+	///Can a level 3 surgeon perform this deep surgery on themselves?
+	var/self_operable_expert = FALSE
 	///How strong a level of anesthesia is needed to avoid risking pain causing a step to fail?
 	var/pain_reduction_required = PAIN_REDUCTION_FULL
 	///How much training is needed to do this surgery?
@@ -67,6 +69,16 @@
 	return TRUE
 	//Might add the surgery computer later
 
+///Whether the user may perform this surgery on themselves in this zone
+/datum/surgery/proc/can_self_operate(mob/user, target_zone)
+	if(self_operable)
+		return TRUE
+	if(!self_operable_expert || !skillcheck(user, SKILL_SURGERY, SKILL_SURGERY_EXPERT))
+		return FALSE
+	if(target_zone == "head" && !issynth(user))
+		return FALSE
+	return TRUE
+
 ///Used on attackby and attackhand; TRUE means it stops the attack there, FALSE means it performs an item/open hand attack. CHECK OPENHAND ATTACK IS BLOCKED PROPERLY
 /datum/surgery/proc/attempt_next_step(mob/user, obj/item/tool, repeating)
 	if(step_in_progress)
@@ -102,8 +114,13 @@
 		return FALSE
 
 	if(user == target)
-		if(!self_operable)
-			to_chat(user, SPAN_WARNING("You can't perform this operation on yourself!"))
+		if(!can_self_operate(user, location))
+			if(self_operable_expert && location == "head")
+				to_chat(user, SPAN_WARNING("You can't operate on your own head!"))
+			else if(self_operable_expert)
+				to_chat(user, SPAN_WARNING("Operating on yourself like this takes a level 3 surgeon's training and a very steady hand!"))
+			else
+				to_chat(user, SPAN_WARNING("You can't perform this operation on yourself!"))
 			return FALSE
 		if((!user.hand && (user.zone_selected in list("r_arm", "r_hand"))) || (user.hand && (user.zone_selected in list("l_arm", "l_hand"))))
 			to_chat(user, SPAN_WARNING("You can't perform surgery on the same \

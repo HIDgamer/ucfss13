@@ -1197,6 +1197,12 @@ treat_grafted var tells it to apply to grafted but unsalved wounds, for burn kit
 	else if(status & LIMB_SYNTHSKIN && (brute_dam + burn_dam) > 10)
 		return prob(brute_dam + burn_dam)
 
+///Whether this synthetic limb holds organs and has taken enough damage for them to rattle loose
+/obj/limb/proc/is_chassis_breached()
+	if(!(status & LIMB_SYNTHSKIN) || !length(internal_organs))
+		return FALSE
+	return (brute_dam + burn_dam) >= min_broken_damage * CONFIG_GET(number/organ_health_multiplier)
+
 //for arms and hands
 /obj/limb/proc/process_grasp(obj/item/c_hand, hand_name)
 	if (!c_hand)

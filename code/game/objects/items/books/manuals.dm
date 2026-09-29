@@ -202,15 +202,83 @@
 	author = "Weyland-Yutani Medicine Department"
 	title = "Surgical Reference Manual"
 
-	dat = {"
+/obj/item/book/manual/surgery/Initialize(mapload, ...)
+	. = ..()
+	dat = {"<html>
+			<head>
+			<style>
+			h1 {font-size: 18px; margin: 15px 0px 5px;}
+			h2 {font-size: 15px; margin: 15px 0px 5px;}
+			li {margin: 2px 0px 2px 15px;}
+			ul {margin: 5px; padding: 0px;}
+			ol {margin: 5px; padding: 0px 15px;}
+			table {border-collapse: collapse; margin: 5px 0px;}
+			th, td {border: 1px solid #555555; padding: 3px 6px; text-align: left; vertical-align: top;}
+			body {font-size: 13px; font-family: Verdana;}
+			</style>
+			</head>
+			<body>
+			<br>
+			<h1>Surgical Certification</h1>
+			<table>
+				<tr><th>Level</th><th>Held by</th><th>What it means</th></tr>
+				<tr><td>1 - Novice</td><td>Nurses, medics and other first responders</td><td>Autodocs and basic field care: incisions, clamping bleeders, closing and suturing, repairing internal bleeding, removing foreign bodies, recalibrating prosthetic limbs. Slightly slower than a trained hand.</td></tr>
+				<tr><td>2 - Trained</td><td>Doctors, researchers</td><td>Every standard procedure. Improvised tools and unsuitable surfaces slow the work down, and can make it fail.</td></tr>
+				<tr><td>3 - Expert</td><td>Surgeons, the CMO, synthetics</td><td>Improvised tools and unsuitable surfaces no longer slow the work down at all, and mistakes with them are far less likely. Experts are also cleared to operate on themselves, at their own risk.</td></tr>
+			</table>
+			Surgery may be performed on the floor of a dropship. It is still faster and safer on a proper surface: an operating table is best, a portable surgical bed is adequate, and the bare floor is the worst.
 
-		<html><head>
-		</head>
+			<h1>Operating on yourself</h1>
+			Level 3 only. The basic field procedures (incisions, clamping, closing and suturing, foreign bodies) can be done on yourself by anyone qualified to do them. The deep ones are different: opening and closing the ribcage, mending broken bones, repairing internal bleeding, repairing organs, and the synthetic procedures below.
+			<ul>
+				<li>You have to be lying down, and you cannot work on the arm you are holding the tool in.</li>
+				<li>You cannot operate on your own skull. Synthetics are the exception: a cortex housing is a serviceable module.</li>
+				<li>It takes half again as long.</li>
+				<li>Every step has an extra [SELF_SURGERY_FAILURE_CHANCE]% chance of going wrong, on top of everything else. A slip costs you [SELF_SURGERY_FALLOUT_MIN] to [SELF_SURGERY_FALLOUT_MAX] damage in the limb you are working on, and an organic surgeon without heavy painkillers may black out.</li>
+				<li>Even when it goes well it is messy. Fluid ends up on the floor and on your hands, and a synthetic throws sparks.</li>
+				<li>Organic patients need anaesthetic or painkillers as usual. You are your own patient.</li>
+			</ul>
 
-		<body>
-		<iframe width='100%' height='97%' src="https://cm-ss13.com/wiki/Surgery" frameborder="0" id="main_frame"></iframe>
-		</body>
+			<h1>Improvised bone repair</h1>
+			Bone gel is best. Failing that:
+			<ul>
+				<li>A screwdriver, with two metal rods in your other hand. If the step fails the rods can be picked up again.</li>
+				<li>A nailgun with at least [NAILGUN_BONE_REPAIR_NAILS] nails loaded (the one in the chamber plus the rest from the magazine). The nails are used up when the bone is pinned, and there is no getting them back.</li>
+			</ul>
 
+			<h1>Robotic hearts and brains</h1>
+			A robotic heart (fluid pump) or brain (cortex) is not fixed with a dab of nanopaste. The chest or skull has to be opened first, the same as for an organic patient, and then:
+
+			<h2>Cortex recalibration (skull open)</h2>
+			<ol>
+				<li>Hemostat: dig into the cortex housing and expose the wiring. Wirecutters work poorly in its place.</li>
+				<li>Cable coil, [CORTEX_REWIRE_CABLE_COST] lengths: splice in new wiring.</li>
+				<li>Wirecutters: trim and crimp the splices.</li>
+				<li>Multitool: connect to the diagnostic port and recalibrate the cortex core.</li>
+			</ol>
+
+			<h2>Fluid pump overhaul (ribcage open)</h2>
+			<ol>
+				<li>Hemostat: clamp off the coolant lines feeding the pump.</li>
+				<li>Blowtorch, lit, [PUMP_WELD_FUEL_COST] units of fuel: reseal the pump housing. Wear eye protection.</li>
+				<li>Wrench: re-seat and torque down the pump mounts.</li>
+				<li>Nanopaste, [PUMP_FLUSH_PASTE_COST] doses: flush the pump and seal its micro-fractures.</li>
+			</ol>
+			Close the bone and the incision afterwards as usual. A slip at any step damages the organ being worked on.
+
+			<h2>Warning signs</h2>
+			<ul>
+				<li>A bruised fluid pump stutters while its owner is moving and stalls them for a moment. A broken one ruptures outright. A synthetic with a broken pump cannot be rebooted with a reset key until it is repaired.</li>
+				<li>A bruised cortex hangs processes at random. A broken one locks the servos up.</li>
+				<li>A synthetic chest or head that has taken as much damage as would break a human's bones lets its components rattle loose whenever the unit is moving around. Repair the chassis with a blowtorch, cable coil or nanopaste.</li>
+				<li>Recharging stations still clear minor component damage, but a broken pump or cortex is beyond them. Those take surgery.</li>
+			</ul>
+
+			<HR COLOR="steelblue" WIDTH="60%" ALIGN="LEFT">
+
+			<h1>Standard procedures</h1>
+			<iframe width='100%' height='100%' src="https://cm-ss13.com/wiki/Surgery" frameborder="0" id="main_frame"></iframe>
+			</body>
 		</html>
 
 		"}

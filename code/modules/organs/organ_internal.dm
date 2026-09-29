@@ -1,4 +1,8 @@
 #define PROCESS_ACCURACY 10
+///Chance (%) per second that a bruised cybernetic heart stalls its owner while moving
+#define PUMP_STUTTER_CHANCE 1.5
+///Chance (%) per second that a broken cybernetic heart ruptures while its owner is moving
+#define PUMP_RUPTURE_CHANCE 3
 
 /*
 				INTERNAL ORGANS
@@ -128,6 +132,10 @@
 	min_bruised_damage = 15
 	min_broken_damage = 35
 
+///Whether this organ needs a full rebuild instead of nanopaste
+/datum/internal_organ/proc/requires_complex_repair()
+	return FALSE
+
 /*
 				INTERNAL ORGANS TYPES
 */
@@ -137,6 +145,37 @@
 	parent_limb = "chest"
 	removed_type = /obj/item/organ/heart
 	robotic_type = /obj/item/organ/heart/prosthetic
+
+/datum/internal_organ/heart/requires_complex_repair()
+	return robotic == ORGAN_ROBOT
+
+///A damaged cybernetic heart stalls its owner while they move
+/datum/internal_organ/heart/process(delta_time)
+	. = ..()
+	if(. == PROCESS_KILL)
+		return
+
+	if(robotic != ORGAN_ROBOT || organ_status < ORGAN_BRUISED)
+		return
+	if(owner.chem_effect_flags & CHEM_EFFECT_ORGAN_STASIS)
+		return
+	if(owner.body_position != STANDING_UP || world.time - owner.l_move_time >= 15)
+		return
+
+	var/is_synth = issynth(owner)
+	if(organ_status >= ORGAN_BROKEN)
+		if(!prob(PUMP_RUPTURE_CHANCE * delta_time))
+			return
+		to_chat(owner, SPAN_DANGER(is_synth ? "Your fluid pump ruptures - pressure drops and your servos stall!" : "Your cybernetic heart seizes and you stumble!"))
+		owner.Stun(1 * owner.species.stun_reduction)
+		owner.add_splatter_floor(get_turf(owner), TRUE)
+		var/datum/effect_system/spark_spread/sparks = new /datum/effect_system/spark_spread
+		sparks.set_up(3, 1, get_turf(owner))
+		sparks.start()
+		playsound(owner.loc, "sparks", 25, TRUE)
+	else if(prob(PUMP_STUTTER_CHANCE * delta_time))
+		to_chat(owner, SPAN_DANGER(is_synth ? "Your fluid pump stutters and your servos stall for a moment." : "Your cybernetic heart skips and you stumble."))
+		owner.Stun(0.5 * owner.species.stun_reduction)
 
 /datum/internal_organ/heart/prosthetic //used by synthetic species
 	robotic = ORGAN_ROBOT
@@ -263,6 +302,9 @@
 	robotic_type = /obj/item/organ/brain/prosthetic
 	vital = 1
 
+/datum/internal_organ/brain/requires_complex_repair()
+	return robotic == ORGAN_ROBOT
+
 /datum/internal_organ/brain/process(delta_time)
 	. = ..()
 	if(. == PROCESS_KILL)
@@ -276,13 +318,13 @@
 		owner.drop_held_items()
 		if(!owner.buckled && owner.stat == CONSCIOUS)
 			owner.Move(get_step(get_turf(owner), dir_choice))
-		to_chat(owner, SPAN_DANGER("Your mind wanders and goes blank for a moment..."))
+		to_chat(owner, SPAN_DANGER(robotic == ORGAN_ROBOT ? "Your processes hang for a moment..." : "Your mind wanders and goes blank for a moment..."))
 
 	if(organ_status >= ORGAN_BROKEN && prob(5 * delta_time))
 		owner.apply_effect(1, PARALYZE)
 		if(owner.jitteriness < 100)
 			owner.make_jittery(50)
-		to_chat(owner, SPAN_DANGER("Your body seizes up!"))
+		to_chat(owner, SPAN_DANGER(robotic == ORGAN_ROBOT ? "Cortex fault! Your servos lock up!" : "Your body seizes up!"))
 
 /datum/internal_organ/brain/prosthetic //used by synthetic species
 	robotic = ORGAN_ROBOT

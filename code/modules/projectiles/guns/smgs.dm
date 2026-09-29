@@ -848,6 +848,19 @@
 /obj/item/weapon/gun/smg/nailgun/unload_chamber(mob/user)
 	return //Can't remove nails from mags or gun.
 
+///Whether the chamber and magazine hold at least this many nails
+/obj/item/weapon/gun/smg/nailgun/proc/has_nails(amount)
+	return in_chamber && current_mag && current_mag.current_rounds >= (amount - 1)
+
+///Spends nails on a job other than firing them. Returns FALSE if there aren't enough
+/obj/item/weapon/gun/smg/nailgun/proc/spend_nails(amount)
+	if(!has_nails(amount))
+		return FALSE
+	current_mag.current_rounds -= (amount - 1)
+	in_chamber = null
+	load_into_chamber()
+	return TRUE
+
 /obj/item/weapon/gun/smg/nailgun/compact
 	name = "compact nailgun"
 	desc = "A carpentry tool, used to drive nails into tough surfaces. Cannot fire nails offensively due to a lack of a gas seal around the nail, meaning it cannot build up the pressure to fire."
