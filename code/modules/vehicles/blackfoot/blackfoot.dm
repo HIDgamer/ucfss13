@@ -39,6 +39,8 @@
 
 	vehicle_ram_multiplier = VEHICLE_TRAMPLE_DAMAGE_APC_REDUCTION
 
+	tow_capable = FALSE
+
 	required_skill = SKILL_PILOT_MASTER
 
 	hardpoints_allowed = list(

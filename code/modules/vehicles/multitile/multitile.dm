@@ -63,6 +63,33 @@
 	//whether MP vehicle clamps are applied
 	var/clamped = FALSE
 
+	//Whether this vehicle can tow or be towed
+	var/tow_capable = TRUE
+	//The vehicle hooked behind this one
+	var/obj/vehicle/multitile/towing
+	//The vehicle this one is hooked behind
+	var/obj/vehicle/multitile/towed_by
+	//Where this vehicle's centre has been, in half tiles, oldest first, that the trailer has yet to be dragged through
+	var/list/tow_trail
+	//How many steps of trail the trailer hangs back by
+	var/tow_lag = 0
+	//The cord drawn from this vehicle to the trailer it tows
+	var/datum/beam/tow_cord
+	//The person hooked behind this vehicle
+	var/mob/living/towed_mob
+	//Where this vehicle's origin has been, oldest first, that the hooked person has yet to be dragged through
+	var/list/tow_mob_trail
+	//How many steps of trail the hooked person hangs back by
+	var/tow_mob_lag = 0
+	//The cord drawn from this vehicle to the hooked person
+	var/datum/beam/tow_mob_cord
+	//Whether this trailer was hooked facing the opposite way to its tower and so keeps facing away from where it is dragged
+	var/tow_reversed = FALSE
+	//Where the trailer was left after its last step
+	var/turf/tow_trailer_turf
+	//The next time the driver can be sent a tow message
+	var/next_tow_message = 0
+
 	// The amount of skill required to drive the vehicle
 	var/required_skill = SKILL_VEHICLE_SMALL
 
@@ -192,6 +219,9 @@
 	light_pixel_x = -bound_x
 	light_pixel_y = -bound_y
 
+	verbs -= /obj/vehicle/multitile/verb/hook_tow_nearby
+	verbs -= /obj/vehicle/multitile/verb/release_tow_nearby
+
 	healthcheck()
 	update_icon()
 	update_minimap_icon()
@@ -216,6 +246,8 @@
 		return
 
 /obj/vehicle/multitile/Destroy()
+	break_tow()
+
 	if(!QDELETED(interior))
 		QDEL_NULL(interior)
 
@@ -269,6 +301,10 @@
 		H.examine(user, TRUE)
 	if(clamped)
 		. += "There is a vehicle clamp attached."
+	if(towing)
+		. += "It is towing \the [towing]."
+	if(towed_by)
+		. += "It is hooked behind \the [towed_by]."
 	if(isxeno(user) && interior)
 		var/passengers_amount = interior.passengers_taken_slots
 		for(var/datum/role_reserved_slots/RRS in interior.role_reserved_slots)
@@ -334,8 +370,10 @@
 	if(QDELETED(M))
 		var/mob/living/L = seats[seat]
 		remove_seated_verbs(L, seat)
+		remove_tow_verbs(L, seat)
 	else
 		add_seated_verbs(M, seat)
+		add_tow_verbs(M, seat)
 
 	seats[seat] = M
 

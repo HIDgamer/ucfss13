@@ -34,6 +34,10 @@
 	if(health <= 0)
 		return FALSE
 
+	if(towed_by)
+		tow_message(SPAN_WARNING("\The [src] is hooked behind \the [towed_by] and can't be driven."))
+		return FALSE
+
 	return pre_movement(direction)
 
 // This determines what type of movement to execute
@@ -44,10 +48,15 @@
 	var/success = FALSE
 
 	if(dir == turn(direction, 180) || dir == direction)
+		if((towing || towed_mob) && dir != direction)
+			tow_message(SPAN_WARNING("\The [src] can't reverse with \the [towing] hooked on. Release Tow first."))
+			return FALSE
 		var/old_dir = dir
 		success = try_move(direction)
 		// Keep dir when driving backwards
 		setDir(old_dir)
+		if(dir == turn(direction, 180))
+			tow_hint()
 	// Rotation/turning
 	else
 		success = try_rotate(turning_angle(dir, direction))
@@ -58,7 +67,10 @@
 
 // Attempts to execute the given movement input
 /obj/vehicle/multitile/proc/try_move(direction, force=FALSE)
-	if(!can_move(direction))
+	if(towed_by)
+		return towed_by.try_move(direction, force)
+
+	if(!can_move(direction) || !can_tow_move(direction))
 		return FALSE
 
 	before_move(direction)
@@ -71,17 +83,21 @@
 			return FALSE
 
 	var/turf/old_turf = get_turf(src)
+	var/list/old_center = towing ? get_center2() : null
 	forceMove(get_step(src, direction))
 
 	var/turf/current_loc = get_turf(src)
 	for(var/obj/item/hardpoint/H in hardpoints)
 		H.on_move(old_turf, current_loc, direction)
 
+	tow_advance(old_center, old_turf)
+
 	if(movement_sound && world.time > move_next_sound_play)
 		playsound(src, movement_sound, vol = 20, sound_range = 30)
 		move_next_sound_play = world.time + 10
 
 	last_move_dir = direction
+	tow_refresh_nearby()
 
 	return TRUE
 
@@ -90,7 +106,7 @@
 
 // Rotates the vehicle by deg degrees if possible
 /obj/vehicle/multitile/proc/try_rotate(deg)
-	if(!can_rotate(deg))
+	if(towed_by || !can_rotate(deg))
 		return FALSE
 
 	move_momentum = move_momentum * move_turn_momentum_loss_factor
@@ -101,20 +117,25 @@
 			move_momentum = 0.5
 	update_next_move()
 
+	do_rotate(deg)
+
+	if(movement_sound && world.time > move_next_sound_play)
+		playsound(src, movement_sound, vol = 20, sound_range = 30)
+		move_next_sound_play = world.time + 10
+
+	tow_refresh_nearby()
+	update_icon()
+
+	return TRUE
+
+// Turns the vehicle's hardpoints, entrances, bounds and facing
+/obj/vehicle/multitile/proc/do_rotate(deg)
 	rotate_hardpoints(deg)
 	rotate_entrances(deg)
 	rotate_bounds(deg)
 	setDir(turn(dir, deg), TRUE)
 
 	last_move_dir = dir
-
-	if(movement_sound && world.time > move_next_sound_play)
-		playsound(src, movement_sound, vol = 20, sound_range = 30)
-		move_next_sound_play = world.time + 10
-
-	update_icon()
-
-	return TRUE
 
 /obj/vehicle/multitile/setDir(newdir, real_rotate = FALSE)
 	if(!real_rotate)
@@ -144,7 +165,7 @@
 	// 1/((m/M)*b) where m is momentum, M is max momentum and b is the build factor
 	var/anti_build_factor = 1/((max(abs(move_momentum), 1)/move_max_momentum) * move_momentum_build_factor)
 
-	next_move = world.time + move_delay * move_momentum_build_factor * anti_build_factor * misc_multipliers["move"]
+	next_move = world.time + move_delay * move_momentum_build_factor * anti_build_factor * misc_multipliers["move"] * get_tow_slowdown()
 	l_move_time = world.time
 
 
@@ -168,7 +189,7 @@
 		if(T in old_turfs)
 			continue
 
-		if(!T.Enter(src))
+		if(!T.Enter(src, towing))
 			can_move = FALSE
 
 	// Crashed with something that stopped us

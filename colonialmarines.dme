@@ -2732,6 +2732,7 @@
 #include "code\modules\vehicles\multitile\multitile_hardpoints.dm"
 #include "code\modules\vehicles\multitile\multitile_interaction.dm"
 #include "code\modules\vehicles\multitile\multitile_movement.dm"
+#include "code\modules\vehicles\multitile\multitile_towing.dm"
 #include "code\modules\vehicles\multitile\multitile_verbs.dm"
 #include "code\modules\vehicles\tank\interior.dm"
 #include "code\modules\vehicles\tank\tank.dm"

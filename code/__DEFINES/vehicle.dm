@@ -41,6 +41,33 @@
 
 #define TIER_3_RAM_DAMAGE_TAKEN 60
 
+/// Furthest gap in tiles between two vehicles that can still be hooked together
+#define TOW_MAX_GAP 1
+/// Furthest sideways offset in half tiles between two vehicles' centres that can still be hooked together
+#define TOW_MAX_OFFSET 1
+/// How far away a vehicle can be and still be checked as a tow partner
+#define TOW_SEARCH_RANGE 7
+/// How many steps past its lag a trailer may fall behind before its tower is held back
+#define TOW_MAX_STRETCH 4
+/// How far from a vehicle a pulled person can be and still be hooked to it
+#define TOW_PERSON_RANGE 3
+/// How long a hooked person must struggle in place to break free
+#define TOW_PERSON_RESIST_TIME (60 SECONDS)
+/// Brute damage a person takes for every tile they are dragged
+#define TOW_DRAG_DAMAGE 3
+/// Fraction of max health below which dragging stops hurting a person
+#define TOW_DRAG_MIN_HEALTH 0.15
+/// Percent chance per tile dragged at speed of breaking a limb
+#define TOW_DRAG_FRACTURE_CHANCE 4
+/// Results of dragging a trailer a tile
+#define TOW_DRAG_REACHED 0
+#define TOW_DRAG_MOVED 1
+#define TOW_DRAG_STUCK 2
+/// Move delay multiplier for a tower hauling a trailer with no size
+#define TOW_SLOWDOWN_BASE 1.25
+/// Extra move delay multiplier for a tower hauling a trailer as big as itself
+#define TOW_SLOWDOWN_SCALE 0.25
+
 #define INTERIOR_BOUND_SIZE 25 //How big we want each vehicle interior instance to be, including padding
 
 #define HDPT_OFFSET_EMPTY list(NORTH = list(0, 0), SOUTH = list(0, 0), EAST = list(0, 0), WEST = list(0, 0))

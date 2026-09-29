@@ -462,6 +462,8 @@ GLOBAL_LIST(trait_name_map)
 #define TRAIT_SOURCE_ADMIN "t_s_admin"
 /// Status trait coming from a tutorial
 #define TRAIT_SOURCE_TUTORIAL "t_s_tutorials"
+/// Status trait coming from being hooked to a vehicle
+#define TRAIT_SOURCE_TOW "t_s_tow"
 ///Status trait coming from equipment
 #define TRAIT_SOURCE_EQUIPMENT(slot) "t_s_equipment_[slot]"
 ///Status trait coming from skill

@@ -542,6 +542,8 @@
 
 	pulling = AM
 	AM.pulledby = src
+	if(ismob(AM))
+		vehicle_tow_refresh_near(src)
 
 	var/obj/item/grab/G = new /obj/item/grab()
 	G.grabbed_thing = AM
