@@ -334,6 +334,8 @@
  * nothing.
  */
 /datum/hive_status/proc/start_queen_evolution()
+	if(Check_WO())
+		return FALSE
 	if(evolving_to_queen && !QDELETED(evolving_to_queen) && evolving_to_queen.stat != DEAD)
 		return TRUE // Already in progress - the timer already running will finish it.
 

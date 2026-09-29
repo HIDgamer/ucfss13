@@ -350,6 +350,8 @@ GLOBAL_LIST_INIT(xeno_spawner_caste_weights, list(
  * populated by this same synchronous spawn.
  */
 /proc/spawner_ensure_queen(datum/hive_status/hive)
+	if(Check_WO())
+		return
 	if(hive.living_xeno_queen && hive.living_xeno_queen.stat != DEAD)
 		return
 	if(hive.evolving_to_queen && !QDELETED(hive.evolving_to_queen) && hive.evolving_to_queen.stat != DEAD)
