@@ -42,7 +42,7 @@
 	// whole rationale doesn't apply, and a nearby-but-genuinely-walled-off
 	// goal (own fort-line corner, a dead-end alcove) needs the real router,
 	// not blind cardinal-stepping that can only ever ping-pong against it.
-	if(!(travel_flags & TRAVEL_FLAG_STATIC_GOAL) && get_dist(pilot, goal) <= AI_TRAVEL_DIRECT_RANGE)
+	if(!(travel_flags & TRAVEL_FLAG_STATIC_GOAL) && (ismob(goal) || istype(goal, /obj/vehicle)) && get_dist(pilot, goal) <= AI_TRAVEL_DIRECT_RANGE)
 		// cardinal_step_towards() tries the primary direction toward goal, then falls back to
 		// secondary if primary fails - and treats EITHER succeeding as "handled." When primary is
 		// genuinely blocked (a window, a table) but secondary is open floor running alongside the

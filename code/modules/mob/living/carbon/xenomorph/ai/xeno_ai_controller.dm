@@ -185,6 +185,13 @@
 	var/turf/egg_plant_turf
 	/// world.time this controller is next willing to roll/be picked for attempt_social_interaction() - set on both participants so the same pair doesn't immediately vignette again next tick, and so a xeno that was just on the receiving end isn't instantly picked as someone else's target too.
 	var/next_social_interaction = 0
+	/// Pack buddy an idle xeno is walking to and when it may pick another.
+	var/mob/living/carbon/xenomorph/pack_buddy
+	var/pack_until = 0
+	/// Infrastructure target an idle xeno is walking to or clawing.
+	var/obj/infra_target
+	/// world.time until which an idle xeno answers a hive alert without the responder cap.
+	var/alert_commit_until = 0
 	/// world.time tick()'s incapacitation gate first started returning early for this pilot (stunned/floored/immobilized) - 0 whenever not currently blocked by it. Logged on entry/exit when GLOB.ai_debug_pathing is on, so a pilot that's actually just standing there taking hits with no visible cause (as opposed to a real logic bug elsewhere) shows up as a long incapacitated stretch instead of unexplained silence.
 	var/incapacitated_since = 0
 	/// PLAYER_ORDER_NONE/MOVE/ATTACK/HOLD (xeno_ai.dm) - a direct order from a Hive Leader/admin command console, see xeno_ai_orders.dm. Distinct from the ambient hive-wide broadcasts (queen_alert_turf etc.) - this is per-mob, not per-hive, and outranks every idle behavior including those broadcasts.
@@ -485,6 +492,9 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		idle_activity = IDLE_ACTIVITY_LONG_PATROL
 		continue_long_patrol()
 		return
+	if(ambush_turf && attempt_ambush_hide())
+		idle_activity = IDLE_ACTIVITY_AMBUSH
+		return
 	if(respond_to_pack_cohesion())
 		idle_activity = IDLE_ACTIVITY_PACK
 		return
@@ -566,12 +576,18 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 /datum/xeno_ai_controller/proc/respond_to_pack_cohesion()
 	if(!pilot || pilot.resting)
 		return FALSE
-	if(!prob(AI_PACK_COHESION_CHANCE))
-		return FALSE
-	var/mob/living/carbon/xenomorph/buddy = find_pack_buddy()
-	if(!buddy)
-		return FALSE
+	var/mob/living/carbon/xenomorph/buddy = pack_buddy
+	if(!buddy || QDELETED(buddy) || buddy.stat == DEAD || world.time >= pack_until)
+		pack_buddy = null
+		if(!prob(AI_PACK_COHESION_CHANCE))
+			return FALSE
+		buddy = find_pack_buddy()
+		if(!buddy)
+			return FALSE
+		pack_buddy = buddy
+		pack_until = world.time + AI_PACK_COHESION_COMMIT
 	if(get_dist(pilot, buddy) <= AI_PACK_COHESION_HOLD_DISTANCE)
+		pack_buddy = null
 		return FALSE // Already close enough to read as "sticking together" - nothing more to do this tick.
 	travel_to(buddy, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_AVOID_MOBS)
 	return TRUE
@@ -747,12 +763,18 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
  * (xeno_ai_movement.dm) already uses for obstacles.
  */
 /datum/xeno_ai_controller/proc/attempt_slash_infrastructure()
-	if(!pilot || !prob(AI_XENO_INFRASTRUCTURE_SLASH_CHANCE))
+	if(!pilot)
 		return FALSE
 
-	var/obj/target = find_nearby_infrastructure_target()
-	if(!target)
-		return FALSE
+	var/obj/target = infra_target
+	if(!target || !is_infrastructure_target_valid(target))
+		infra_target = null
+		if(!prob(AI_XENO_INFRASTRUCTURE_SLASH_CHANCE))
+			return FALSE
+		target = find_nearby_infrastructure_target()
+		if(!target)
+			return FALSE
+		infra_target = target
 
 	if(!pilot.Adjacent(target))
 		travel_to(target, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_AVOID_MOBS)
@@ -766,6 +788,18 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	if(pilot) // attack_alien() can in principle retaliate (an exploding structure) - don't write to a dead/deleted pilot.
 		pilot.next_move = world.time + XENO_MELEE_ATTACK_DELAY
 	return TRUE
+
+/// Whether a light or APC picked by attempt_slash_infrastructure() is still standing and close enough to keep going for.
+/datum/xeno_ai_controller/proc/is_infrastructure_target_valid(obj/target)
+	if(QDELETED(target) || get_dist(pilot, target) > AI_XENO_INFRASTRUCTURE_SEARCH_RADIUS * 2)
+		return FALSE
+	if(istype(target, /obj/structure/machinery/light))
+		var/obj/structure/machinery/light/light = target
+		return !light.unslashable && !light.is_broken()
+	if(istype(target, /obj/structure/machinery/power/apc))
+		var/obj/structure/machinery/power/apc/apc = target
+		return !apc.unslashable && apc.health > 0
+	return FALSE
 
 /// Nearest still-standing light or APC within AI_XENO_INFRASTRUCTURE_SEARCH_RADIUS - see attempt_slash_infrastructure().
 /datum/xeno_ai_controller/proc/find_nearby_infrastructure_target()
@@ -1981,8 +2015,9 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		var/turf/assault_turf = pilot.hive.assault_alert_turf
 		if(get_dist(pilot, assault_turf) > 3)
 			// Caps how many idle xenos respond to a single assault-alert point, same as the regular hive alert response below.
-			if(count_nearby_hive_members(assault_turf, AI_XENO_HIVE_ALERT_RESPONDER_RADIUS) >= AI_XENO_ASSAULT_MAX_RESPONDERS)
+			if(world.time >= alert_commit_until && count_nearby_hive_members(assault_turf, AI_XENO_HIVE_ALERT_RESPONDER_RADIUS) >= AI_XENO_ASSAULT_MAX_RESPONDERS)
 				return FALSE
+			alert_commit_until = world.time + AI_XENO_ALERT_COMMIT
 			travel_to_broadcast_turf(assault_turf)
 			return TRUE
 
@@ -2000,8 +2035,9 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 	// getting a chance to weed/build until it's over.
 	if(get_dist(pilot, alert_turf) > AI_XENO_HIVE_ALERT_RESPONSE_RANGE)
 		return FALSE
-	if(count_nearby_hive_members(alert_turf, AI_XENO_HIVE_ALERT_RESPONDER_RADIUS) >= AI_XENO_HIVE_ALERT_MAX_RESPONDERS)
+	if(world.time >= alert_commit_until && count_nearby_hive_members(alert_turf, AI_XENO_HIVE_ALERT_RESPONDER_RADIUS) >= AI_XENO_HIVE_ALERT_MAX_RESPONDERS)
 		return FALSE // Already enough backup converging - stay on your own business instead of the whole hive piling in.
+	alert_commit_until = world.time + AI_XENO_ALERT_COMMIT
 	travel_to_broadcast_turf(alert_turf)
 	return TRUE
 
@@ -2880,6 +2916,7 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 	var/turf/pilot_turf = get_turf(pilot)
 	if(!pilot_turf)
 		return null
+	var/threat_close = last_threat_turf && last_threat_turf.z == pilot_turf.z && get_dist(pilot, last_threat_turf) <= AI_XENO_FLEE_DANGER_RANGE
 	var/list/candidates = list()
 	var/turf/defensible = find_defensible_turf()
 	if(defensible)
@@ -2898,6 +2935,8 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 		if(!SSxeno_pathfinding?.available)
 			return candidate
 		var/list/route = compute_path_global(candidate)
+		if(length(route) && threat_close && length(route) > AI_XENO_FLEE_MAX_ROUTE)
+			continue // Too far to outrun a close threat - better to stand than run the whole map with its back turned.
 		if(length(route))
 			path_queue = route
 			path_goal = candidate

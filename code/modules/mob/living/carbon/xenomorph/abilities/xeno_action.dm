@@ -232,6 +232,8 @@
 	if(!owner)
 		return
 	var/mob/living/carbon/xenomorph/X = owner
+	if(GLOB.ai_debug_pathing && X.ai_controller)
+		log_debug("XENO AI ABILITY FIRED: [X] ([X.type]) used [name]")
 	// Uh oh! STINKY! already on cooldown
 	if (cooldown_timer_id != TIMER_ID_NULL)
 	/*

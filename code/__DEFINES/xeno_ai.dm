@@ -561,3 +561,11 @@
 /// Longest an AI xeno keeps besieging an obstacle before the stuck check may give up on its target.
 #define AI_XENO_SIEGE_MAX_DURATION 90 SECONDS
 #define AI_SENTINEL_SCATTER_RANGE 5
+/// How long an idle xeno keeps walking to the buddy it picked before rolling for something else.
+#define AI_PACK_COHESION_COMMIT 8 SECONDS
+/// How long an idle xeno keeps answering a hive alert after starting, ignoring the responder cap.
+#define AI_XENO_ALERT_COMMIT 6 SECONDS
+/// Longest flee route, in tiles, taken while a threat is still close; past it the xeno stands and fights instead.
+#define AI_XENO_FLEE_MAX_ROUTE 40
+/// How close the last threat must be for the flee route cap to apply.
+#define AI_XENO_FLEE_DANGER_RANGE 20
