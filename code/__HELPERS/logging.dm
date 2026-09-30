@@ -85,6 +85,9 @@ GLOBAL_VAR_INIT(log_end, world.system_type == UNIX ? ascii2text(13) : "")
 		WRITE_LOG(GLOB.world_game_log, "DEBUG: [text]")
 		LOG_REDIS("debug", "\[[time]\] [text]")
 
+	if(GLOB.ai_debug_pathing)
+		WRITE_LOG(GLOB.ai_debug_log, text)
+
 	if(diary_only)
 		return
 

@@ -30,6 +30,10 @@
 #define AI_XENO_DEFAULT_ATTACK_DISTANCE 10
 /// Default leash radius (tiles) from anchor_turf before an AI xeno disengages and returns.
 #define AI_XENO_DEFAULT_RETURN_DISTANCE 15
+/// Tiles a chase may pull an AI xeno past where its fight started before the leash drops the target.
+#define AI_XENO_LEASH_EXCURSION 10
+/// Distance to its target inside which an AI xeno claws an obstacle instead of starting an acid windup.
+#define AI_XENO_ACID_FIGHT_RANGE 4
 /// Per-swing cooldown the AI's plain melee is held to (execute_attack()'s plain-melee branch, xeno_ai_attack.dm) - attack_alien() itself never sets this, only click_adjacent()'s own `next_move += 4` does, and only for a real player's click. 4 is the bare code-permitted floor though (2.5 attacks/sec sustained), far faster than a real player's actual click cadence in practice (aiming, reacting, missing a click here and there) - "no click delay... can melt a player to death with just slashing" was this AI attacking at that literal floor nonstop, which no human sustains. Set higher to read as a real melee pace instead of the theoretical maximum.
 #define XENO_MELEE_ATTACK_DELAY 8
 /// Percent chance a plain melee swing against a human uses INTENT_DISARM (a real tackle attempt, can knock down) instead of INTENT_HARM (plain claw damage).
@@ -554,3 +558,6 @@
 #define AI_PRIORITY_RESCAN_INTERVAL 3 SECONDS
 /// Consecutive process_attack() ticks against the same current_target with zero recorded health-delta before the controller gives up and drops it - process_attack() otherwise has no timeout at all, unlike movement (blocked_attempts) and search (AI_XENO_SEARCH_TIMEOUT), so a target the pilot mechanically can't damage was fought forever.
 #define AI_PRIORITY_STALE_ATTACK_GIVEUP 4
+/// Longest an AI xeno keeps besieging an obstacle before the stuck check may give up on its target.
+#define AI_XENO_SIEGE_MAX_DURATION 90 SECONDS
+#define AI_SENTINEL_SCATTER_RANGE 5

@@ -142,7 +142,7 @@
 	var/atom/movable/approach_goal = current_target
 	if(count_engaged_allies(current_target))
 		var/turf/flank_turf = get_or_pick_flank_turf(current_target)
-		if(flank_turf)
+		if(flank_turf && flank_turf != get_turf(pilot))
 			approach_goal = flank_turf
 
 	// Checked before check_movement_progress() below, not after - that check's
@@ -310,10 +310,16 @@
  * a target that still can't be reached after the attempt gives up for real
  * on the very next confirmation instead of smashing forever.
  */
-/datum/xeno_ai_controller/proc/check_movement_progress(atom/approach_goal)
+/datum/xeno_ai_controller/proc/check_movement_progress(atom/approach_goal, idle = FALSE)
 	if(!pilot || !approach_goal)
 		return FALSE
+	if(obstacle_siege_start && world.time - last_obstacle_hit_time > 5 SECONDS)
+		obstacle_siege_start = 0
 	if(world.time < last_progress_check_time + AI_XENO_STUCK_CHECK_INTERVAL)
+		return FALSE
+	if(obstacle_siege_start && world.time - last_obstacle_hit_time <= 3 SECONDS && world.time - obstacle_siege_start <= AI_XENO_SIEGE_MAX_DURATION)
+		no_progress_ticks = 0
+		last_progress_check_time = world.time
 		return FALSE
 
 	var/current_distance = get_dist(pilot, approach_goal)
@@ -329,6 +335,12 @@
 		return FALSE
 
 	no_progress_ticks = 0
+	if(idle)
+		dormant_until = world.time + AI_XENO_DORMANT_MIN_DURATION
+		wander_dir = null
+		path_queue = null
+		last_progress_distance = null
+		return TRUE
 	if(!dig_attempted_this_stuck)
 		dig_attempted_this_stuck = TRUE
 		if(attempt_dig_through_stuck(approach_goal))
@@ -397,20 +409,40 @@
  * Sets ai_state directly (ATTACKING once holding in band) so callers are
  * just this one call from their own process_movement() override.
  */
+/// Switches to melee when the target is adjacent and swingable; returns TRUE when it took this tick.
+/datum/xeno_ai_controller/proc/fight_adjacent_target(atom/target)
+	if(!pilot || !target || target != current_target || get_dist(pilot, target) > 1 || !is_melee_reachable(target))
+		return FALSE
+	ai_state = AI_STATE_ATTACKING
+	blocked_attempts = 0
+	path_queue = null
+	return TRUE
+
+/// Swings at an adjacent target instead of idling while the next step is still on cooldown.
+/datum/xeno_ai_controller/proc/swing_while_step_cools_down(atom/target)
+	return world.time < next_step_time && fight_adjacent_target(target)
+
+/// Backs one step away from the target; swings at it instead when adjacent and the step fails.
+/datum/xeno_ai_controller/proc/back_away_or_fight(atom/target)
+	if(ai_step(get_dir(target, pilot)))
+		return
+	if(!fight_adjacent_target(target))
+		navigate_around(target)
+
 /datum/xeno_ai_controller/proc/maintain_kiting_distance(atom/target, preferred_distance, seek_cover = FALSE)
 	if(!pilot || !target)
 		return
 	var/dist = get_dist(pilot, target)
 
 	if(dist < preferred_distance)
+		if(swing_while_step_cools_down(target))
+			return
 		// No obstacle-forcing while backing up - retreating through a wall
 		// is never the move; route around or take the reactive back-step.
 		var/turf/defensible = seek_cover ? (get_or_pick_cover_turf(target) || find_defensible_turf()) : find_defensible_turf()
 		if(defensible && get_dist(pilot, defensible) > 0 && travel_to(defensible, 0))
 			return
-		var/away_dir = get_dir(target, pilot)
-		if(!ai_step(away_dir))
-			navigate_around(target)
+		back_away_or_fight(target)
 		return
 
 	// "The ping pong still happens" - the hold band below used to be just
@@ -707,6 +739,9 @@
 			clear_debug_path_visual()
 		return
 
+	if(debug_path_images && world.time < next_debug_visual_update)
+		return
+	next_debug_visual_update = world.time + 1 SECONDS
 	clear_debug_path_visual()
 	debug_path_images = list()
 	for(var/turf/step_turf as anything in path_queue)
@@ -1562,7 +1597,8 @@ GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
 /datum/xeno_ai_controller/proc/is_melee_reachable(atom/target)
 	if(!pilot || !target || !pilot.Adjacent(target))
 		return FALSE
-	if(get_blocking_obstacle(target))
+	var/list/candidates = get_cardinal_candidates(target)
+	if(candidates && !candidates[2] && get_blocking_obstacle(target))
 		return FALSE
 	var/turf/pilot_turf = get_turf(pilot)
 	if(pilot_turf)
@@ -1628,7 +1664,7 @@ GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
 		if(!next_turf)
 			continue
 		for(var/obj/structure/blocking_obstacle in next_turf)
-			if(!blocking_obstacle.density || blocking_obstacle.unslashable || blocking_obstacle.climbable)
+			if(!blocking_obstacle.density || blocking_obstacle.unslashable || blocking_obstacle.climbable || blocking_obstacle == goal)
 				continue
 			if(istype(blocking_obstacle, /obj/structure/machinery/door))
 				var/obj/structure/machinery/door/door_obstacle = blocking_obstacle
@@ -1647,7 +1683,7 @@ GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
 		// invisible to this whole obstacle-forcing chain regardless of caste.
 		if(!vehicle_candidate)
 			for(var/obj/vehicle/blocking_vehicle in next_turf)
-				if(blocking_vehicle.density)
+				if(blocking_vehicle.density && blocking_vehicle != goal)
 					vehicle_candidate = blocking_vehicle
 					vehicle_candidate_dir = candidate_dir
 					break
@@ -1733,8 +1769,14 @@ GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
 	var/obj/obstacle_obj = target_obstacle
 	if(!istype(obstacle_obj) || obstacle_obj.unacidable)
 		return FALSE
+	if(istype(obstacle_obj, /obj/structure/fence) || istype(obstacle_obj, /obj/structure/window) || istype(obstacle_obj, /obj/structure/barricade) || (istype(obstacle_obj, /obj/structure/machinery) && !istype(obstacle_obj, /obj/structure/machinery/door)))
+		return FALSE
 	var/datum/action/xeno_action/activable/corrosive_acid/acid = get_ability(/datum/action/xeno_action/activable/corrosive_acid)
 	if(!acid || !acid.action_cooldown_check())
+		return FALSE
+	if(pilot.plasma_stored < acid.acid_plasma_cost)
+		return FALSE
+	if(current_target && get_dist(pilot, current_target) <= AI_XENO_ACID_FIGHT_RANGE)
 		return FALSE
 	var/turf/obstacle_turf = get_turf(target_obstacle)
 	if(obstacle_turf)
@@ -1880,6 +1922,9 @@ GLOBAL_VAR_INIT(xeno_pathfind_bounded_failure_logged, FALSE)
 				door.SwitchState()
 			pilot.next_move = world.time + XENO_MELEE_ATTACK_DELAY
 			return
+	last_obstacle_hit_time = world.time
+	if(!obstacle_siege_start)
+		obstacle_siege_start = world.time
 	if(attempt_acid_on_obstacle(target_obstacle))
 		if(pilot) // attempt_acid_on_obstacle() can retaliate/kill the pilot the same way attack_alien() can below - don't write to it if it just died.
 			pilot.next_move = world.time + XENO_MELEE_ATTACK_DELAY

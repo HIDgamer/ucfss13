@@ -294,6 +294,7 @@
 		HD.update_icon()
 		placed = 0
 		forceMove(HD)
+		SSxeno_pathfinding?.push_delta(T)
 
 		return
 
@@ -422,6 +423,7 @@
 		set_density(FALSE)
 	else
 		set_density(initial(density))
+	SSxeno_pathfinding?.push_delta(get_turf(src))
 
 	update_icon()
 

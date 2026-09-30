@@ -32,6 +32,16 @@
 	var/atom/movable/movement_giveup_target
 	/// world.time movement_giveup_target's exclusion expires.
 	var/movement_giveup_until = 0
+	/// Distance from anchor_turf when the current fight started - see should_disengage().
+	var/leash_baseline = 0
+	/// pilot.next_move as of the last reposition roll - see is_new_swing_roll().
+	var/last_swing_roll = 0
+	/// world.time attack_blocking_obstacle() last struck or corroded something.
+	var/last_obstacle_hit_time = 0
+	/// world.time the current run of obstacle strikes began - 0 when not besieging anything.
+	var/obstacle_siege_start = 0
+	/// Next world.time the debug path markers may be rebuilt.
+	var/next_debug_visual_update = 0
 	/// Distance to approach_goal as of the last no-progress check - see check_movement_progress(). Null until the first check.
 	var/last_progress_distance
 	/// world.time check_movement_progress() last sampled the distance to approach_goal.
@@ -388,6 +398,8 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 		// carries the pilot back toward anchor_turf over time instead.
 		if(GLOB.ai_debug_pathing)
 			log_debug("XENO AI DISENGAGE: [pilot] ([pilot.type]) too far from anchor, dropping chase - [get_ai_debug_snapshot()]")
+		movement_giveup_target = current_target
+		movement_giveup_until = world.time + AI_XENO_MOVEMENT_GIVEUP_COOLDOWN
 		drop_target()
 		return
 
@@ -843,12 +855,14 @@ GLOBAL_LIST_INIT(ai_codenames_brawler, list("Red Death", "Hail Mary", "Grim Tall
 			// happened to already be standing on.
 			var/turf/nearest_weed = find_nearest_hive_weed_turf()
 			if(nearest_weed)
-				travel_to(nearest_weed, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_AVOID_MOBS)
+				if(!check_movement_progress(nearest_weed, idle = TRUE))
+					travel_to(nearest_weed, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_AVOID_MOBS)
 				return
 
 	if(get_dist(pilot, anchor_turf) >= AI_XENO_PATROL_RADIUS)
 		wander_dir = null // Snap back to anchor - re-roll a fresh heading once back in range instead of resuming whatever direction led out of it.
-		travel_to(anchor_turf, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_AVOID_MOBS)
+		if(!check_movement_progress(anchor_turf, idle = TRUE))
+			travel_to(anchor_turf, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_AVOID_MOBS)
 		return
 
 	// Commits to a heading for AI_XENO_WANDER_COMMIT_TIME instead of picking a
@@ -2488,6 +2502,8 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 /datum/xeno_ai_controller/proc/acquire_target(atom/movable/target, reason = "scan")
 	if(GLOB.ai_debug_pathing)
 		log_debug("XENO AI TARGET ACQUIRED: [pilot] ([pilot.type]) acquired [target] ([reason]) at [get_turf(target)] - [get_ai_debug_snapshot()]")
+	if(!current_target)
+		leash_baseline = anchor_turf ? get_dist(pilot, anchor_turf) : 0
 	current_target = target
 	note_last_seen(get_turf(target), target)
 	blocked_attempts = 0
@@ -2505,7 +2521,8 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 	if(ambush_turf)
 		end_ambush_hide() // Real prey beats a staged ambush - un-hides for free if attempt_ambush_hide() had her tucked away, same reasoning as standing up from resting above.
 	attempt_combat_pheromones()
-	broadcast_focus_target(target)
+	if(reason != "focus")
+		broadcast_focus_target(target)
 
 /**
  * Broadcasts a notably dangerous newly-acquired target hive-wide (any xeno's, not just Queen/King's)
@@ -2514,7 +2531,7 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
  * xenos are already chasing the same current_target.
  */
 /datum/xeno_ai_controller/proc/broadcast_focus_target(atom/movable/target)
-	if(!pilot?.hive || !target)
+	if(!pilot?.hive || !target || !isliving(target))
 		return
 	if(get_target_priority(target) < AI_FOCUS_TARGET_MIN_PRIORITY)
 		return
@@ -2570,6 +2587,8 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 	// attacker (e.g. a turret actively cycling on the pilot) always wins.
 	if(current_target)
 		var/attacker_priority = get_target_priority(living_attacker)
+		if(ai_state == AI_STATE_ATTACKING && isliving(current_target) && get_dist(pilot, current_target) <= 1 && get_dist(pilot, living_attacker) > 1)
+			return
 		if(attacker_priority < AI_PRIORITY_DELTA)
 			var/current_priority = get_target_priority(current_target)
 			if(attacker_priority <= current_priority + AI_PRIORITY_RETARGET_MARGIN)
@@ -2709,6 +2728,8 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 
 	if(!best_candidate)
 		return
+	if(ai_state == AI_STATE_ATTACKING && isliving(current_target) && get_dist(pilot, current_target) <= 1 && get_dist(pilot, best_candidate) > 1)
+		return
 	// A fresh player-ordered attack (xeno_ai_orders.dm) is protected from
 	// being silently swapped onto a merely-higher-priority target for a
 	// short window - an explicit "attack THIS" order should stick, not get
@@ -2833,7 +2854,9 @@ GLOBAL_VAR_INIT(ai_target_candidate_pool_time, 0)
 	// No leash on Whiskey Outpost - matches get_effective_attack_distance()'s unlimited range there.
 	if(Check_WO())
 		return FALSE
-	return get_dist(pilot, anchor_turf) > round(return_distance * GLOB.ai_distance_multiplier)
+	if(get_dist(pilot, current_target) <= AI_TRAVEL_DIRECT_RANGE)
+		return FALSE
+	return get_dist(pilot, anchor_turf) > max(round(return_distance * GLOB.ai_distance_multiplier), leash_baseline + AI_XENO_LEASH_EXCURSION)
 
 /**
  * Routes home through the same travel_to() primitive the chase path uses,

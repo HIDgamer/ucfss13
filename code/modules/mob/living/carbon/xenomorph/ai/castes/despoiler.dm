@@ -41,7 +41,7 @@
 	if(pilot.Adjacent(current_target))
 		attempt_oozing_wounds()
 		execute_attack(current_target)
-		if(stale_attack_ticks >= AI_PRIORITY_STALE_ATTACK_GIVEUP) // Same as ranged.dm's own cornered case - give up rather than claw an undamageable target forever.
+		if(is_attack_stale()) // Same as ranged.dm's own cornered case - give up rather than claw an undamageable target forever.
 			drop_target()
 		return
 

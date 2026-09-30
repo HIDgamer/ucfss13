@@ -34,7 +34,7 @@
 
 	note_last_seen(get_turf(current_target), current_target)
 
-	if(get_dist(pilot, current_target) <= 1 && pilot.Adjacent(current_target))
+	if(get_dist(pilot, current_target) <= 1 && is_melee_reachable(current_target))
 		ai_state = AI_STATE_ATTACKING
 		blocked_attempts = 0
 		path_queue = null
@@ -245,7 +245,7 @@
 		return
 	var/took_damage = (last_known_health != null) && (pilot.health < last_known_health)
 	last_known_health = pilot.health
-	if(!took_damage && !prob(AI_WARRIOR_REPOSITION_CHANCE))
+	if(!took_damage && !(is_new_swing_roll() && prob(AI_WARRIOR_REPOSITION_CHANCE)))
 		return
 	var/target_dir = get_dir(pilot, current_target)
 	if(!ai_step(turn(target_dir, circle_dir)))

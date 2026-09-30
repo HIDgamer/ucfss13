@@ -38,7 +38,7 @@
 	// barrier, immune, etc.) would otherwise be attacked forever, unlike
 	// movement (blocked_attempts) and search (AI_XENO_SEARCH_TIMEOUT), which
 	// already both give up.
-	if(stale_attack_ticks >= AI_PRIORITY_STALE_ATTACK_GIVEUP)
+	if(is_attack_stale())
 		if(GLOB.ai_debug_pathing)
 			log_debug("XENO AI STALE ATTACK GIVEUP: [pilot] ([pilot.type]) landed no damage on [current_target] for [stale_attack_ticks] ticks - [get_ai_debug_snapshot()]")
 		drop_target()
@@ -83,7 +83,7 @@
 		if(GLOB.ai_debug_pathing)
 			log_debug("XENO AI ABILITY USED: [pilot] ([pilot.type]) used a caste ability on [living_target] - [get_ai_debug_snapshot()]")
 		last_ability_time = world.time
-		record_damage_dealt(living_target, health_before)
+		record_damage_dealt(living_target, health_before, FALSE)
 		return
 
 	// Facehuggers don't claw - they climb onto a downed human's face. Reusing the
@@ -124,14 +124,14 @@
  * individually. QDELETED-guarded since a caste ability can gib/delete the
  * target outright (Queen's Gut) before returning here.
  */
-/datum/xeno_ai_controller/proc/record_damage_dealt(mob/living/target, health_before)
+/datum/xeno_ai_controller/proc/record_damage_dealt(mob/living/target, health_before, count_stale = TRUE)
 	if(QDELETED(target))
 		return
 	var/dealt = health_before - target.health
 	if(dealt > 0)
 		damage_dealt += dealt
 		stale_attack_ticks = 0
-	else if(target == current_target)
+	else if(count_stale && target == current_target)
 		stale_attack_ticks++
 
 /**
@@ -151,8 +151,7 @@
 	var/datum/action/xeno_action/activable/tail_stab/stab = get_ability(/datum/action/xeno_action/activable/tail_stab)
 	if(!stab || !stab.action_cooldown_check())
 		return FALSE
-	stab.use_ability(target)
-	return TRUE
+	return !!stab.use_ability(target)
 
 /**
  * Hook point for Stage 2+ caste-specific offensive abilities (see the plan's caste
@@ -190,3 +189,19 @@
 	if(human_target.body_position != LYING_DOWN || !can_hug(human_target, hugger.hivenumber))
 		return
 	hugger.handle_hug(human_target)
+
+/// Whether the current target has soaked enough zero-damage swings to give up on; humans get three times the allowance since armor can fully absorb a claw. Marks the target as ignored for a while when it says yes.
+/datum/xeno_ai_controller/proc/is_attack_stale()
+	var/limit = ishuman(current_target) ? AI_PRIORITY_STALE_ATTACK_GIVEUP * 3 : AI_PRIORITY_STALE_ATTACK_GIVEUP
+	if(stale_attack_ticks < limit)
+		return FALSE
+	movement_giveup_target = current_target
+	movement_giveup_until = world.time + AI_XENO_MOVEMENT_GIVEUP_COOLDOWN
+	return TRUE
+
+/// TRUE once per melee swing, so baseline rolls happen per swing instead of on every tick of its cooldown.
+/datum/xeno_ai_controller/proc/is_new_swing_roll()
+	if(!pilot || last_swing_roll == pilot.next_move)
+		return FALSE
+	last_swing_roll = pilot.next_move
+	return TRUE

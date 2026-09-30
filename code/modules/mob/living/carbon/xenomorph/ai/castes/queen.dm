@@ -231,9 +231,9 @@
 
 	attempt_screech()
 
-	if(pilot.Adjacent(current_target))
+	if(is_melee_reachable(current_target))
 		execute_attack(current_target)
-		if(stale_attack_ticks >= AI_PRIORITY_STALE_ATTACK_GIVEUP)
+		if(is_attack_stale())
 			drop_target()
 		return
 
@@ -275,6 +275,8 @@
 	attempt_periodic_combat_pheromones()
 
 	note_last_seen(get_turf(current_target), current_target)
+	if(fight_adjacent_target(current_target))
+		return
 	if(should_close_to_melee(current_target))
 		travel_to(current_target, TRAVEL_FLAG_FORCE_OBSTACLES|TRAVEL_FLAG_COVER_CHECK)
 	else

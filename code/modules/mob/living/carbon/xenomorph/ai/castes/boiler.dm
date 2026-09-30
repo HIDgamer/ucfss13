@@ -91,7 +91,7 @@
 
 	if(pilot.Adjacent(current_target)) // Cornered - fight back rather than just standing there and dying.
 		execute_attack(current_target)
-		if(stale_attack_ticks >= AI_PRIORITY_STALE_ATTACK_GIVEUP) // This override replaces the base process_attack() entirely instead of calling ..() - without this she'd claw an undamageable cornering target forever instead of giving up like every other caste does.
+		if(is_attack_stale()) // This override replaces the base process_attack() entirely instead of calling ..() - without this she'd claw an undamageable cornering target forever instead of giving up like every other caste does.
 			drop_target()
 		return
 
@@ -147,16 +147,18 @@
 	var/ability_ready = ability && ability.action_cooldown_check()
 	if(!ability_ready)
 		if(should_hold_and_fight(current_target))
+			if(fight_adjacent_target(current_target))
+				return
 			travel_to(current_target, TRAVEL_FLAG_FORCE_OBSTACLES) // Already winning this fight - close in and finish it instead of wasting the cooldown hiding.
 			return
 		if(dist < AI_BOILER_HIDE_DISTANCE)
+			if(swing_while_step_cools_down(current_target))
+				return
 			attempt_acid_shroud_retreat() // Side effect only - covers the walk-away below, doesn't change whether it happens.
 			var/turf/defensible = get_or_pick_cover_turf(current_target) || find_defensible_turf()
 			if(defensible && get_dist(pilot, defensible) > 0 && cardinal_step_towards(defensible, avoid_mobs = TRUE))
 				return
-			var/away_dir = get_dir(current_target, pilot)
-			if(!ai_step(away_dir))
-				navigate_around(current_target)
+			back_away_or_fight(current_target)
 			return
 		return // Already far enough out - just sit tight and let the cooldown run.
 

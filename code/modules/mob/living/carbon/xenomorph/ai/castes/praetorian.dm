@@ -79,7 +79,7 @@
 			return
 		tactical_retreat_until = 0
 
-	if(get_dist(pilot, current_target) <= 1 && pilot.Adjacent(current_target))
+	if(get_dist(pilot, current_target) <= 1 && is_melee_reachable(current_target))
 		ai_state = AI_STATE_ATTACKING
 		blocked_attempts = 0
 		path_queue = null
@@ -171,7 +171,7 @@
 	if(attempt_tail_lash(target))
 		return TRUE
 
-	if(prob(AI_PRAETORIAN_RETREAT_CHANCE))
+	if(world.time > pilot.next_move && prob(AI_PRAETORIAN_RETREAT_CHANCE))
 		start_tactical_retreat(AI_PRAETORIAN_RETREAT_DURATION)
 	return FALSE
 

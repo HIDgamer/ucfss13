@@ -14,22 +14,21 @@
 /datum/xeno_ai_controller/ranged/sentinel/get_flee_threshold()
 	return AI_SENTINEL_FLEE_HEALTH_PERCENT
 
-/**
- * "Different types of spit abilities, sentinel only uses the neuro one" -
- * her base_actions actually carries three ranged tools (Slowing Spit, 2s CD;
- * Scattered Spit, 6s CD; Corrosive Acid, a much longer CD) but this only ever
- * looked at Slowing Spit, leaving the other two to sit unused entirely.
- * Same fallback-chain pattern as Boiler/Spitter: try the fastest one first,
- * fall through to whichever else is actually off cooldown.
- */
+/// Slowing Spit first to slow a target that isn't slowed yet, Scattered Spit (knockdown) once it is and within its range.
 /datum/xeno_ai_controller/ranged/sentinel/get_ranged_ability()
 	var/datum/action/xeno_action/activable/slowing_spit/spit = get_ability(/datum/action/xeno_action/activable/slowing_spit)
-	if(spit && spit.action_cooldown_check())
-		return spit
 	var/datum/action/xeno_action/activable/scattered_spit/scatter = get_ability(/datum/action/xeno_action/activable/scattered_spit)
-	if(scatter && scatter.action_cooldown_check())
+	var/spit_ready = spit && spit.action_cooldown_check()
+	var/scatter_ready = scatter && scatter.action_cooldown_check() && current_target && get_dist(pilot, current_target) <= AI_SENTINEL_SCATTER_RANGE
+	var/mob/living/carbon/human/human_target = current_target
+	var/slowed = istype(human_target) && (human_target.slowed || human_target.superslowed)
+	if(spit_ready && !slowed)
+		return spit
+	if(scatter_ready)
 		return scatter
-	return get_ability(/datum/action/xeno_action/activable/corrosive_acid/weak)
+	if(spit_ready)
+		return spit
+	return null
 
 /datum/xeno_ai_controller/ranged/sentinel/process_attack()
 	if(!pilot || !current_target)
@@ -41,7 +40,7 @@
 
 	if(pilot.Adjacent(current_target)) // Cornered - fight back rather than just standing there.
 		execute_attack(current_target)
-		if(stale_attack_ticks >= AI_PRIORITY_STALE_ATTACK_GIVEUP) // This override replaces the base process_attack() entirely instead of calling ..() - without this she'd claw an undamageable cornering target forever instead of giving up like every other caste does.
+		if(is_attack_stale()) // This override replaces the base process_attack() entirely instead of calling ..() - without this she'd claw an undamageable cornering target forever instead of giving up like every other caste does.
 			drop_target()
 		return
 
@@ -76,15 +75,17 @@
 	var/ability_ready = ability && ability.action_cooldown_check()
 	if(!ability_ready)
 		if(should_hold_and_fight(current_target))
+			if(fight_adjacent_target(current_target))
+				return
 			travel_to(current_target, TRAVEL_FLAG_FORCE_OBSTACLES) // Already winning this fight - close in and finish it instead of wasting the cooldown hiding.
 			return
 		if(dist < AI_XENO_RANGED_HIDE_DISTANCE)
+			if(swing_while_step_cools_down(current_target))
+				return
 			var/turf/defensible = get_or_pick_cover_turf(current_target) || find_defensible_turf()
 			if(defensible && get_dist(pilot, defensible) > 0 && cardinal_step_towards(defensible, avoid_mobs = TRUE))
 				return
-			var/away_dir = get_dir(current_target, pilot)
-			if(!ai_step(away_dir))
-				navigate_around(current_target)
+			back_away_or_fight(current_target)
 			return
 		return
 

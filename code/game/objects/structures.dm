@@ -19,6 +19,8 @@
 	. = ..()
 	if(climbable)
 		verbs += /obj/structure/proc/climb_on
+	if(!mapload && density)
+		SSxeno_pathfinding?.push_delta(get_turf(src)) // Prices a structure built mid-round (barricade, sentry) in the native walkability grid.
 
 /obj/structure/Destroy()
 	//before ..() because the parent does loc = null

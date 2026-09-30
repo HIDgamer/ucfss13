@@ -93,7 +93,7 @@
 		return
 	var/took_damage = (last_known_health != null) && (pilot.health < last_known_health)
 	last_known_health = pilot.health
-	if(!took_damage && !prob(AI_WARRIOR_REPOSITION_CHANCE))
+	if(!took_damage && !(is_new_swing_roll() && prob(AI_WARRIOR_REPOSITION_CHANCE)))
 		return
 	var/target_dir = get_dir(pilot, current_target)
 	if(!ai_step(turn(target_dir, circle_dir)))
