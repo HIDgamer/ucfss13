@@ -7,6 +7,13 @@
 /// UI Should close
 #define UI_CLOSE -1
 
+/// Whether a client's tgui windows hide the native titlebar and draw their own, OpenDream windows always keep the native frame
+#ifdef OPENDREAM
+#define TGUI_FANCY(client) FALSE
+#else
+#define TGUI_FANCY(client) client?.prefs.tgui_fancy
+#endif
+
 /// Maximum number of windows that can be suspended/reused
 #define TGUI_WINDOW_SOFT_LIMIT 5
 /// Maximum number of open windows

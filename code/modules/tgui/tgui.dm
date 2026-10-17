@@ -111,7 +111,7 @@
 	if(!window.is_ready() && !preinitialized)
 		window.initialize(
 			strict_mode = TRUE,
-			fancy = user.client?.prefs.tgui_fancy,
+			fancy = TGUI_FANCY(user.client),
 			assets = list(
 				get_asset_datum(/datum/asset/simple/tgui),
 			))
@@ -262,7 +262,7 @@
 		"window" = list(
 			"key" = window_key,
 			"size" = window_size,
-			"fancy" = user.client?.prefs.tgui_fancy,
+			"fancy" = TGUI_FANCY(user.client),
 			"locked" = user.client?.prefs.tgui_lock,
 		),
 		"client" = list(
