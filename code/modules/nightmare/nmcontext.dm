@@ -41,7 +41,7 @@
 /datum/nmcontext/proc/get_file_path(relative_path, file_type = "config")
 	if(config["prefix_[file_type]"])
 		relative_path = "[config["prefix_[file_type]"]]/[relative_path]"
-	if(fexists(relative_path))
+	if(fexists(relative_path) || length(flist(relative_path)))
 		return relative_path
 	CRASH("Nightmare context '[name]' failed to find file in scope '[file_type]': [relative_path]")
 
