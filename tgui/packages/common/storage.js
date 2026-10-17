@@ -10,6 +10,10 @@ export const IMPL_MEMORY = 0;
 export const IMPL_HUB_STORAGE = 1;
 export const IMPL_INDEXED_DB = 2;
 export const IMPL_IFRAME_INDEXED_DB = 3;
+export const IMPL_LOCAL_STORAGE = 4;
+
+// Clients without BYOND hub storage never report it, so stop waiting for it
+const HUB_STORAGE_TIMEOUT = 2000;
 
 const INDEXED_DB_VERSION = 1;
 const INDEXED_DB_NAME = 'cm-tgui';
@@ -29,6 +33,15 @@ const testGeneric = (testFn) => () => {
 const testHubStorage = testGeneric(
   () => window.hubStorage && window.hubStorage.getItem,
 );
+
+const testLocalStorage = testGeneric(() => {
+  window.localStorage.setItem('cm-storage-test', '1');
+  window.localStorage.removeItem('cm-storage-test');
+  return true;
+});
+
+// Set by the OpenDream client, which has no BYOND hub storage
+const isOpenDream = () => Boolean(window.__opendream__);
 
 // TODO: Remove with 516
 // prettier-ignore
@@ -82,6 +95,35 @@ class HubStorageBackend {
 
   async clear() {
     window.hubStorage.clear();
+  }
+}
+
+class LocalStorageBackend {
+  constructor() {
+    this.impl = IMPL_LOCAL_STORAGE;
+  }
+
+  async get(key) {
+    const value = window.localStorage.getItem('cm-' + key);
+    if (typeof value === 'string') {
+      return JSON.parse(value);
+    }
+  }
+
+  async set(key, value) {
+    window.localStorage.setItem('cm-' + key, JSON.stringify(value));
+  }
+
+  async remove(key) {
+    window.localStorage.removeItem('cm-' + key);
+  }
+
+  async clear() {
+    for (const key of Object.keys(window.localStorage)) {
+      if (key.startsWith('cm-')) {
+        window.localStorage.removeItem(key);
+      }
+    }
   }
 }
 
@@ -194,6 +236,11 @@ class IndexedDbBackend {
 export class StorageProxy {
   constructor(chat) {
     this.backendPromise = (async () => {
+      if (isOpenDream()) {
+        return testLocalStorage()
+          ? new LocalStorageBackend()
+          : new MemoryBackend();
+      }
       if (!Byond.TRIDENT) {
         if (chat) {
           const iframe = new IFrameIndexedDbBackend();
@@ -209,6 +256,14 @@ export class StorageProxy {
             };
 
             document.addEventListener('byondstorageupdated', listener);
+            setTimeout(() => {
+              document.removeEventListener('byondstorageupdated', listener);
+              resolve(
+                testLocalStorage()
+                  ? new LocalStorageBackend()
+                  : new MemoryBackend(),
+              );
+            }, HUB_STORAGE_TIMEOUT);
           });
         }
         return new HubStorageBackend();
