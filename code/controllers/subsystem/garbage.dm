@@ -208,7 +208,9 @@ SUBSYSTEM_DEF(garbage)
 				var/type = D.type
 				var/datum/qdel_item/I = items[type]
 
+				#ifndef OPENDREAM
 				log_world("## TESTING: GC: -- [text_ref(D)] | [type] was unable to be GC'd -- (ref count of [refcount(D)])")
+				#endif
 
 				#ifdef TESTING
 				for(var/c in GLOB.admins) //Using testing() here would fill the logs with ADMIN_VV garbage

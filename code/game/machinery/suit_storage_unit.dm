@@ -50,14 +50,14 @@
 		return
 	else if(isopen)
 		if(inserted_helmet)
-			overlays += image("helmet")
+			overlays += image(icon, icon_state = "helmet")
 
 		if(inserted_suit)
-			overlays += image("suit")
+			overlays += image(icon, icon_state = "suit")
 		if(inserted_mask)
-			overlays += image("mask")
+			overlays += image(icon, icon_state = "mask")
 		if(inserted_tank)
-			overlays += image("tank")
+			overlays += image(icon, icon_state = "tank")
 
 		icon_state = "open"
 

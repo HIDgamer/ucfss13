@@ -54,7 +54,11 @@
 	balloon_alert.color = text_color
 	balloon_alert.appearance_flags = NO_CLIENT_COLOR|KEEP_APART|RESET_COLOR|RESET_TRANSFORM|RESET_ALPHA
 	balloon_alert.maptext = MAPTEXT("<span class='center langchat'>[text]</span>")
+	#ifdef OPENDREAM
+	balloon_alert.maptext_height = max(1, ceil(length(text) * 6 / BALLOON_TEXT_WIDTH)) * 12
+	#else
 	balloon_alert.maptext_height = WXH_TO_HEIGHT(viewer_client?.MeasureText(text, null, BALLOON_TEXT_WIDTH))
+	#endif
 	balloon_alert.maptext_width = BALLOON_TEXT_WIDTH
 	balloon_alert.maptext_x = get_maxptext_x_offset(balloon_alert)
 	if(appearance_flags & PIXEL_SCALE)
