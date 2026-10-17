@@ -76,11 +76,20 @@ export const LobbyMenu = () => {
 
     storage.get('lobby-theme-disabled').then((val) => setThemeDisabled(!!val));
 
-    setTimeout(() => {
+    const playLoadJingle = () => {
       onLoadPlayer.current?.play()?.catch(() => {
-        // Autoplay blocked or load failed — non-fatal, just no load jingle.
+        // Autoplay blocked or load failed — non-fatal, retried on the first click or key.
+        const retry = () => {
+          document.removeEventListener('pointerdown', retry, true);
+          document.removeEventListener('keydown', retry, true);
+          onLoadPlayer.current?.play()?.catch(() => {});
+        };
+        document.addEventListener('pointerdown', retry, true);
+        document.addEventListener('keydown', retry, true);
       });
-    }, 250);
+    };
+
+    setTimeout(playLoadJingle, 250);
 
     setTimeout(() => {
       setDisableAnimations(true);
