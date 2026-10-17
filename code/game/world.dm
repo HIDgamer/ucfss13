@@ -60,7 +60,9 @@ GLOBAL_LIST_INIT(reboot_sfx, file2list("config/reboot_sfx.txt"))
 	running_tests = TRUE
 	#endif
 	// Only do offline sleeping when the server isn't running unit tests or hosting a local dev test
+	#ifndef OPENDREAM
 	sleep_offline = (!running_tests && !testing_locally)
+	#endif
 
 	if(!GLOB.RoleAuthority)
 		GLOB.RoleAuthority = new /datum/authority/branch/role()
