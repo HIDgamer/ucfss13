@@ -9,6 +9,9 @@ GLOBAL_LIST_EMPTY(command_apc_list)
 	pixel_x = -48
 	pixel_y = -48
 
+	layer = ABOVE_LYING_MOB_LAYER
+	wheels_under_mobs = TRUE
+
 	bound_width = 96
 	bound_height = 96
 

@@ -35,6 +35,9 @@
 
 	var/nickname //used for single-use verb to name the vehicle. Put anything here to prevent naming
 
+	/// Hull sits below mobs with the wheels just above it, so wheels cover the hull but not mobs beside the vehicle
+	var/wheels_under_mobs = FALSE
+
 	var/honk_sound = 'sound/vehicles/honk_4_light.ogg'
 	var/next_honk = 0 //to prevent spamming
 
@@ -269,17 +272,20 @@
 /obj/vehicle/multitile/get_explosion_resistance()
 	return explosive_resistance
 
-/// Wheels and treads are drawn under mobs standing beside the vehicle
+/// Layer that overlays draw from, above mobs even when the hull sits below them
+/obj/vehicle/multitile/proc/get_overlay_layer()
+	return wheels_under_mobs ? ABOVE_MOB_LAYER : layer
+
 /obj/vehicle/multitile/proc/get_hardpoint_layer(obj/item/hardpoint/hardpoint)
 	if(istype(hardpoint, /obj/item/hardpoint/locomotion))
-		return BELOW_MOB_LAYER
-	return layer + hardpoint.hdpt_layer * 0.1
+		return layer + hardpoint.hdpt_layer * 0.1
+	return get_overlay_layer() + hardpoint.hdpt_layer * 0.1
 
 /obj/vehicle/multitile/update_icon()
 	overlays.Cut()
 
 	if(health <= initial(health))
-		var/image/damage_overlay = image(icon, icon_state = "damaged_frame", layer = layer+0.1)
+		var/image/damage_overlay = image(icon, icon_state = "damaged_frame", layer = get_overlay_layer() + 0.1)
 		damage_overlay.alpha = 255 * (1 - (health / initial(health)))
 		overlays += damage_overlay
 
@@ -296,7 +302,7 @@
 			overlays += hardpoint_image
 
 	if(clamped)
-		var/image/J = image(icon, icon_state = "vehicle_clamp", layer = layer+0.1)
+		var/image/J = image(icon, icon_state = "vehicle_clamp", layer = get_overlay_layer() + 0.1)
 		overlays += J
 
 //Normal examine() but tells the player what is installed and if it's broken
