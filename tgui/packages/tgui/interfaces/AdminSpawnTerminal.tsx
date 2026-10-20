@@ -57,7 +57,7 @@ const SPAWN_MODES_HUMAN: ModeOption[] = [
     value: 'ai',
     label: 'AI',
     icon: 'microchip',
-    desc: 'AI-piloted - zombies only for now (moves, hunts and attacks on its own, still ghost-joinable at any time). No-op for a regular job spawn until human AI exists.',
+    desc: 'AI-piloted (moves, hunts and fights on its own, still ghost-joinable at any time).',
   },
   {
     value: 'freed',
