@@ -43,6 +43,17 @@
 	if(SSxeno_pathfinding?.available && xeno_pathfind_profiles_available())
 		rust_xeno_pathfind_danger("[blocked.z],[blocked.x],[blocked.y],[HAI_BLOCK_DANGER],0")
 
+/**
+ * Asks for a new route that keeps clear of the turf, without ruling the turf out: if nothing else leads on, the brain can still go over it.
+ * remember_blocked() would stop the brain trying the step at all, and with no other way it would give the goal up before it ever climbed.
+ */
+/datum/human_ai_brain/proc/prefer_other_way(turf/avoided, reason)
+	path = null
+	next_path_request = 0
+	log_decision("[reason] at [avoided.x],[avoided.y]")
+	if(SSxeno_pathfinding?.available && xeno_pathfind_profiles_available())
+		rust_xeno_pathfind_danger("[avoided.z],[avoided.x],[avoided.y],[HAI_BLOCK_DANGER],0")
+
 /datum/human_ai_brain/proc/is_blocked_turf(turf/checked)
 	var/until = blocked_turfs[checked]
 	if(!until)
@@ -107,11 +118,11 @@
 		door.attackby(crowbar, body)
 	acting_until = 0
 
-/// Whether getting over something climbable is worth the time right now: the brain is under fire, hurt for time or running
+/// Whether getting over something climbable is worth the time right now: the brain has an enemy in sight, is under fire, running or clear of a hazard. A hard order alone is not a hurry
 /datum/human_ai_brain/proc/climb_urgent()
 	if(get_target() && world.time <= target_seen_time + 40)
 		return TRUE
-	return suppressed() || broken_kind || hazard_turf || world.time < panic_until || current_order?.hard
+	return suppressed() || broken_kind || hazard_turf || world.time < panic_until
 
 /**
  * Climbing is the last resort. A brain with nothing pressing never climbs, it takes another way or gives the goal up. One that has a goal to
@@ -127,7 +138,7 @@
 		return TRUE
 	if(!urgent && climb_detours < HAI_CLIMB_DETOURS)
 		climb_detours++
-		remember_blocked(next_turf, "would rather go round [structure]", HAI_DETOUR_MEMORY)
+		prefer_other_way(next_turf, "would rather go round [structure]")
 		return FALSE
 	next_vault_time = world.time + HAI_VAULT_COOLDOWN
 	vaults++

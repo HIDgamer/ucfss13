@@ -22,6 +22,9 @@
 	move_goal = goal_turf
 	move_state = HAI_MOVE_WALKING
 	if(is_acting() || world.time < next_step_time)
+		// A vault, a pry or a hack keeps the body in place for a while, which is work and not being stuck
+		if(is_acting())
+			last_progress_time = world.time
 		return TRUE
 	if(!stand_up())
 		return TRUE

@@ -1,6 +1,9 @@
 /// A shooter holds fire for a friend on the line, past the target where a miss carries on, or beside it where the aim can wander, and a clear line is still taken
 /datum/unit_test/human_ai_friendly_fire
 
+/datum/unit_test/human_ai_friendly_fire/proc/ready_to_fire(datum/human_ai_brain/brain, obj/item/weapon/gun/gun)
+	return brain.gun_can_shoot_now(gun)
+
 /datum/unit_test/human_ai_friendly_fire/Run()
 	var/datum/human_ai_arena/field = new(list(
 		"####################",
@@ -14,9 +17,14 @@
 	var/turf/start = locate(field.origin_x + 2, field.origin_y + 3, field.z)
 	var/mob/living/carbon/human/shooter = make_soldier(start)
 	var/datum/human_ai_brain/brain = shooter.ai_brain
+	// The test pulls the trigger itself, so the brain is told to hold fire and the gun is made ready by hand
+	brain.roe = HAI_ROE_WEAPONS_HOLD
 	var/obj/item/weapon/gun/gun = brain.peek_gun()
 	TEST_ASSERT_NOTNULL(gun, "The shooter has no gun")
+	if(brain.weapon_state(gun) == HAI_WEAPON_SAFE)
+		brain.release_safety(gun)
 	var/mob/living/carbon/xenomorph/drone/dummy = make_target_dummy(locate(start.x + 8, start.y, start.z))
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(ready_to_fire), brain, gun), 8), "The gun never became ready to fire, state [brain.weapon_state(gun)]")
 
 	TEST_ASSERT(!brain.friendly_in_lane(dummy), "An empty line was called unsafe")
 	TEST_ASSERT(brain.safe_to_fire(gun, dummy), "An empty line was not safe to fire along")
