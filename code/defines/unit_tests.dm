@@ -111,6 +111,7 @@
 #include "..\modules\unit_tests\human_ai_security.dm"
 #include "..\modules\unit_tests\human_ai_soak.dm"
 #include "..\modules\unit_tests\human_ai_squads.dm"
+#include "..\modules\unit_tests\human_ai_teamwork.dm"
 #include "..\modules\unit_tests\human_ai_tuning.dm"
 #include "..\modules\unit_tests\human_ai_weapons.dm"
 #include "..\modules\unit_tests\human_ai_arena.dm"

@@ -11,6 +11,27 @@
 	soldier.ai_brain.keep_awake = TRUE
 	return soldier
 
+/**
+ * Puts the item on the body in the slot. A bare test body has no inventory screen and the game refuses to equip anything into its slots, deleting the
+ * item when asked to, so it is given one and when that is not enough the slot is filled by hand.
+ */
+/datum/unit_test/proc/dress(mob/living/carbon/human/human, obj/item/thing, slot)
+	if(!human.hud_used)
+		human.create_hud()
+	if(human.equip_to_slot_if_possible(thing, slot))
+		return TRUE
+	thing.forceMove(human)
+	switch(slot)
+		if(WEAR_L_EAR)
+			human.wear_l_ear = thing
+		if(WEAR_JACKET)
+			human.wear_suit = thing
+		if(WEAR_BODY)
+			human.w_uniform = thing
+		if(WEAR_BACK)
+			human.back = thing
+	return TRUE
+
 /// A xeno that stands where it is put and cannot be killed by a rifle
 /datum/unit_test/proc/make_target_dummy(turf/where)
 	var/mob/living/carbon/xenomorph/drone/dummy = allocate(/mob/living/carbon/xenomorph/drone, where)

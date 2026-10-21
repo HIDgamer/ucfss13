@@ -272,11 +272,19 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 		return
 	var/obj/item/used = utility_ref.resolve()
 	utility_ref = null
+	power_down_defibrillator(used)
 	if(used && !QDELETED(used) && used.loc == body)
 		log_decision("put away [used]: [stow_item(used)]")
 	for(var/obj/item/held in list(body.get_active_hand(), body.get_inactive_hand()))
-		if(istype(held, /obj/item/stack/medical) || istype(held, /obj/item/restraint) || istype(held, /obj/item/reagent_container/hypospray/autoinjector))
+		if(istype(held, /obj/item/stack/medical) || istype(held, /obj/item/restraint) || istype(held, /obj/item/reagent_container/hypospray/autoinjector) || istype(held, /obj/item/device/defibrillator))
+			power_down_defibrillator(held)
 			log_decision("put away [held]: [stow_item(held)]")
+
+/// A defibrillator with the paddles out is too bulky to put away, so they go back in first
+/datum/human_ai_brain/proc/power_down_defibrillator(obj/item/thing)
+	var/obj/item/device/defibrillator/defib = thing
+	if(istype(defib) && defib.ready)
+		defib.attack_self(body)
 
 /// Where a recent call for a medic came from, the nearest one of this side within reach
 /datum/human_ai_brain/proc/medic_call_turf()
@@ -367,7 +375,8 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 	intents = list(HAI_INTENT_ENGAGE, HAI_INTENT_ALERT, HAI_INTENT_ORDERED)
 
 /datum/human_ai_action/drag_casualty/get_weight(datum/human_ai_brain/brain)
-	if(!brain.is_medic() || !brain.suppressed())
+	var/medic = brain.is_medic()
+	if(!brain.suppressed() || (!medic && !brain.will_rescue()))
 		return 0
 	var/mob/living/carbon/human/patient = brain.drag_patient()
 	if(!patient || get_dist(brain.body, patient) > 2)
@@ -379,7 +388,7 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 		if(brain.body.pulling == patient)
 			brain.body.stop_pulling()
 		return 0
-	return brain.drag_goal(patient, threat) ? 94 : 0
+	return brain.drag_goal(patient, threat) ? (medic ? 94 : 62) : 0
 
 /datum/human_ai_action/drag_casualty/trigger(datum/human_ai_brain/brain)
 	var/mob/living/carbon/human/patient = brain.drag_patient()
@@ -409,12 +418,33 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 	body.do_pull(patient)
 	return body.pulling == patient
 
-/// The downed man a medic is pulling or has in reach
+/// Whether a soldier who is no medic would pull a downed friend out of the line of fire: anyone loyal enough who is not busy being a civilian or giving up
+/datum/human_ai_brain/proc/will_rescue()
+	return !is_civilian() && !surrendered && !broken_kind && !is_acting() && personality.trait("loyalty") >= HAI_RESCUE_LOYALTY
+
+/// The closest friend lying unconscious in reach that no medic has already claimed, null when there is none
+/datum/human_ai_brain/proc/find_downed_friend()
+	RETURN_TYPE(/mob/living/carbon/human)
+	var/mob/living/carbon/human/closest
+	var/closest_distance = INFINITY
+	for(var/mob/living/carbon/human/other in view(HAI_RESCUE_RANGE, body))
+		if(other == body || other.stat != UNCONSCIOUS || other.anchored || get_disposition(other) > HAI_DISP_FRIEND)
+			continue
+		var/list/datum/claim = GLOB.human_ai_patient_claims[REF(other)]
+		if(claim && claim[1] != src && claim[2] > world.time && !QDELETED(claim[1]))
+			continue
+		var/distance = get_dist(body, other)
+		if(distance < closest_distance)
+			closest = other
+			closest_distance = distance
+	return closest
+
+/// The downed man a brain is pulling or has in reach: a medic goes by who needs treating, anyone else by who is lying closest
 /datum/human_ai_brain/proc/drag_patient()
 	var/mob/living/carbon/human/pulled = body.pulling
 	if(istype(pulled) && pulled.stat != CONSCIOUS)
 		return pulled
-	var/mob/living/carbon/human/patient = find_patient()
+	var/mob/living/carbon/human/patient = is_medic() ? find_patient() : find_downed_friend()
 	return (patient && patient.stat != CONSCIOUS) ? patient : null
 
 /// The closest turf to the casualty that shields against the threat and is free to stand on

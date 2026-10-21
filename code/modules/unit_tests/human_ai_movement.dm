@@ -2,18 +2,33 @@
 /datum/unit_test/human_ai_movement
 	/// Turfs a walker was seen on while a scenario ran
 	var/list/seen = list()
+	/// The order a walker was told to follow, null when it was only sent to a waypoint
+	var/datum/npc_order/move/walk_order
 
 /datum/unit_test/human_ai_movement/proc/build(list/rows)
 	var/datum/human_ai_arena/arena = new(rows, run_loc_floor_bottom_left)
 	return arena
 
-/datum/unit_test/human_ai_movement/proc/spawn_walker(turf/start, turf/goal)
+/// A walker sent to a waypoint has nothing pressing and never climbs, one that is ordered to the goal does when there is no other way
+/datum/unit_test/human_ai_movement/proc/spawn_walker(turf/start, turf/goal, ordered = FALSE)
 	var/mob/living/carbon/human/walker = allocate(/mob/living/carbon/human, start)
 	walker.faction = FACTION_MARINE
 	attach_human_ai(walker)
 	walker.ai_brain.keep_awake = TRUE
-	walker.ai_brain.waypoint = goal
+	walk_order = null
+	if(ordered)
+		walk_order = new
+		walk_order.target_turf = goal
+		walker.ai_brain.give_order(walk_order)
+	else
+		walker.ai_brain.waypoint = goal
 	return walker
+
+/// Whether the walker has finished its trip
+/datum/unit_test/human_ai_movement/proc/trip_over(mob/living/carbon/human/walker)
+	if(walk_order)
+		return walk_order.status != HAI_ORDER_ACTIVE
+	return !walker.ai_brain?.waypoint
 
 /// Waits until the walker is done or the time runs out, noting every turf it stood on
 /datum/unit_test/human_ai_movement/proc/watch(mob/living/carbon/human/walker, seconds)
@@ -22,10 +37,10 @@
 		var/turf/here = get_turf(walker)
 		if(here)
 			seen[here] = TRUE
-		if(!walker.ai_brain?.waypoint)
+		if(trip_over(walker))
 			return TRUE
 		sleep(2.5)
-	return !walker.ai_brain?.waypoint
+	return trip_over(walker)
 
 /datum/unit_test/human_ai_movement/proc/log_has(mob/living/carbon/human/walker, text)
 	for(var/entry in walker.ai_brain?.decision_log)
@@ -59,9 +74,21 @@
 		"#1.TTT...2#",
 		"###########",
 	))
-	walker = spawn_walker(tables.mark("1"), tables.mark("2"))
+	walker = spawn_walker(tables.mark("1"), tables.mark("2"), TRUE)
 	TEST_ASSERT(watch(walker, 40), "The walker never crossed the tables, it is at [walker.x],[walker.y]")
 	TEST_ASSERT(get_dist(walker, tables.mark("2")) <= 1, "The walker did not vault the tables: [walker.ai_brain.decision_log.Join(" | ")]")
+	detach_human_ai(walker)
+
+	// With nothing pressing and only a waypoint to reach the walker leaves the tables alone and gives the goal up
+	var/datum/human_ai_arena/idle_tables = build(list(
+		"###########",
+		"#1.TTT...2#",
+		"###########",
+	))
+	walker = spawn_walker(idle_tables.mark("1"), idle_tables.mark("2"))
+	TEST_ASSERT(watch(walker, 40), "The walker never gave up on the tables, it is at [walker.x],[walker.y]")
+	TEST_ASSERT(walker.x <= idle_tables.mark("1").x + 1, "The walker climbed the tables with no reason to, it is at [walker.x],[walker.y]: [walker.ai_brain.decision_log.Join(" | ")]")
+	TEST_ASSERT_EQUAL(walker.ai_brain.vaults, 0, "The walker vaulted something with no reason to")
 	detach_human_ai(walker)
 
 	var/datum/human_ai_arena/barricades = build(list(
@@ -69,7 +96,7 @@
 		"#1..B..2#",
 		"#########",
 	))
-	walker = spawn_walker(barricades.mark("1"), barricades.mark("2"))
+	walker = spawn_walker(barricades.mark("1"), barricades.mark("2"), TRUE)
 	TEST_ASSERT(watch(walker, 40), "The walker never crossed the barricade, it is at [walker.x],[walker.y]")
 	TEST_ASSERT(get_dist(walker, barricades.mark("2")) <= 1, "The walker did not vault the barricade: [walker.ai_brain.decision_log.Join(" | ")]")
 	detach_human_ai(walker)

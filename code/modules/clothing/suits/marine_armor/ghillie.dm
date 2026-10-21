@@ -45,9 +45,14 @@
 	if(!usr || usr.is_mob_incapacitated(TRUE))
 		return
 
-	if(!ishuman(usr) || hide_in_progress || !can_camo)
+	if(!ishuman(usr))
 		return
-	var/mob/living/carbon/human/H = usr
+	prepare_position(usr)
+
+/// Goes prone and rigs the suit up for its wearer, the verb does this for whoever uses it and a unit run by the AI does it for itself
+/obj/item/clothing/suit/storage/marine/ghillie/proc/prepare_position(mob/living/carbon/human/H)
+	if(!istype(H) || H.is_mob_incapacitated(TRUE) || hide_in_progress || !can_camo)
+		return
 	if(!skillcheck(H, SKILL_SPEC_WEAPONS, SKILL_SPEC_ALL) && H.skills.get_skill_level(SKILL_SPEC_WEAPONS) != SKILL_SPEC_SNIPER && !(GLOB.character_traits[/datum/character_trait/skills/spotter] in H.traits))
 		to_chat(H, SPAN_WARNING("You don't seem to know how to use [src]..."))
 		return

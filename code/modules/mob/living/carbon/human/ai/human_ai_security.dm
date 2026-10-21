@@ -76,7 +76,7 @@
 /datum/human_ai_brain/proc/restraint_candidate(mob/living/carbon/human/other)
 	if(other == body || other.stat == DEAD || other.handcuffed)
 		return FALSE
-	if(!other.ai_brain?.surrendered && other.stat == CONSCIOUS && !other.is_mob_incapacitated())
+	if(!other.ai_brain?.surrendered && !accepts_surrender_of(other) && other.stat == CONSCIOUS && !other.is_mob_incapacitated())
 		return FALSE
 	return TRUE
 
@@ -115,11 +115,15 @@
 	intents = list(HAI_INTENT_IDLE, HAI_INTENT_ALERT, HAI_INTENT_ENGAGE, HAI_INTENT_ORDERED)
 
 /datum/human_ai_action/restrain/get_weight(datum/human_ai_brain/brain)
-	if(brain.role?.id != "security" || brain.reload_phase != HAI_RELOAD_NONE || !brain.find_cuffs())
+	if(brain.is_civilian() || brain.reload_phase != HAI_RELOAD_NONE || !brain.find_cuffs())
+		return 0
+	// Guards take prisoners as a matter of course, anyone else carrying restraints does it only if they have the mercy for it
+	var/guard = brain.role?.id == "security"
+	if(!guard && brain.personality.trait("mercy") < HAI_CAPTIVE_MERCY)
 		return 0
 	if(brain.get_target() && !brain.spares_downed(brain.get_target()))
 		return 0
-	return brain.find_prisoner() ? 78 : 0
+	return brain.find_prisoner() ? (guard ? 78 : 56) : 0
 
 /datum/human_ai_action/restrain/trigger(datum/human_ai_brain/brain)
 	var/mob/living/carbon/human/prisoner = brain.find_prisoner()

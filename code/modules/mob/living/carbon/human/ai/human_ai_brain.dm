@@ -182,6 +182,32 @@
 	var/injections = 0
 	/// Doors hacked open
 	var/hacks = 0
+	/// Dead doors forced open with a crowbar
+	var/pries = 0
+	/// The dead friend a medic is heading for with a defibrillator, when it may look for the next one, bodies left alone until the time given and how many shocks were tried and took
+	var/datum/weakref/corpse_ref
+	var/next_corpse_search = 0
+	var/list/corpse_skips = list()
+	var/defib_tries = 0
+	var/revives = 0
+	/// When it may rig a ghillie suit up again and how often it has
+	var/next_camo_time = 0
+	var/camo_uses = 0
+	/// Hits from its own side by shooter reference text, calls for backup made and answered
+	var/list/tolerance = list()
+	var/next_backup_call = 0
+	var/backups_called = 0
+	var/backups_answered = 0
+	/// The loose item it is heading for, when it may pick up the next one and how much it has picked up
+	var/datum/weakref/loot_ref
+	var/next_loot_time = 0
+	var/loot_count = 0
+	/// Player reference text to when that player last gave this unit a voice command, and how many were obeyed
+	var/list/voice_heard = list()
+	var/voice_orders = 0
+	/// Enemies who called out that they give up and are believed until the time given, and how many surrenders the brain has taken
+	var/list/surrender_accepted = list()
+	var/surrenders_taken = 0
 	var/next_convo_time = 0
 	var/convos_started = 0
 	var/convo_answers = 0
@@ -278,6 +304,12 @@
 	release_post()
 	kite_goal_turf = null
 	inject_times = null
+	tolerance = null
+	voice_heard = null
+	surrender_accepted = null
+	loot_ref = null
+	corpse_ref = null
+	corpse_skips = null
 	patient_ref = null
 	utility_ref = null
 	displace_goal = null
