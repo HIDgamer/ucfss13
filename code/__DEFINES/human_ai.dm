@@ -655,6 +655,29 @@
 #define HAI_EXPR_TASK "task"
 #define HAI_EXPR_NOTICE "notice"
 
+/// How far a medic goes for a wounded or dead man of its squad wherever he is, how long it leaves one it could not get to, how many times one body is shocked back within the window,
+/// the health share below which a unit counts as hurt and how far it goes to fetch the gear it was wearing when it died.
+#define HAI_SQUAD_AID_RANGE 90
+#define HAI_PATIENT_SKIP (30 SECONDS)
+#define HAI_REVIVE_LIMIT 2
+#define HAI_REVIVE_WINDOW (3 MINUTES)
+#define HAI_HURT_FRACTION 0.7
+#define HAI_REGEAR_RANGE 25
+
+/// The fake stairs: the smallest jump a trigger has to make to count as a stair, how close triggers must lie to be one flight, how many pairs of turfs are remembered as walkable or not and for how long,
+/// the wait between two searches for a stair, how long a stair walk may take, how near the exit a body has to be to count as across, how long it may stand on the stair without being carried and how long a stair that failed is left alone.
+#define HAI_STAIR_MIN_VECTOR 6
+#define HAI_STAIR_GROUP_RANGE 4
+#define HAI_REACH_CACHE_SIZE 400
+#define HAI_REACH_CACHE_TIME (30 SECONDS)
+#define HAI_STAIR_PLAN_GAP (4 SECONDS)
+#define HAI_STAIR_TIME (60 SECONDS)
+#define HAI_STAIR_LANDING 3
+#define HAI_STAIR_WAIT (4 SECONDS)
+#define HAI_STAIR_SKIP (2 MINUTES)
+/// How many of the stairs of a real map the test of them tries.
+#define HAI_REAL_STAIR_SAMPLES 3
+
 /// The kinds of work a maintenance unit takes up.
 #define HAI_MAINT_LIGHT "light"
 #define HAI_MAINT_CLEAN "clean"

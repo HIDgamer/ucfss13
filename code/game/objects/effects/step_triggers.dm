@@ -111,6 +111,17 @@
 	var/vector_z = 0
 	affect_ghosts = 1
 
+/obj/effect/step_trigger/teleporter_vector/Initialize(mapload, ...)
+	. = ..()
+	// The AI looks the stairs up here when it needs to cross between two parts of the map
+	GLOB.vector_triggers += src
+	GLOB.vector_trigger_changes++
+
+/obj/effect/step_trigger/teleporter_vector/Destroy()
+	GLOB.vector_triggers -= src
+	GLOB.vector_trigger_changes++
+	return ..()
+
 /obj/effect/step_trigger/teleporter_vector/Trigger(atom/movable/A)
 	if(A && A.loc && A.type != /atom/movable/clone) //Prevent clones from teleporting
 		var/lx = A.x

@@ -319,6 +319,17 @@
 	var/datum/job/commander = human_ai_job_of_title(JOB_CO)
 	TEST_ASSERT(human_ai_command_job(commander), "The Commanding Officer is not senior staff")
 	TEST_ASSERT(!human_ai_command_job(human_ai_job_of_title(JOB_SQUAD_MARINE)), "A rifleman is senior staff")
+	// The officers and the heads of the departments are command staff too
+	for(var/title in GLOB.npc_command_staff_jobs)
+		var/datum/job/staff = human_ai_job_of_title(title)
+		// Not every job on the list is in every build
+		if(staff)
+			TEST_ASSERT(human_ai_command_job(staff), "[title] is not command staff")
+	for(var/title in list(JOB_XO))
+		TEST_ASSERT_NOTNULL(human_ai_job_of_title(title), "There is no job called [title]")
+		TEST_ASSERT(human_ai_command_job(human_ai_job_of_title(title)), "[title] is not command staff")
+	TEST_ASSERT(!human_ai_command_job(human_ai_job_of_title(JOB_POLICE)), "A military police officer is command staff")
+	TEST_ASSERT(!human_ai_command_job(human_ai_job_of_title(JOB_SQUAD_LEADER)), "A squad leader is command staff")
 	TEST_ASSERT(!human_ai_command_job(null), "No job at all is senior staff")
 
 	var/turf/start = run_loc_floor_bottom_left

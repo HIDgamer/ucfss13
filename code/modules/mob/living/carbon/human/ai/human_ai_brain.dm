@@ -280,6 +280,27 @@
 	var/next_maint_scan = 0
 	var/list/maint_skips = list()
 	var/maint_done = 0
+	/// The stair it is walking to, where that comes out, the goal it was planned for, when to give up on it, when it got onto it, whether it is the stair itself being walked to,
+	/// when it may search again, the stairs that failed until the time given and how many it has taken
+	var/turf/stair_entry
+	var/turf/stair_exit
+	var/turf/stair_goal
+	var/obj/structure/ladder/stair_ladder
+	var/stair_direction
+	var/stair_until = 0
+	var/stair_on_entry_since = 0
+	var/stair_inner = FALSE
+	var/next_stair_plan = 0
+	var/list/stair_skips = list()
+	var/stairs_taken = 0
+	/// Times it kept still for a broken bone
+	var/holds_still = 0
+	/// Wounded men it could not get to, by reference text to the time it tries them again
+	var/list/patient_skips = list()
+	/// The gear this body wore when it died, as list(slot, weakref to the item), and when it may next go for it
+	var/list/regear_items
+	var/next_regear_time = 0
+	var/regeared = 0
 	/// When a maintenance unit may next come out with a quip and next look over the people around it
 	var/next_joe_quip = 0
 	var/next_joe_watch = 0
@@ -305,6 +326,11 @@
 
 /datum/human_ai_brain/Destroy()
 	SShuman_ai.unregister(src)
+	// The claims on patients are kept in a global list that would hold the brain for ever
+	for(var/key in GLOB.human_ai_patient_claims)
+		var/list/claim = GLOB.human_ai_patient_claims[key]
+		if(claim[1] == src)
+			GLOB.human_ai_patient_claims -= key
 	body = null
 	personality = null
 	action_pool = null
@@ -350,6 +376,13 @@
 	maint_ref = null
 	maint_skips = null
 	joe_noticed = null
+	patient_skips = null
+	stair_entry = null
+	stair_exit = null
+	stair_goal = null
+	stair_ladder = null
+	stair_skips = null
+	regear_items = null
 	captive_ref = null
 	holding_turf = null
 	loot_ref = null

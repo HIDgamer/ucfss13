@@ -41,6 +41,8 @@ GLOBAL_LIST_EMPTY(human_ai_squads)
 	var/next_flank_time = 0
 	var/next_fallback_time = 0
 	var/list/datum/human_ai_callout/callouts = list()
+	/// The men of the squad that died, the squad still knows where they lie
+	var/list/datum/weakref/fallen = list()
 	/// Mover brain to the order that sends it along the play
 	var/list/mover_orders = list()
 	/// Mover brain to its health fraction when the play began
@@ -125,6 +127,10 @@ GLOBAL_LIST_EMPTY(human_ai_squads)
 	brain.squad_role = HAI_SQUAD_ROLE_NONE
 	if(reason == HAI_STOP_DEAD)
 		casualties++
+		if(brain.body)
+			if(length(fallen) >= 20)
+				fallen.Cut(1, 2)
+			fallen += WEAKREF(brain.body)
 	if(!length(members))
 		qdel(src)
 		return

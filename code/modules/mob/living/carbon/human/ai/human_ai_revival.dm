@@ -13,6 +13,8 @@
 		"keep_awake" = keep_awake,
 		"cover_enabled" = cover_enabled,
 		"home" = home_turf,
+		"gear" = worn_gear(),
+		"squad" = squad ? WEAKREF(squad) : null,
 	)
 
 /// A body that was driven by a brain and has died waits for its revival to take the brain back
@@ -56,6 +58,13 @@
 	brain.cover_enabled = memory["cover_enabled"]
 	if(memory["home"])
 		brain.home_turf = memory["home"]
+	// What it wore when it died may be lying about and it goes back to its squad
+	if(length(memory["gear"]))
+		brain.regear_items = memory["gear"]
+	var/datum/weakref/squad_ref = memory["squad"]
+	var/datum/human_ai_squad/old_squad = squad_ref?.resolve()
+	if(old_squad && !QDELETED(old_squad))
+		old_squad.add_member(brain)
 	brain.apply_posture()
 	brain.log_decision("took the body back after it was revived")
 	return TRUE

@@ -9,6 +9,9 @@ GLOBAL_LIST_INIT(npc_command_admin_actions, list(
 /// Tabs of the panel a faction commander may open, admins have all of them
 GLOBAL_LIST_INIT(npc_command_commander_tabs, list("roster", "squads", "orders"))
 
+/// Jobs on the command staff of the ship, who may command the AI humans of their side without being a whitelisted commander: the officers, the heads of the departments and the senior enlisted
+GLOBAL_LIST_INIT(npc_command_staff_jobs, list(JOB_CO, JOB_XO, JOB_SO, JOB_AUXILIARY_OFFICER, JOB_SEA, JOB_CHIEF_POLICE, JOB_WARDEN, JOB_CMO, JOB_CHIEF_ENGINEER, JOB_CHIEF_REQUISITION))
+
 /// The job with the title, null when there is none
 /proc/human_ai_job_of_title(title)
 	RETURN_TYPE(/datum/job)
@@ -25,7 +28,11 @@ GLOBAL_LIST_INIT(npc_command_commander_tabs, list("roster", "squads", "orders"))
 
 /// Whether the job is a whitelisted commander role, the Commanding Officer or what is the equivalent in another faction
 /proc/human_ai_command_job(datum/job/job)
-	return job && (job.flags_startup_parameters & ROLE_WHITELISTED) && (job.flags_whitelist & HAI_COMMAND_WHITELISTS)
+	if(!job)
+		return FALSE
+	if(job.title in GLOB.npc_command_staff_jobs)
+		return TRUE
+	return (job.flags_startup_parameters & ROLE_WHITELISTED) && (job.flags_whitelist & HAI_COMMAND_WHITELISTS)
 
 /**
  * The faction whose AI humans the player may command from the panel, null when they may command none. Only a living player who holds a

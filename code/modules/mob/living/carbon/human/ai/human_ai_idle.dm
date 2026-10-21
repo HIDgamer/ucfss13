@@ -38,7 +38,8 @@
 		"talk" = round(personality.trait("chattiness") * 0.1),
 		"chat" = round(personality.trait("sociability") * 0.1),
 	)
-	if(!has_post)
+	// Only civilians stroll about, a soldier with no post holds where it is with its squad, there is always something better to do than wander
+	if(!has_post && is_civilian() && !is_hurt())
 		choices["wander"] = round(5 + personality.trait("initiative") * 0.15)
 	switch(pick_weight(choices))
 		if("look")
