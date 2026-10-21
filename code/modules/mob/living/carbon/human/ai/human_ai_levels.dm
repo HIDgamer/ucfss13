@@ -71,9 +71,16 @@
 	if(is_acting())
 		last_progress_time = world.time
 		return TRUE
+	if(stair_entry)
+		return walk_stairs(goal_turf, want_sprint)
 	var/list/route = find_ladder_toward(goal_turf.z)
 	if(!route)
-		log_decision("no ladder leads from level [body.z] to level [goal_turf.z]")
+		// No ladder, but a stair may lead there
+		var/list/stair = find_stair_toward(goal_turf.z)
+		if(stair)
+			start_stairs(stair[1], stair[2], goal_turf)
+			return walk_stairs(goal_turf, want_sprint)
+		log_decision("no ladder or stair leads from level [body.z] to level [goal_turf.z]")
 		move_state = HAI_MOVE_BLOCKED
 		return FALSE
 	var/obj/structure/ladder/ladder = route[1]

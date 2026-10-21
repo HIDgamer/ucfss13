@@ -125,7 +125,7 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 	return list(best_injector, best_score)
 
 /// The treatment the patient needs most that the body has the supplies for, as list(kind, limb or injector), null when there is none
-/datum/human_ai_brain/proc/patient_need(mob/living/carbon/human/patient)
+/datum/human_ai_brain/proc/patient_need(mob/living/carbon/human/patient, only_kind)
 	var/list/supplies = medical_supplies()
 	var/best_kind
 	var/obj/limb/best_limb
@@ -137,10 +137,10 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 			// A machine is mended with a welder for the dents and cable for the burns, bandages and injections do nothing for it
 			var/machine_score = 0
 			var/machine_kind
-			if(length(supplies[HAI_MED_WELD]) && limb.brute_dam >= HAI_SYNTH_REPAIR_MIN)
+			if(length(supplies[HAI_MED_WELD]) && limb.brute_dam >= HAI_SYNTH_REPAIR_MIN && (!only_kind || only_kind == HAI_MED_WELD))
 				machine_score = 30 + limb.brute_dam * 0.5
 				machine_kind = HAI_MED_WELD
-			if(length(supplies[HAI_MED_CABLE]) && limb.burn_dam >= HAI_SYNTH_REPAIR_MIN && 25 + limb.burn_dam * 0.4 > machine_score)
+			if(length(supplies[HAI_MED_CABLE]) && limb.burn_dam >= HAI_SYNTH_REPAIR_MIN && 25 + limb.burn_dam * 0.4 > machine_score && (!only_kind || only_kind == HAI_MED_CABLE))
 				machine_score = 25 + limb.burn_dam * 0.4
 				machine_kind = HAI_MED_CABLE
 			if(machine_kind && machine_score > best_score)
@@ -150,20 +150,21 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 			continue
 		var/score = 0
 		var/kind
-		if(length(supplies[HAI_MED_BANDAGE]) && limb_needs_bandage(limb))
+		if(length(supplies[HAI_MED_BANDAGE]) && limb_needs_bandage(limb) && (!only_kind || only_kind == HAI_MED_BANDAGE))
 			score = 45 + limb.brute_dam * 0.6
 			kind = HAI_MED_BANDAGE
-		if(length(supplies[HAI_MED_SALVE]) && limb_needs_salve(limb) && 25 + limb.burn_dam * 0.4 > score)
+		if(length(supplies[HAI_MED_SALVE]) && limb_needs_salve(limb) && 25 + limb.burn_dam * 0.4 > score && (!only_kind || only_kind == HAI_MED_SALVE))
 			score = 25 + limb.burn_dam * 0.4
 			kind = HAI_MED_SALVE
-		if(length(supplies[HAI_MED_SPLINT]) && (limb.status & LIMB_BROKEN) && !(limb.status & LIMB_SPLINTED) && (limb.name in list("l_arm", "r_arm", "l_leg", "r_leg", "chest", "head")) && 35 + limb.brute_dam > score)
-			score = 35 + limb.brute_dam
+		// A broken bone is the worst of it, every move on it risks bleeding inside, so it is put in a splint before anything else is done
+		if(length(supplies[HAI_MED_SPLINT]) && (limb.status & LIMB_BROKEN) && !(limb.status & LIMB_SPLINTED) && (limb.name in GLOB.human_ai_splint_zones) && 80 + limb.brute_dam > score && (!only_kind || only_kind == HAI_MED_SPLINT))
+			score = 80 + limb.brute_dam
 			kind = HAI_MED_SPLINT
 		if(kind && score > best_score)
 			best_score = score
 			best_kind = kind
 			best_limb = limb
-	var/list/injection = issynth(patient) ? null : injector_need(patient)
+	var/list/injection = (issynth(patient) || only_kind) ? null : injector_need(patient)
 	if(injection && injection[2] > best_score)
 		return list(HAI_MED_INJECTOR, injection[1])
 	if(!best_kind)
@@ -187,8 +188,17 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 	next_patient_search = world.time + HAI_PATIENT_SEARCH_INTERVAL
 	var/mob/living/carbon/human/best
 	var/best_score = 0
+	var/list/mob/living/carbon/human/seen = list()
 	for(var/mob/living/carbon/human/other in view(HAI_MEDIC_RANGE, body))
-		if(!will_treat(other))
+		seen += other
+	// The men of its own squad are known to it wherever they are, it does not wait to be dragged to them
+	var/list/mob/living/carbon/human/known = seen | squad_mates()
+	for(var/mob/living/carbon/human/other as anything in known)
+		var/distant = !(other in seen)
+		// Nobody leaves a fight to cross the ship for a man he cannot even see
+		if(distant && (other.z != body.z || get_dist(body, other) > HAI_SQUAD_AID_RANGE || get_target()))
+			continue
+		if(!will_treat(other) || patient_skips[REF(other)] > world.time)
 			continue
 		var/list/datum/claim = GLOB.human_ai_patient_claims[REF(other)]
 		if(claim && claim[1] != src && claim[2] > world.time && !QDELETED(claim[1]))
@@ -197,7 +207,11 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 		if(!need)
 			continue
 		var/health_fraction = clamp(other.health / max(other.maxHealth, 1), 0, 1)
-		var/score = (1 - health_fraction) * 100 + (other.stat != CONSCIOUS ? 50 : 0) - get_dist(body, other) * 3 + (other == body ? -20 : 0)
+		var/urgency = (1 - health_fraction) * 100 + (other.stat != CONSCIOUS ? 50 : 0) + (need[1] == HAI_MED_SPLINT ? 40 : 0)
+		// A scratch on a man across the ship is not worth the walk
+		if(distant && urgency < 25)
+			continue
+		var/score = urgency - get_dist(body, other) * (distant ? 0.4 : 3) + (other == body ? -20 : 0)
 		if(score > best_score)
 			best_score = score
 			best = other
@@ -229,10 +243,10 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 	return item == body.get_active_hand()
 
 /// Applies the treatment the patient needs most, true while it works on them
-/datum/human_ai_brain/proc/treat(mob/living/carbon/human/patient)
+/datum/human_ai_brain/proc/treat(mob/living/carbon/human/patient, only_kind)
 	if(is_acting())
 		return TRUE
-	var/list/need = patient_need(patient)
+	var/list/need = patient_need(patient, only_kind)
 	if(!need)
 		return FALSE
 	if(body.pulling)
@@ -250,6 +264,9 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 			break
 	if(!pack)
 		return FALSE
+	// A splint cannot be put on the arm that holds it, so the splint goes in the other hand for that one
+	if(patient == body && need[1] == HAI_MED_SPLINT && limb_on_active_side(limb))
+		body.swap_hand()
 	if(!hand_item(pack))
 		return FALSE
 	body.zone_selected = limb.name
@@ -263,6 +280,12 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 	if(patient != body)
 		GLOB.human_ai_patient_claims[REF(patient)] = list(src, world.time + HAI_PATIENT_CLAIM_TIME)
 	return TRUE
+
+/// Whether the limb is an arm or a hand on the side of the hand that is active
+/datum/human_ai_brain/proc/limb_on_active_side(obj/limb/limb)
+	if(body.hand)
+		return limb.name in list("l_arm", "l_hand")
+	return limb.name in list("r_arm", "r_hand")
 
 /// Gives the patient the injection chosen for them, true while it works on them
 /datum/human_ai_brain/proc/inject(mob/living/carbon/human/patient, obj/item/reagent_container/hypospray/autoinjector/injector)
@@ -355,7 +378,12 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 	if(!patient)
 		return FALSE
 	if(get_dist(brain.body, patient) > 1)
-		return brain.move_to(patient, 1, get_dist(brain.body, patient) > HAI_SPRINT_MIN_DISTANCE)
+		if(brain.move_to(patient, 1, get_dist(brain.body, patient) > HAI_SPRINT_MIN_DISTANCE))
+			return TRUE
+		// Nothing leads to him, so the medic looks to someone else for a while instead of trying at every step
+		if(brain.move_state == HAI_MOVE_BLOCKED)
+			brain.skip_patient(patient)
+		return FALSE
 	if(brain.treat(patient))
 		brain.treated_patients[REF(patient)] = TRUE
 		return TRUE
@@ -383,12 +411,15 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 /datum/human_ai_action/self_care
 	id = "self_care"
 	conflicts = HAI_LIMB_HANDS
-	intents = list(HAI_INTENT_IDLE, HAI_INTENT_ALERT)
+	intents = list(HAI_INTENT_IDLE, HAI_INTENT_ALERT, HAI_INTENT_HOLD)
 
 /datum/human_ai_action/self_care/get_weight(datum/human_ai_brain/brain)
 	if(brain.is_acting() || brain.get_target() || (!brain.is_medic() && brain.surrendered))
 		return 0
-	return brain.patient_need(brain.body) ? 30 : 0
+	if(!brain.patient_need(brain.body))
+		return 0
+	// The worse off it is, the sooner it sees to itself before anything else it might do
+	return 30 + round(brain.hurt_level() * 70)
 
 /datum/human_ai_action/self_care/trigger(datum/human_ai_brain/brain)
 	return brain.treat(brain.body)

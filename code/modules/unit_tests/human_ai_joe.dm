@@ -213,12 +213,19 @@
 	var/hits = 0
 	for(var/attempt in 1 to 8)
 		sleep(1 SECONDS)
+		// The Joe may have wandered off to a job, the pest is put back beside it
+		if(get_dist(joe, pest) > 1)
+			for(var/direction in GLOB.cardinals)
+				var/turf/beside = get_step(joe, direction)
+				if(beside && !beside.density && !(locate(/mob/living) in beside))
+					pest.forceMove(beside)
+					break
 		brain.signal_take_damage(null, null, BRUTE)
 		hits++
 		if(brain.holds_grudge_against(pest))
 			break
 		TEST_ASSERT(brain.barks >= 1, "The Joe took a hit without a word of warning")
-	TEST_ASSERT(brain.holds_grudge_against(pest), "The Joe never lost its patience, after [hits] hits")
+	TEST_ASSERT(brain.holds_grudge_against(pest), "The Joe never lost its patience, after [hits] hits, the pest [get_dist(joe, pest)] tiles away on intent [pest.a_intent]: [brain.decision_log.Join(" | ")]")
 	TEST_ASSERT(hits >= 2 && hits <= 5, "The Joe lost its patience after [hits] hits")
 	TEST_ASSERT_EQUAL(brain.escalations, 1, "The Joe's change of heart was not counted")
 

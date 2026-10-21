@@ -25,7 +25,18 @@
 		return FALSE
 	if(world.time < corpse_skips[REF(other)] || get_disposition(other) > HAI_DISP_FRIEND)
 		return FALSE
+	// A body that keeps dying again straight after being shocked is not shocked for ever
+	var/list/log = GLOB.human_ai_revive_log[REF(other)]
+	if(log && log[1] >= HAI_REVIVE_LIMIT && world.time < log[2] + HAI_REVIVE_WINDOW)
+		return FALSE
 	return other.is_revivable() && other.check_tod()
+
+/// How far above the point of death the body has to be mended before a shock, more for one that was brought back lately and died again
+/datum/human_ai_brain/proc/defib_margin(mob/living/carbon/human/corpse)
+	var/list/log = GLOB.human_ai_revive_log[REF(corpse)]
+	if(log && world.time < log[2] + HAI_REVIVE_WINDOW)
+		return HAI_DEFIB_MARGIN + 30 * log[1]
+	return HAI_DEFIB_MARGIN
 
 /// The nearest dead friend in sight that nobody else is working on, null when there is none or the medic has no defibrillator to bring one back with
 /datum/human_ai_brain/proc/find_corpse()
@@ -39,8 +50,13 @@
 		return null
 	var/mob/living/carbon/human/best
 	var/best_distance = INFINITY
+	var/list/mob/living/carbon/human/known = list()
 	for(var/mob/living/carbon/human/other in view(HAI_MEDIC_RANGE, body))
-		if(!will_revive(other))
+		known += other
+	// The fallen of its squad are known to it wherever they lie
+	known |= squad_mates(TRUE)
+	for(var/mob/living/carbon/human/other as anything in known)
+		if(other.z != body.z || get_dist(body, other) > HAI_SQUAD_AID_RANGE || !will_revive(other))
 			continue
 		var/list/datum/claim = GLOB.human_ai_patient_claims[REF(other)]
 		if(claim && claim[1] != src && claim[2] > world.time && !QDELETED(claim[1]))
@@ -70,7 +86,7 @@
 		acting_until = world.time + 6 SECONDS
 		INVOKE_ASYNC(src, PROC_REF(pull_off_suit), corpse)
 		return TRUE
-	if(defib_outlook(corpse, defib) <= HEALTH_THRESHOLD_DEAD + HAI_DEFIB_MARGIN)
+	if(defib_outlook(corpse, defib) <= HEALTH_THRESHOLD_DEAD + defib_margin(corpse))
 		// Nothing to mend it with means nothing can be done for it
 		return treat(corpse)
 	if(!hand_item(defib))
@@ -103,6 +119,13 @@
 	defib.attack(corpse, body)
 	if(QDELETED(corpse) || corpse.stat != DEAD)
 		revives++
+		if(!QDELETED(corpse))
+			var/list/log = GLOB.human_ai_revive_log[REF(corpse)]
+			if(!log || world.time > log[2] + HAI_REVIVE_WINDOW)
+				log = list(0, world.time)
+			log[1]++
+			log[2] = world.time
+			GLOB.human_ai_revive_log[REF(corpse)] = log
 		log_decision("brought [corpse] back with [defib]")
 	else
 		if(length(corpse_skips) >= 10)
@@ -128,7 +151,13 @@
 	if(!corpse)
 		return FALSE
 	if(get_dist(brain.body, corpse) > 1)
-		return brain.move_to(corpse, 1, get_dist(brain.body, corpse) > HAI_SPRINT_MIN_DISTANCE)
+		if(brain.move_to(corpse, 1, get_dist(brain.body, corpse) > HAI_SPRINT_MIN_DISTANCE))
+			return TRUE
+		// Nothing leads to it, so it is left for a while instead of tried again at every step
+		if(brain.move_state == HAI_MOVE_BLOCKED)
+			brain.corpse_skips[REF(corpse)] = world.time + HAI_DEFIB_RETRY
+			brain.next_corpse_search = 0
+		return FALSE
 	if(brain.revive(corpse))
 		return TRUE
 	// Nothing to be done for it with what the medic has, so leave it for a while instead of standing over it

@@ -24,7 +24,11 @@
 		move_state = HAI_MOVE_ARRIVED
 		climb_detours = 0
 		set_sprint(FALSE)
+		clear_stairs()
 		return FALSE
+	// A stair is being walked to and the goal is on the other side of it
+	if(stair_entry && !stair_inner)
+		return walk_stairs(goal_turf, want_sprint)
 	if(!move_goal || get_dist(move_goal, goal_turf) > 2)
 		reset_progress()
 	move_goal = goal_turf
@@ -55,6 +59,8 @@
 		next_turf = get_step(here, get_dir(here, goal_turf))
 	else
 		next_turf = next_path_turf(here, goal_turf)
+		if(stair_entry && !stair_inner)
+			return walk_stairs(goal_turf, want_sprint)
 		if(move_state == HAI_MOVE_BLOCKED)
 			return FALSE
 
@@ -170,8 +176,11 @@
 		path_goal = goal_turf
 		path_built_at = world.time
 		if(islist(routed) && !length(routed))
-			route_retries++
 			path = null
+			// No way on foot, which is what a goal on the far side of a fake stair looks like
+			if(!stair_inner && plan_stairs(here, goal_turf))
+				return null
+			route_retries++
 			if(route_retries > HAI_ROUTE_RETRIES)
 				log_decision("no route to [goal_turf.x],[goal_turf.y]")
 				move_state = HAI_MOVE_BLOCKED

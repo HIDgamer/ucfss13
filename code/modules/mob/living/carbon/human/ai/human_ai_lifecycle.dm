@@ -33,6 +33,7 @@ GLOBAL_LIST_EMPTY(ai_human_list)
 		brain.role.equip_kit(brain)
 	brain.issue_hack_tools()
 	brain.issue_repair_tools()
+	brain.issue_first_aid()
 	brain.start()
 	brain.log_decision("attached ([brain.personality.id])")
 	return TRUE
