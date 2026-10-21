@@ -11,6 +11,8 @@
 	var/visible = FALSE
 	var/threat = 0
 	var/next_report = 0
+	/// The marker over the head that was last shown for this contact, so that each is shown once
+	var/cue_stage = 0
 
 /datum/ai_contact/Destroy()
 	subject_ref = null

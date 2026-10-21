@@ -122,6 +122,25 @@
 	var/list/recover_skips = list()
 	var/recovered_weapons = 0
 	var/wall_holds = 0
+	/// How alarmed it is, from nothing to one, and since when; bodies found and until when they are remembered; the time of the last marker over the head
+	var/vigilance_level = 0
+	var/vigilance_time = 0
+	var/list/known_bodies
+	var/next_cue_time = 0
+	/// The farthest it sees through what it wears and the state of its eyes, and when that was worked out
+	var/eye_reach_value = 0
+	var/eye_reach_time = -1
+	/// The next look over its gear, the thing to do about it, the places where the lights and the night vision went on, how long a welding mask stays down and how often the gear was switched
+	var/next_gear_check = 0
+	var/list/gear_job
+	var/area/lamp_area
+	var/area/vision_area
+	var/weld_until = 0
+	var/gear_toggles = 0
+	/// Told to keep the lights off whatever the dark
+	var/lights_out = FALSE
+	var/footsteps_heard = 0
+	var/bodies_found = 0
 	/// Until when the hands are tied up with something that is not shooting, a grenade being drawn and thrown for one
 	var/hands_busy_until = 0
 	/// The light on a tile as the unit sees it when set, for tests that need a dark place
@@ -391,6 +410,11 @@
 	main_gun_ref = null
 	recover_ref = null
 	recover_skips = null
+	known_bodies = null
+	GLOB.human_ai_lit_lamps -= src
+	gear_job = null
+	lamp_area = null
+	vision_area = null
 	stair_entry = null
 	stair_exit = null
 	stair_goal = null

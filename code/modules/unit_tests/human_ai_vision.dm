@@ -68,7 +68,7 @@
 	// A dim place only takes longer
 	set_up(field, 7)
 	brain = watcher.ai_brain
-	brain.light_override = (HAI_DARK_LIGHT + HAI_DIM_LIGHT) / 2
+	brain.light_override = (HAI_DARK_LIGHT + HAI_LIT_LIGHT) / 2
 	far = get_turf(subject)
 	var/clear_dim = brain.clarity_of(subject, far, 7)
 	TEST_ASSERT(clear_dim > 0 && clear_dim < 1, "A dim place did not make something harder to make out: [clear_dim]")

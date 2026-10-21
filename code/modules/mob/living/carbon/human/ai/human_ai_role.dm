@@ -62,6 +62,8 @@ GLOBAL_LIST_INIT(human_ai_roles, init_human_ai_roles())
 	var/maintains = FALSE
 	/// Speaks in the lines of a Working Joe's voice synthesizer
 	var/joe_voice = FALSE
+	/// Works unseen: keeps its lights off in the dark until there is something to look at
+	var/covert = FALSE
 
 /// Adds what the role's duties need and the equipment left out
 /datum/human_ai_role/proc/equip_kit(datum/human_ai_brain/brain)
@@ -128,6 +130,7 @@ GLOBAL_LIST_INIT(human_ai_roles, init_human_ai_roles())
 	id = "sniper"
 	name = "Sniper"
 	nests = TRUE
+	covert = TRUE
 
 /datum/human_ai_role/machinegunner
 	id = "machinegunner"

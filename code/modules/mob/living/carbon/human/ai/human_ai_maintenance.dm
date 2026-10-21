@@ -294,6 +294,7 @@
 	var/obj/item/tool/weldingtool/welder = find_welder()
 	if(!take_tool(welder))
 		return FALSE
+	prepare_to_weld()
 	if(!welder.welding)
 		welder.toggle()
 	if(!welder.welding)
@@ -315,6 +316,7 @@
 		var/obj/item/tool/weldingtool/welder = find_welder()
 		if(!take_tool(welder))
 			return FALSE
+		prepare_to_weld()
 		if(!welder.welding)
 			welder.toggle()
 		if(!welder.welding)

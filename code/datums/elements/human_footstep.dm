@@ -30,6 +30,7 @@
 
 	if(source.body_position == LYING_DOWN)
 		playsound(step_turf, 'sound/effects/footstep/crawl1.ogg', FOOTSTEP_CRAWL_VOLUME, TRUE, FOOTSTEP_BASE_RANGE - 3, VOLUME_FOOTSTEPS, falloff = 1)
+		human_ai_footstep(source, step_turf, HAI_FOOTSTEP_CRAWL_RANGE)
 		return
 	if(source.m_intent == MOVE_INTENT_WALK)
 		return
@@ -37,6 +38,7 @@
 	steps_taken[source]++
 	if(steps_taken[source] % FOOTSTEP_STEP_INTERVAL)
 		return
+	human_ai_footstep(source, step_turf, HAI_FOOTSTEP_RANGE)
 
 	var/list/sounds
 	if(source.shoes)

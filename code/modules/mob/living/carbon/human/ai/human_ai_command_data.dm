@@ -141,6 +141,8 @@ GLOBAL_VAR_INIT(npc_roster_sort_key, "name")
 				"aim_error" = SShuman_ai.aim_error_mult,
 				"reaction" = SShuman_ai.reaction_mult,
 				"aggression" = SShuman_ai.aggression_bias,
+				"detection" = SShuman_ai.detection_mult,
+				"markers" = SShuman_ai.stealth_cues,
 				"max_full" = SShuman_ai.max_full,
 				"max_total" = SShuman_ai.max_total,
 				"full" = SShuman_ai.full_count,

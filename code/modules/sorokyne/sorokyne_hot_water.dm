@@ -20,9 +20,10 @@
 	invisibility = 101
 
 /obj/effect/blocker/sorokyne_hot_water/Crossed(mob/living/affected_mob)
-	if(affected_mob.stat == DEAD)
-		return
+	// Bullets, dropped guns and anything else that crosses the water has no stat to read
 	if(!ishuman(affected_mob))
+		return
+	if(affected_mob.stat == DEAD)
 		return
 
 	affected_mob.AddComponent(/datum/component/damage_over_time, /obj/effect/blocker/sorokyne_hot_water, dam_amount, dam_type, target_temp, temp_delta, synth_dmg_mult=0, pred_dmg_mult=0)

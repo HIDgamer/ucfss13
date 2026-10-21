@@ -38,6 +38,9 @@ SUBSYSTEM_DEF(human_ai)
 	/// Difficulty knobs, one is neutral: bigger aim error makes brains miss more, bigger reaction makes them slower to start shooting
 	var/aim_error_mult = 1
 	var/reaction_mult = 1
+	/// How quick the brains are to notice and hear, one is neutral and the bigger it is the harder it is to move about unseen, and whether a marker goes over a head that is stirred by something
+	var/detection_mult = 1
+	var/stealth_cues = FALSE
 	/// Brains switched off for throwing too many errors
 	var/disabled_count = 0
 	/// Nothing thinks while this is set, switched from the command panel
