@@ -50948,7 +50948,10 @@
 /turf/open/floor/plating/plating_catwalk,
 /area/almayer/shipboard/brig/general_equipment)
 "pHc" = (
-/obj/structure/ladder/multiz,
+/obj/structure/ladder/multiz{
+	height = 1;
+	id = "engineeringladder"
+	},
 /turf/open/floor/almayer/plating,
 /area/almayer/engineering/lower/workshop)
 "pHh" = (

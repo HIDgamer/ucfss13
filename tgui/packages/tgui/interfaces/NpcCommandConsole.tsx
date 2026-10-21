@@ -170,6 +170,8 @@ type Data = {
     aim_error: number;
     reaction: number;
     aggression: number;
+    detection: number;
+    markers: BooleanLike;
     max_full: number;
     max_total: number;
     full: number;
@@ -742,6 +744,24 @@ const SquadsTab = () => {
             <Stack.Item>
               <Button icon="sign-out-alt" onClick={() => act('leave_squad')}>
                 Leave squad
+              </Button>
+            </Stack.Item>
+            <Stack.Item>
+              <Button
+                icon="moon"
+                tooltip="The selected keep their lights off, even in the dark"
+                onClick={() => act('set_lights', { dark: 1 })}
+              >
+                Run dark
+              </Button>
+            </Stack.Item>
+            <Stack.Item>
+              <Button
+                icon="lightbulb"
+                tooltip="The selected use their lights when it is dark"
+                onClick={() => act('set_lights', { dark: 0 })}
+              >
+                Use lights
               </Button>
             </Stack.Item>
           </Stack>
@@ -1519,6 +1539,29 @@ const DifficultyTab = () => {
               act('set_difficulty', { aggression: value })
             }
           />
+        </LabeledList.Item>
+        <LabeledList.Item label="Detection">
+          <Slider
+            minValue={0.25}
+            maxValue={4}
+            step={0.05}
+            value={difficulty.detection}
+            onChange={(_, value) => act('set_difficulty', { detection: value })}
+          />
+          <Box mt={1} color="label">
+            How quick they are to notice and to hear. Below one it is easier to
+            slip past them, above one it is harder.
+          </Box>
+        </LabeledList.Item>
+        <LabeledList.Item label="Alert markers">
+          <Button.Checkbox
+            checked={!!difficulty.markers}
+            onClick={() =>
+              act('set_difficulty', { markers: difficulty.markers ? 0 : 1 })
+            }
+          >
+            Show a ? or ! over a head that is stirred
+          </Button.Checkbox>
         </LabeledList.Item>
         <LabeledList.Item label="Full fidelity cap">
           <NumberInput

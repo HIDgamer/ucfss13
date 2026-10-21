@@ -272,6 +272,10 @@
 	TEST_ASSERT_EQUAL(first.m_intent, MOVE_INTENT_WALK, "A walk only unit was not walking")
 	TEST_ASSERT(!first.sprinting, "A walk only unit sprinted")
 	console.handle_action(admin, "set_move_cap", list("cap" = HAI_MOVE_CAP_SPRINT))
+	console.handle_action(admin, "set_lights", list("dark" = 1))
+	TEST_ASSERT(first.ai_brain.lights_out, "The selected were not told to run dark")
+	console.handle_action(admin, "set_lights", list("dark" = 0))
+	TEST_ASSERT(!first.ai_brain.lights_out, "The selected were not told to use their lights again")
 
 	var/faction_before = human_ai_faction_relation(FACTION_MARINE, FACTION_PMC)
 	var/datum/human_ai_brain/marine_brain = first.ai_brain
@@ -294,6 +298,15 @@
 	var/reaction_before = SShuman_ai.reaction_mult
 	var/full_before = SShuman_ai.max_full
 	var/total_before = SShuman_ai.max_total
+	var/detection_before = SShuman_ai.detection_mult
+	var/markers_before = SShuman_ai.stealth_cues
+	console.handle_action(admin, "set_difficulty", list("detection" = 9, "markers" = 1))
+	TEST_ASSERT_EQUAL(SShuman_ai.detection_mult, 4, "Detection was not clamped")
+	TEST_ASSERT(SShuman_ai.stealth_cues, "The panel could not switch the markers on")
+	console.handle_action(admin, "set_difficulty", list("detection" = 0, "markers" = 0))
+	TEST_ASSERT_EQUAL(SShuman_ai.detection_mult, 0.25, "Detection was not held to its lowest")
+	TEST_ASSERT(!SShuman_ai.stealth_cues, "The panel could not switch the markers off")
+	console.handle_action(admin, "set_difficulty", list("detection" = detection_before, "markers" = markers_before))
 	console.handle_action(admin, "set_difficulty", list("aim_error" = 9, "reaction" = 0, "aggression" = 0.5, "max_full" = 9999, "max_total" = -5))
 	TEST_ASSERT_EQUAL(SShuman_ai.aim_error_mult, 4, "Aim error was not clamped")
 	TEST_ASSERT_EQUAL(SShuman_ai.reaction_mult, 0.25, "Reaction was not clamped")

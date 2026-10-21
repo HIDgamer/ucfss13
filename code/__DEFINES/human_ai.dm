@@ -685,13 +685,37 @@
 #define HAI_GRENADE_DRAW_TIME (1.2 SECONDS)
 #define HAI_GRENADE_RECOVER_TIME (1 SECONDS)
 
-/// What a unit can make out in the dark and of something hiding: the light on a tile below which it counts as dark, the light below which it counts as dim, the farthest a cloaked or camouflaged body can be made out from, and the alpha at or below which a body counts as camouflaged.
+/// What a unit can make out in the dark and of something hiding: the light on a tile below which it counts as dark, the light at and above which it is as good as daylight, the share of a subject it makes out at the dark limit,
+/// the farthest a cloaked or camouflaged body can be made out from, and the alpha at or below which a body counts as camouflaged.
 #define HAI_DARK_LIGHT 0.15
-#define HAI_DIM_LIGHT 0.35
+#define HAI_LIT_LIGHT 0.45
+#define HAI_DIM_CLARITY 0.3
 #define HAI_CONCEAL_SIGHT 2
 #define HAI_CONCEAL_ALPHA 100
-/// How far a unit wearing night vision goggles makes things out in the dark.
+/// How far a unit wearing night vision goggles makes things out in the dark, and how far the eyes reach when they are blurred.
 #define HAI_NIGHT_VISION_REACH 20
+#define HAI_BLURRY_REACH 4
+
+/// Staying unseen. How long an alarm takes to die down, how long a body that was found is remembered, the sound a step makes, how far a man running and one crawling are heard,
+/// the gap between two markers over a head and the share of the alarm a squad mate takes from what another has found.
+#define HAI_VIGILANCE_FADE (2 MINUTES)
+#define HAI_BODY_MEMORY (5 MINUTES)
+#define HAI_NOISE_STEP "step"
+#define HAI_FOOTSTEP_RANGE 6
+#define HAI_FOOTSTEP_CRAWL_RANGE 2
+#define HAI_CUE_GAP (3 SECONDS)
+#define HAI_SQUAD_ALARM_SHARE 0.6
+
+/// The markers over a head: something stirred it, and it knows.
+#define HAI_CUE_SUSPECT 1
+#define HAI_CUE_ALERT 2
+
+/// Gear. The gap between two looks over what is worn, the light on a tile below which a lamp is wanted and how long a welding mask stays down after the last bit of welding.
+#define HAI_GEAR_GAP (2 SECONDS)
+#define HAI_LAMP_LIGHT 0.3
+/// Most lamps the AI keeps lit at once on the whole server, the lights are not free.
+#define HAI_LAMP_CAP 60
+#define HAI_WELD_HOLD (12 SECONDS)
 
 /// How far a unit that has lost its gun looks for one to take up, the gap between two looks and how long a gun that could not be reached is left alone.
 #define HAI_RECOVER_RANGE 9

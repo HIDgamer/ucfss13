@@ -14,7 +14,13 @@
 		view_scans++
 		var/list/unknown
 		for(var/mob/living/candidate in view(sight_range(), body))
-			if(candidate == body || candidate.stat == DEAD || (candidate.faction == body.faction && !isxeno(candidate) && !iszombie(candidate)))
+			if(candidate == body)
+				continue
+			var/friendly = candidate.faction == body.faction && !isxeno(candidate) && !iszombie(candidate)
+			// One of its own lying dead or out cold is not something that happens by itself
+			if(friendly && candidate.stat != CONSCIOUS && ishuman(candidate))
+				notice_fallen_friend(candidate, here)
+			if(candidate.stat == DEAD || friendly)
 				continue
 			// Somebody in the dark past what the eyes reach, or hiding under a cloak, is not there as far as the unit can tell
 			var/turf/candidate_turf = get_turf(candidate)
@@ -59,9 +65,11 @@
 	report_to_squad(candidate, contact)
 	if(!was_known && contact.identified())
 		announce_contact(candidate)
+		note_spotted(contact)
 	if(!contact.identified() && contact.notice >= HAI_SUSPECT_NOTICE)
 		body.face_atom(candidate)
 		alert_until = max(alert_until, world.time + 3 SECONDS)
+		note_suspect(contact)
 	return TRUE
 
 /// How long this subject must stay in view before it is made out
@@ -80,11 +88,12 @@
 		seconds *= (distance <= 2) ? 3 : 6
 	else if(off_axis > 70)
 		seconds *= 2
-	seconds *= moved ? 0.6 : 1.4
-	if(candidate.body_position == LYING_DOWN)
-		seconds *= 1.6
+	// A run gives a man away, a walk less so, standing still or lying down the least
+	seconds *= stealth_pace(candidate, moved)
 	// A dim place or a half hidden body takes longer, one that cannot be made out at all never gets here
 	seconds /= max(clarity_of(candidate, there, distance), 0.05)
+	// A unit that has been startled looks harder, and the difficulty setting makes all of them sharper or duller
+	seconds /= max(SShuman_ai.detection_mult, 0.1) * (1 + vigilance())
 	return seconds / (0.5 + personality.trait("alertness") * 0.01)
 
 /// How dangerous the subject looks right now
@@ -243,8 +252,11 @@
 		alert_until = max(alert_until, world.time + 3 SECONDS)
 		return
 	var/strength = clamp(1 - distance / max(noise_range, 1), 0.1, 1) * noise_weight(kind)
+	strength *= max(SShuman_ai.detection_mult, 0.1) * (1 + vigilance() * 0.5)
 	if(strength < HAI_NOISE_ALERT)
 		return
+	if(kind == HAI_NOISE_STEP)
+		footsteps_heard++
 	alert_until = max(alert_until, world.time + 5 SECONDS)
 	if(kind == HAI_NOISE_GUNSHOT || kind == HAI_NOISE_EXPLOSION)
 		panic()
@@ -252,6 +264,8 @@
 		body.face_atom(source_turf)
 	if(strength < HAI_NOISE_INVESTIGATE || intent == HAI_INTENT_ENGAGE)
 		return
+	raise_vigilance(0.25)
+	show_cue(HAI_CUE_SUSPECT)
 	var/error = round(distance * HAI_NOISE_ERROR)
 	var/turf/guess = error ? locate(clamp(source_turf.x + rand(-error, error), 1, world.maxx), clamp(source_turf.y + rand(-error, error), 1, world.maxy), source_turf.z) : source_turf
 	begin_investigation(open_turf_near(guess) || open_turf_near(source_turf) || source_turf, strength)
@@ -283,6 +297,8 @@
 			return 0.8
 		if(HAI_NOISE_GLASS)
 			return 0.7
+		if(HAI_NOISE_STEP)
+			return 0.6
 		if(HAI_NOISE_DOOR, HAI_NOISE_MELEE)
 			return 0.5
 	return 0.35
@@ -335,7 +351,12 @@
 		identify_now(shooter)
 	body.face_atom(shooter)
 	alert_until = world.time + 8 SECONDS
+	// A burst of shots is one alarm for the squad, not one for each round that goes by
+	var/fresh = world.time > last_shot_at_time + 3 SECONDS
 	last_shot_at_time = world.time
+	raise_vigilance(1)
+	if(fresh)
+		raise_squad_vigilance(1)
 	end_stand_down()
 	if(role?.nests)
 		nest_hits++

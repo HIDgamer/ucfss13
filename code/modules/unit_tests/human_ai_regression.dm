@@ -116,6 +116,15 @@ GLOBAL_LIST_INIT(human_ai_regression_batches, list(
 		/datum/unit_test/human_ai_assign_tool,
 		/datum/unit_test/human_ai_voice_commands,
 	),
+	"stealth" = list(
+		/datum/unit_test/human_ai_eyes,
+		/datum/unit_test/human_ai_stealth_pace,
+		/datum/unit_test/human_ai_footsteps,
+		/datum/unit_test/human_ai_body_discovery,
+		/datum/unit_test/human_ai_gear_lamps,
+		/datum/unit_test/human_ai_gear_night_vision,
+		/datum/unit_test/human_ai_gear_welding,
+	),
 	"population" = list(
 		/datum/unit_test/human_ai_population_profiles,
 		/datum/unit_test/human_ai_population_director,

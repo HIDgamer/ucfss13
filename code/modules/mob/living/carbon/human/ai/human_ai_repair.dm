@@ -12,6 +12,7 @@
 		return FALSE
 	if(kind == HAI_MED_WELD)
 		var/obj/item/tool/weldingtool/welder = tool
+		prepare_to_weld()
 		if(!welder.welding)
 			welder.toggle()
 		if(!welder.welding)

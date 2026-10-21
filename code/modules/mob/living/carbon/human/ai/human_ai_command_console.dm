@@ -549,6 +549,16 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 				human.ai_brain.squad?.elect_leader(human.ai_brain)
 			refresh()
 			return TRUE
+		if("set_lights")
+			// Told to run dark, a unit keeps its lights off whatever the dark, otherwise it lights them when it needs to
+			var/dark = !!text2num(params["dark"])
+			var/told = 0
+			for(var/mob/living/carbon/human/human as anything in selection.get_selected())
+				human.ai_brain.lights_out = dark
+				told++
+			last_report = "lights: [told] told to [dark ? "run dark" : "use their lights"]"
+			refresh()
+			return TRUE
 		if("apply_personality")
 			apply_personality(user, params)
 			return TRUE
@@ -850,12 +860,17 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 		SShuman_ai.aggression_bias = clamp(text2num(params["aggression"]), -1, 1)
 		for(var/datum/human_ai_brain/brain as anything in SShuman_ai.brains)
 			brain.apply_posture()
+	// How sharp their eyes and ears are does not follow the player table, and whether a marker shows over a head that is stirred
+	if(!isnull(params["detection"]))
+		SShuman_ai.detection_mult = clamp(text2num(params["detection"]), 0.25, 4)
+	if(!isnull(params["markers"]))
+		SShuman_ai.stealth_cues = !!text2num(params["markers"])
 	if(!isnull(params["max_full"]))
 		SShuman_ai.max_full = max(1, round(text2num(params["max_full"])))
 	// Nothing, or 0, is no limit on how many exist
 	if(!isnull(params["max_total"]))
 		SShuman_ai.max_total = max(0, round(text2num(params["max_total"])))
-	message_admins("[key_name_admin(user)] changed the human AI difficulty: aim error [SShuman_ai.aim_error_mult], reaction [SShuman_ai.reaction_mult], aggression [SShuman_ai.aggression_bias], caps [SShuman_ai.max_full]/[SShuman_ai.max_total].")
+	message_admins("[key_name_admin(user)] changed the human AI difficulty: aim error [SShuman_ai.aim_error_mult], reaction [SShuman_ai.reaction_mult], aggression [SShuman_ai.aggression_bias], detection [SShuman_ai.detection_mult], markers [SShuman_ai.stealth_cues ? "on" : "off"], caps [SShuman_ai.max_full]/[SShuman_ai.max_total].")
 	refresh()
 
 /// Opens the console of the admin, making one if they have none yet
