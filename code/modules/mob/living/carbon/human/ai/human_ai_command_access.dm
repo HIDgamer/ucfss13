@@ -1,7 +1,7 @@
 /// Console actions that only an admin may use: they reach beyond the units the panel's user commands
 GLOBAL_LIST_INIT(npc_command_admin_actions, list(
 	"jump", "observe", "claim", "delete", "inspect",
-	"apply_personality", "set_relation", "set_faction_roe", "arm_spawn", "set_difficulty",
+	"apply_personality", "set_relation", "set_faction_roe", "arm_spawn", "arm_assign", "release_ai", "set_difficulty",
 	"set_population_enabled", "set_group_enabled", "populate_group", "set_hook_enabled", "set_hook_forced", "clear_population", "check_population",
 	"toggle_debug", "set_paused",
 ))

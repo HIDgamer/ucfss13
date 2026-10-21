@@ -25,6 +25,7 @@ export type OrbitData = {
   ghosts: Observable[];
   misc: Observable[];
   npcs: Observable[];
+  ai: Observable[];
   vehicles: Observable[];
   escaped: Observable[];
   in_thunderdome: Observable[];
@@ -32,7 +33,10 @@ export type OrbitData = {
 };
 
 export type Observable = {
+  ai_kind?: string;
   caste?: string;
+  faction?: string;
+  role?: string;
   health?: number;
   icon?: string;
   job?: string;

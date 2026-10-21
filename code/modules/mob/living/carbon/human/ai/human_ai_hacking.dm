@@ -44,6 +44,8 @@
 		return FALSE
 	var/list/tools = find_hack_tools()
 	if(!tools)
+		if(try_force_door(door, next_turf))
+			return TRUE
 		remember_blocked(next_turf, "no screwdriver and wirecutters to get past [door]", HAI_DOOR_DENIED_MEMORY)
 		return FALSE
 	acting_until = world.time + HAI_HACK_TIME + 5 SECONDS

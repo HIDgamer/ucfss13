@@ -83,3 +83,10 @@
 	desc = "Point man: investigates, walks, calls contact first."
 	traits = list("aggression" = 40, "caution" = 55, "discipline" = 60, "courage" = 55, "paranoia" = 60, "sociability" = 30, "alertness" = 100, "mercy" = 55, "composure" = 70, "initiative" = 80, "loyalty" = 50, "chattiness" = 25)
 	action_mults = list("investigate" = 1.6, "close_in" = 0.9, "move_to_cover" = 1.1)
+
+/datum/human_ai_personality/synthetic
+	id = "synthetic"
+	name = "Synthetic"
+	desc = "Calm and collected: composed under fire, disciplined, slow to anger, gentle with the wounded and sparing with words."
+	traits = list("aggression" = 20, "caution" = 55, "discipline" = 95, "courage" = 85, "paranoia" = 10, "sociability" = 40, "alertness" = 85, "mercy" = 75, "composure" = 100, "initiative" = 45, "loyalty" = 85, "chattiness" = 30)
+	action_mults = list("close_in" = 0.7, "move_to_cover" = 1.1)

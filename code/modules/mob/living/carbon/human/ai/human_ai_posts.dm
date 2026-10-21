@@ -75,11 +75,12 @@ GLOBAL_LIST_EMPTY(human_ai_posts)
 	if(world.time < next_post_search || !SShuman_ai.take_cover_budget())
 		return post_turf
 	next_post_search = world.time + HAI_POST_RECHECK
-	var/turf/home = home_turf || get_turf(body)
+	// A unit held to a circle keeps its post inside it, around the middle of it
+	var/turf/home = leash_center || home_turf || get_turf(body)
 	if(!home)
 		return post_turf
 	var/list/spots = list()
-	for(var/turf/candidate in range(HAI_POST_RADIUS, home))
+	for(var/turf/candidate in range(leash_center ? leash_radius : HAI_POST_RADIUS, home))
 		spots += candidate
 	spots = shuffle(spots)
 	if(length(spots) > HAI_POST_CANDIDATES)

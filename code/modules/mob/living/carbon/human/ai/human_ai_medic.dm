@@ -53,13 +53,19 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 			return HAI_MED_BANDAGE
 		if(istype(pack, /obj/item/stack/medical/ointment) || istype(pack, /obj/item/stack/medical/advanced/ointment))
 			return HAI_MED_SALVE
+	if(istype(thing, /obj/item/tool/weldingtool))
+		var/obj/item/tool/weldingtool/welder = thing
+		return welder.get_fuel() > 0 ? HAI_MED_WELD : null
+	if(istype(thing, /obj/item/stack/cable_coil))
+		var/obj/item/stack/cable_coil/coil = thing
+		return coil.amount > 0 ? HAI_MED_CABLE : null
 	return null
 
 /// Medical supplies in everything the body carries, kind to the list of packs, remembered for a few seconds
 /datum/human_ai_brain/proc/medical_supplies()
 	if(med_cache && world.time < med_cache_time + 50)
 		return med_cache
-	var/list/found = list(HAI_MED_BANDAGE = list(), HAI_MED_SALVE = list(), HAI_MED_SPLINT = list(), HAI_MED_INJECTOR = list())
+	var/list/found = list(HAI_MED_BANDAGE = list(), HAI_MED_SALVE = list(), HAI_MED_SPLINT = list(), HAI_MED_INJECTOR = list(), HAI_MED_WELD = list(), HAI_MED_CABLE = list())
 	for(var/obj/item/thing in body.get_contents())
 		var/kind = human_ai_medical_kind(thing)
 		if(kind)
@@ -125,7 +131,22 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 	var/obj/limb/best_limb
 	var/best_score = 0
 	for(var/obj/limb/limb as anything in patient.limbs)
-		if(limb.status & (LIMB_DESTROYED|LIMB_ROBOT|LIMB_SYNTHSKIN))
+		if(limb.status & LIMB_DESTROYED)
+			continue
+		if(limb.status & (LIMB_ROBOT|LIMB_SYNTHSKIN))
+			// A machine is mended with a welder for the dents and cable for the burns, bandages and injections do nothing for it
+			var/machine_score = 0
+			var/machine_kind
+			if(length(supplies[HAI_MED_WELD]) && limb.brute_dam >= HAI_SYNTH_REPAIR_MIN)
+				machine_score = 30 + limb.brute_dam * 0.5
+				machine_kind = HAI_MED_WELD
+			if(length(supplies[HAI_MED_CABLE]) && limb.burn_dam >= HAI_SYNTH_REPAIR_MIN && 25 + limb.burn_dam * 0.4 > machine_score)
+				machine_score = 25 + limb.burn_dam * 0.4
+				machine_kind = HAI_MED_CABLE
+			if(machine_kind && machine_score > best_score)
+				best_score = machine_score
+				best_kind = machine_kind
+				best_limb = limb
 			continue
 		var/score = 0
 		var/kind
@@ -142,7 +163,7 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 			best_score = score
 			best_kind = kind
 			best_limb = limb
-	var/list/injection = injector_need(patient)
+	var/list/injection = issynth(patient) ? null : injector_need(patient)
 	if(injection && injection[2] > best_score)
 		return list(HAI_MED_INJECTOR, injection[1])
 	if(!best_kind)
@@ -218,6 +239,8 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 		body.stop_pulling()
 	if(need[1] == HAI_MED_INJECTOR)
 		return inject(patient, need[2])
+	if(need[1] == HAI_MED_WELD || need[1] == HAI_MED_CABLE)
+		return repair(patient, need[1], need[2])
 	var/obj/limb/limb = need[2]
 	var/list/packs = medical_supplies()[need[1]]
 	var/obj/item/stack/medical/pack
@@ -273,11 +296,13 @@ GLOBAL_LIST_INIT(human_ai_healing_chems, list(
 	var/obj/item/used = utility_ref.resolve()
 	utility_ref = null
 	power_down_defibrillator(used)
+	power_down_welder(used)
 	if(used && !QDELETED(used) && used.loc == body)
 		log_decision("put away [used]: [stow_item(used)]")
 	for(var/obj/item/held in list(body.get_active_hand(), body.get_inactive_hand()))
-		if(istype(held, /obj/item/stack/medical) || istype(held, /obj/item/restraint) || istype(held, /obj/item/reagent_container/hypospray/autoinjector) || istype(held, /obj/item/device/defibrillator))
+		if(istype(held, /obj/item/stack/medical) || istype(held, /obj/item/tool/weldingtool) || istype(held, /obj/item/stack/cable_coil) || istype(held, /obj/item/restraint) || istype(held, /obj/item/reagent_container/hypospray/autoinjector) || istype(held, /obj/item/device/defibrillator))
 			power_down_defibrillator(held)
+			power_down_welder(held)
 			log_decision("put away [held]: [stow_item(held)]")
 
 /// A defibrillator with the paddles out is too bulky to put away, so they go back in first

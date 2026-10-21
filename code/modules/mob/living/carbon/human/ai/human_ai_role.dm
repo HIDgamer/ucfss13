@@ -14,6 +14,28 @@ GLOBAL_LIST_INIT(human_ai_roles, init_human_ai_roles())
 /proc/get_human_ai_role(id)
 	return GLOB.human_ai_roles[id] || GLOB.human_ai_roles["rifleman"]
 
+/**
+ * The role a job calls for, null when it is none of the ones with duties of their own. The jobs of the different sides are named too differently for
+ * a list of them, so the words in the name decide: a corpsman, a field medic and a trauma surgeon all treat the wounded.
+ */
+/proc/human_ai_role_for_job(job)
+	var/text = lowertext("[job]")
+	if(!length(text))
+		return null
+	for(var/keyword in list("working joe", "hazmat joe", "hazard joe", "dzho automaton"))
+		if(findtext(text, keyword))
+			return "working_joe"
+	for(var/keyword in list("corpsman", "medic", "doctor", "surgeon", "nurse"))
+		if(findtext(text, keyword))
+			return "medic"
+	for(var/keyword in list("engineer", "combat technician", "maintenance technician", "ordnance technician", "field technician", "corporate technician", "security technician"))
+		if(findtext(text, keyword))
+			return "engineer"
+	for(var/keyword in list("police", "warden", "marshal", "enforcer", "inspector", "politsiya", "chief mp", "honor guard"))
+		if(findtext(text, keyword))
+			return "security"
+	return null
+
 /// What a brain does for a living: the orders beyond the base set it can carry out
 /datum/human_ai_role
 	/// Unique key, empty leaves the type abstract
@@ -26,6 +48,20 @@ GLOBAL_LIST_INIT(human_ai_roles, init_human_ai_roles())
 	var/nests = FALSE
 	/// Never closes in on an enemy
 	var/passive = FALSE
+	/// Charges in without caring for cover or range
+	var/rushes = FALSE
+	/// Is who a squad sends round the side
+	var/flanks = FALSE
+	/// Holds fire until the enemy is close or has found it
+	var/ambush = FALSE
+	/// Arms a grenade in its hand and runs at the enemy
+	var/bomber = FALSE
+	/// Puts up with hits from anyone it is not at war with and only fights back once it has been bothered more than it will stand
+	var/tolerant = FALSE
+	/// Goes round mending, cleaning and putting right what is broken
+	var/maintains = FALSE
+	/// Speaks in the lines of a Working Joe's voice synthesizer
+	var/joe_voice = FALSE
 
 /// Adds what the role's duties need and the equipment left out
 /datum/human_ai_role/proc/equip_kit(datum/human_ai_brain/brain)

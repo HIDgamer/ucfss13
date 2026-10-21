@@ -73,7 +73,7 @@
 	intents = list(HAI_INTENT_ENGAGE)
 
 /datum/human_ai_action/keep_distance/get_weight(datum/human_ai_brain/brain)
-	if(brain.berserk_until || brain.current_order?.hard || brain.is_acting() || world.time < brain.next_kite_time)
+	if(brain.rushing() || brain.current_order?.hard || brain.is_acting() || world.time < brain.next_kite_time)
 		return 0
 	var/obj/item/weapon/gun/gun = brain.peek_gun()
 	if(!gun)

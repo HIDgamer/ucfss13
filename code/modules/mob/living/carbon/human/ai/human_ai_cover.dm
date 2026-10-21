@@ -126,7 +126,7 @@
 
 /// How strongly this brain wants to be behind something: bolder types and healthy ones fight in the open
 /datum/human_ai_brain/proc/cover_desire()
-	if(berserk_until)
+	if(rushing())
 		return 0
 	var/health_fraction = clamp(body.health / max(body.maxHealth, 1), 0, 1)
 	return personality.scaled("caution", 0.6, 1.5) * (1 + (1 - health_fraction) * 0.7) * (1 + stress * 0.006)

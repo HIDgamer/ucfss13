@@ -9,6 +9,9 @@
 	var/mob/living/target = brain.get_target()
 	if(!target || world.time > brain.target_seen_time + 20 || world.time < brain.reaction_until)
 		return 0
+	// A stealth unit lies in wait and opens fire once the enemy is close or has found it
+	if(brain.role?.ambush && !brain.suppressed() && get_dist(brain.body, target) > HAI_AMBUSH_RANGE)
+		return 0
 	if(brain.spares_downed(target) || brain.baton_pressing(target))
 		return 0
 	var/obj/item/weapon/gun/held_gun = brain.peek_gun()
@@ -133,7 +136,10 @@
 	intents = list(HAI_INTENT_ENGAGE)
 
 /datum/human_ai_action/close_in/get_weight(datum/human_ai_brain/brain)
-	if(brain.role?.passive)
+	if(brain.role?.ambush)
+		return 0
+	// A unit that keeps out of fights still goes after somebody who has bothered it too much
+	if(brain.role?.passive && !(brain.role.tolerant && brain.holds_grudge_against(brain.get_target())))
 		return 0
 	var/mob/living/baton_target = brain.get_target()
 	if(baton_target && brain.baton_pressing(baton_target))
@@ -144,12 +150,12 @@
 	var/distance = get_dist(brain.body, target)
 	var/obj/item/weapon/gun/gun = brain.peek_gun()
 	if(gun && brain.weapon_state(gun) != HAI_WEAPON_EMPTY)
-		if(distance <= brain.engage_range(gun) && world.time <= brain.target_seen_time + 20 && !brain.berserk_until)
+		if(distance <= brain.engage_range(gun) && world.time <= brain.target_seen_time + 20 && !brain.rushing())
 			return 0
 		// Something that wins by getting close is let come, shot at on the way, never walked up to
-		if(brain.melee_threat(target) && distance <= brain.shooting_range(gun) && world.time <= brain.target_seen_time + 20 && !brain.berserk_until)
+		if(brain.melee_threat(target) && distance <= brain.shooting_range(gun) && world.time <= brain.target_seen_time + 20 && !brain.rushing())
 			return 0
-		if(brain.cover_enabled && distance <= brain.shooting_range(gun) && world.time <= brain.target_seen_time + 20)
+		if(brain.cover_enabled && !brain.rushing() && distance <= brain.shooting_range(gun) && world.time <= brain.target_seen_time + 20)
 			if(brain.in_good_cover(get_turf(target)))
 				return 0
 			if(brain.cover_desire() >= HAI_COVER_MIN_DESIRE && brain.flippable_table(get_turf(target)))

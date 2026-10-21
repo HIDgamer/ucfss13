@@ -178,11 +178,9 @@
 	var/obj/item/explosive/plastic/charge
 
 /datum/npc_order/demolish/can_perform(datum/human_ai_brain/performer)
-	if(!performer.role?.supports_order(id))
-		return "no engineer kit"
 	if(!target_turf)
 		return "nothing to demolish"
-	return performer.find_charge() ? null : "no charge"
+	return performer.find_demolition_tool(target_turf) ? null : "no charge or hammer"
 
 /datum/npc_order/demolish/tick(datum/human_ai_brain/performer)
 	if(performer.is_acting())
@@ -204,11 +202,25 @@
 					return TRUE
 				finish(HAI_ORDER_FAILED)
 				return FALSE
+			// A breaching hammer takes a wall down with no blast at all, and a charge does the rest
+			var/obj/item/weapon/twohanded/breacher/hammer = performer.find_breaching_hammer()
+			if(hammer && istype(target_turf, /turf/closed/wall))
+				if(!performer.hand_item(hammer))
+					finish(HAI_ORDER_FAILED)
+					return FALSE
+				performer.body.face_atom(target_turf)
+				performer.acting_until = world.time + 7 SECONDS
+				INVOKE_ASYNC(target_turf, TYPE_PROC_REF(/atom, attackby), hammer, performer.body)
+				performer.walls_hammered++
+				phase = HAI_DEMOLISH_WAIT
+				wait_until = world.time + 10 SECONDS
+				return FALSE
 			charge = performer.find_charge()
 			if(!charge || !performer.hand_item(charge))
 				finish(HAI_ORDER_FAILED)
 				return FALSE
 			performer.body.face_atom(target_turf)
+			performer.ensure_charge_skill(charge)
 			performer.acting_until = world.time + 60
 			INVOKE_ASYNC(charge, TYPE_PROC_REF(/obj/item/explosive/plastic, afterattack), target_turf, performer.body, TRUE)
 			performer.charges_planted++
@@ -224,6 +236,20 @@
 			if(!charge || QDELETED(charge) || world.time > wait_until)
 				finish(HAI_ORDER_DONE)
 	return FALSE
+
+/// A breaching hammer the body can swing, the heavy kind needs a strength it does not have
+/datum/human_ai_brain/proc/find_breaching_hammer()
+	RETURN_TYPE(/obj/item/weapon/twohanded/breacher)
+	for(var/obj/item/weapon/twohanded/breacher/hammer in body.get_contents())
+		if(!hammer.really_heavy || HAS_TRAIT(body, TRAIT_SUPER_STRONG))
+			return hammer
+	return null
+
+/// What the body would bring a wall or a door down with: a hammer for a wall, a charge for anything
+/datum/human_ai_brain/proc/find_demolition_tool(turf/target)
+	if(istype(target, /turf/closed/wall) && find_breaching_hammer())
+		return find_breaching_hammer()
+	return find_charge()
 
 /datum/human_ai_brain/proc/find_charge()
 	for(var/obj/item/explosive/plastic/charge in body.get_contents())

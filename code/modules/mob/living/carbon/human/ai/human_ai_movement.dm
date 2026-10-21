@@ -10,8 +10,16 @@
 	move_state = HAI_MOVE_BLOCKED
 	var/turf/goal_turf = get_turf(goal)
 	var/turf/here = get_turf(body)
-	if(!goal_turf || !here || goal_turf.z != here.z)
+	if(!goal_turf || !here)
 		return FALSE
+	// A goal on another level is reached by a ladder, there is no other way between them
+	if(goal_turf.z != here.z)
+		return climb_toward(goal_turf, want_sprint)
+	// A body held to a circle goes nowhere outside it, and one that got out of it makes for the middle first
+	if(leash_center && !inside_leash(goal_turf))
+		if(inside_leash(here))
+			return FALSE
+		goal_turf = leash_center
 	if(get_dist(here, goal_turf) <= arrive_distance)
 		move_state = HAI_MOVE_ARRIVED
 		climb_detours = 0
@@ -119,6 +127,9 @@
 		return FALSE
 	body.set_step_glide(body.move_delay)
 	if(!step(body, direction))
+		return FALSE
+	// The step can kill the body (a mine, a fire) and take the brain with it
+	if(QDELETED(body) || stopped)
 		return FALSE
 	next_step_time = world.time + body.movement_delay()
 	if(length(path) && get_turf(body) == path[1])

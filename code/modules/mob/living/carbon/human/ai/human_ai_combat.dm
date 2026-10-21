@@ -80,6 +80,8 @@
 	if(world.time <= body.next_move)
 		return FALSE
 	body.face_atom(target)
+	if(role?.maintains)
+		ready_fists()
 	var/wanted_intent = istype(body.get_active_hand(), /obj/item/weapon/baton) ? INTENT_DISARM : INTENT_HARM
 	if(body.a_intent != wanted_intent)
 		body.a_intent_change(wanted_intent)

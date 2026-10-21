@@ -164,6 +164,9 @@
 	/// The spot an idle armed brain stands watch from, the way it faces there, when it weighs spots again and how many it has taken
 	var/turf/post_turf
 	var/post_dir
+	/// The circle the brain is held to by an order, null when it is free to go where it likes
+	var/turf/leash_center
+	var/leash_radius = 0
 	var/next_post_search = 0
 	var/posts_taken = 0
 	/// Looking for a way round something climbable before climbing it, when the next vault is allowed and how many were made
@@ -184,6 +187,27 @@
 	var/hacks = 0
 	/// Dead doors forced open with a crowbar
 	var/pries = 0
+	/// Machine limbs mended with a welder or cable
+	var/repairs = 0
+	/// Walls brought down with a breaching hammer
+	var/walls_hammered = 0
+	/// The door it is forcing with a charge, the charge, where the door stands, the stage it is at, when it started and when it gives up waiting, and the doors it forced
+	var/datum/weakref/breach_door_ref
+	var/datum/weakref/breach_charge_ref
+	var/turf/breach_door_turf
+	var/breach_phase = 0
+	var/breach_started = 0
+	var/breach_wait_until = 0
+	var/forced_doors = 0
+	/// Grenades armed in the hand to take an enemy along
+	var/charges_primed = 0
+	/// The prisoner it cuffed and has still to take away, where it takes them, when it looks for the place again and how many it has taken
+	var/datum/weakref/captive_ref
+	var/turf/holding_turf
+	var/holding_search_time = 0
+	var/prisoners_delivered = 0
+	/// Ladders climbed to follow a goal to another level
+	var/ladders_climbed = 0
 	/// The dead friend a medic is heading for with a defibrillator, when it may look for the next one, bodies left alone until the time given and how many shocks were tried and took
 	var/datum/weakref/corpse_ref
 	var/next_corpse_search = 0
@@ -196,6 +220,8 @@
 	/// Hits from its own side by shooter reference text, calls for backup made and answered
 	var/list/tolerance = list()
 	var/next_backup_call = 0
+	/// Where the thing a call-out is about stands, only held while the call-out is made
+	var/callout_spot
 	var/backups_called = 0
 	var/backups_answered = 0
 	/// The loose item it is heading for, when it may pick up the next one and how much it has picked up
@@ -248,6 +274,16 @@
 	var/shocks_lifted = 0
 	var/warnings = 0
 	var/escalations = 0
+	/// The thing it is going to mend or clean and what kind of work it is, when it may look for the next one, what it could not manage until the time given and how much it has got done
+	var/datum/weakref/maint_ref
+	var/maint_kind
+	var/next_maint_scan = 0
+	var/list/maint_skips = list()
+	var/maint_done = 0
+	/// When a maintenance unit may next come out with a quip and next look over the people around it
+	var/next_joe_quip = 0
+	var/next_joe_watch = 0
+	var/list/joe_noticed = list()
 
 	/// Replaces the global action list when set
 	var/list/action_pool
@@ -307,6 +343,15 @@
 	tolerance = null
 	voice_heard = null
 	surrender_accepted = null
+	leash_center = null
+	breach_door_ref = null
+	breach_charge_ref = null
+	breach_door_turf = null
+	maint_ref = null
+	maint_skips = null
+	joe_noticed = null
+	captive_ref = null
+	holding_turf = null
 	loot_ref = null
 	corpse_ref = null
 	corpse_skips = null

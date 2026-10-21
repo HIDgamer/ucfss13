@@ -15,6 +15,7 @@ GLOBAL_LIST_INIT(human_ai_voice_commands, list(
 	"regroup" = list("regroup", "rally on me", "rally here", "form up"),
 	"follow" = list("follow me", "stick with me", "stay with me", "with me", "on me", "on my six"),
 	"come" = list("come here", "come to me", "over here", "to me", "get over here", "move up"),
+	"hold_area" = list("hold this area", "hold the area", "hold this room", "defend this area", "defend the area", "defend here", "secure this area", "secure the area"),
 	"hold" = list("hold position", "hold here", "hold the line", "hold this position", "stay here", "stay put", "wait here"),
 ))
 
@@ -200,6 +201,10 @@ GLOBAL_LIST_EMPTY(human_ai_voice_batches)
 			move_order.target_turf = there
 			move_order.radius = 2
 			order = move_order
+		if("hold_area")
+			var/datum/npc_order/hold_area/area_order = new
+			area_order.target_turf = there
+			order = area_order
 		if("hold")
 			order = new /datum/npc_order/hold
 	if(!order)

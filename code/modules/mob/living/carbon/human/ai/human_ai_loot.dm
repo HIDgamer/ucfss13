@@ -47,6 +47,8 @@
 			return !find_tool(TRAIT_TOOL_WIRECUTTERS)
 	var/medical = human_ai_medical_kind(thing)
 	if(medical)
+		if((medical == HAI_MED_WELD || medical == HAI_MED_CABLE) && !issynth(body))
+			return FALSE
 		return length(medical_supplies()[medical]) < 3
 	if(istype(thing, /obj/item/explosive/grenade))
 		var/grenade_kind = human_ai_grenade_kind(thing)

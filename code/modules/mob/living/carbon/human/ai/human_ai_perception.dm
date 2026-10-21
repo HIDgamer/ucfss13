@@ -293,9 +293,11 @@
 	if(!istype(shooter))
 		return
 	last_hurt_time = world.time
-	express(HAI_EXPR_PAIN)
 	// Someone on its own side is not an enemy, it is given a warning and a few chances before it is
-	if(shooter != body && get_disposition(shooter) <= HAI_DISP_FRIEND)
+	var/tolerated = shooter != body && tolerates_hits_from(shooter)
+	if(!(tolerated && role?.tolerant))
+		express(HAI_EXPR_PAIN)
+	if(tolerated)
 		note_friendly_hit(shooter)
 		return
 	last_attacker_ref = WEAKREF(shooter)
@@ -308,6 +310,12 @@
 	add_stress(2)
 	if(surrendered)
 		end_surrender("attacked")
+	// A Joe puts up with a good deal from people who are not its enemies, and tells them about it
+	if(role?.tolerant)
+		for(var/mob/living/bother in range(1, body))
+			if(bother != body && bother.stat != DEAD && bother.a_intent == INTENT_HARM && tolerates_hits_from(bother))
+				note_friendly_hit(bother)
+				return
 	for(var/mob/living/attacker in range(1, body))
 		if(attacker != body && is_valid_target(attacker))
 			last_attacker_ref = WEAKREF(attacker)

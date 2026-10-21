@@ -45,6 +45,20 @@
 	data["auto_observe"] = user.client?.prefs?.auto_observe
 	return data
 
+/// What kind of AI is playing the mob, null when nobody is: a human brain, a zombie's or a xeno's controller
+/datum/orbit_menu/proc/ai_kind(mob/poi_mob)
+	if(ishuman(poi_mob))
+		var/mob/living/carbon/human/human = poi_mob
+		if(human.ai_brain)
+			return "Human"
+		if(human.zombie_ai_controller)
+			return "Zombie"
+	else if(isxeno(poi_mob))
+		var/mob/living/carbon/xenomorph/xeno = poi_mob
+		if(xeno.ai_controller && !xeno.client)
+			return "Xenomorph"
+	return null
+
 /datum/orbit_menu/ui_static_data(mob/user)
 	var/list/data = list()
 
@@ -71,6 +85,7 @@
 	var/list/ghosts = list()
 	var/list/misc = list()
 	var/list/npcs = list()
+	var/list/ai = list()
 	var/list/vehicles = list()
 	var/list/escaped = list()
 	var/list/in_thunderdome = list()
@@ -107,13 +122,17 @@
 			dead += list(serialized)
 			continue
 
-		if(poi_mob.ckey == null)
+		var/is_ai = ai_kind(poi_mob)
+		if(poi_mob.ckey == null && !is_ai)
 			npcs += list(serialized)
 			continue
 
 		if(isliving(poi_mob))
 			var/mob/living/player = poi_mob
 			serialized["health"] = floor(player.health / player.maxHealth * 100)
+			if(is_ai)
+				serialized["ai_kind"] = is_ai
+				serialized["faction"] = player.faction
 
 			if(isxeno(player))
 				var/mob/living/carbon/xenomorph/xeno = player
@@ -124,7 +143,10 @@
 					serialized["background_icon"] = caste.minimap_background
 					serialized["hivenumber"] = xeno.hivenumber
 					serialized["area_name"] = get_area_name(xeno)
-				xenos += list(serialized)
+				if(is_ai)
+					ai += list(serialized)
+				else
+					xenos += list(serialized)
 				continue
 
 			if(ishuman(player))
@@ -148,7 +170,14 @@
 					serialized["background_icon"] = human.assigned_squad.background_icon
 				else
 					serialized["background_icon"] = human.assigned_equipment_preset?.minimap_background
-				
+
+				// AI units get a category of their own, with the part they play in it
+				if(is_ai)
+					if(human.ai_brain?.role)
+						serialized["role"] = human.ai_brain.role.name
+					ai += list(serialized)
+					continue
+
 				if(istype(get_area(human), /area/tdome))
 					in_thunderdome += list(serialized)
 				else if(human.job in FAX_RESPONDER_JOB_LIST)
@@ -214,6 +243,7 @@
 	data["ghosts"] = ghosts
 	data["misc"] = misc
 	data["npcs"] = npcs
+	data["ai"] = ai
 	data["vehicles"] = vehicles
 	data["escaped"] = escaped
 	data["in_thunderdome"] = in_thunderdome

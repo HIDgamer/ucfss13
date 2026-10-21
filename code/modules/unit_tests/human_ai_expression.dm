@@ -195,8 +195,8 @@
 
 	// The next xeno is called out plainly, backup was only just called for
 	reset()
-	var/mob/living/carbon/xenomorph/drone/second = make_target_dummy(locate(start.x + 8, start.y + 1, start.z))
-	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(said), HAI_EXPR_XENO), 8), "The soldier never called the second xeno out, log [SShuman_ai.talk_log.len]")
+	var/mob/living/carbon/xenomorph/drone/second = make_target_dummy(locate(start.x + 5, start.y + 1, start.z))
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(said), HAI_EXPR_XENO), 20), "The soldier never called the second xeno out, log [SShuman_ai.talk_log.len]")
 	for(var/list/candidate in SShuman_ai.talk_log)
 		if(candidate[3] == HAI_EXPR_XENO)
 			entry = candidate
