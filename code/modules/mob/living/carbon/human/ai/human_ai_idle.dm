@@ -71,13 +71,13 @@
 		var/datum/human_ai_brain/partner = other.ai_brain
 		if(!partner || partner == src || other.faction != body.faction || partner.intent != HAI_INTENT_IDLE || partner.current_order)
 			continue
-		if(partner.surrendered || partner.broken_kind || world.time < partner.next_convo_time || !partner.can_express())
+		if(partner.surrendered || partner.broken_kind || partner.role?.joe_voice || world.time < partner.next_convo_time || !partner.can_express())
 			continue
 		return partner
 	return null
 
 /datum/human_ai_brain/proc/start_conversation()
-	if(world.time < next_convo_time)
+	if(world.time < next_convo_time || role?.joe_voice)
 		return FALSE
 	var/datum/human_ai_brain/partner = find_convo_partner()
 	if(!partner)

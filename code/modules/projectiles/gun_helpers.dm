@@ -157,7 +157,8 @@ DEFINES in setup.dm, referenced here.
 	if(CONFIG_GET(flag/remove_gun_restrictions))
 		return TRUE //Not if the config removed it.
 
-	if(user.mind)
+	// A unit run by the AI has no mind, which used to leave every PMC and every other company soldier holding guns they could never fire
+	if(user.mind || user.ai_brain)
 		switch(user.job)
 			if(
 				"PMC",

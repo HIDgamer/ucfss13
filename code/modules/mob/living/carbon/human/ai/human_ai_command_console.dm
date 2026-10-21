@@ -9,12 +9,14 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 	"follow" = list(/datum/npc_order/follow, "target"),
 	"patrol" = list(/datum/npc_order/patrol, "point"),
 	"guard" = list(/datum/npc_order/guard, "point"),
+	"hold_area" = list(/datum/npc_order/hold_area, "point"),
 	"regroup" = list(/datum/npc_order/regroup, "point"),
 	"fall_back" = list(/datum/npc_order/fall_back, "point"),
 	"take_cover" = list(/datum/npc_order/take_cover, "point"),
 	"clear_room" = list(/datum/npc_order/clear_room, "point"),
 	"suppress" = list(/datum/npc_order/suppress, "point"),
 	"fortify" = list(/datum/npc_order/fortify, "point"),
+	"demolish" = list(/datum/npc_order/demolish, "point"),
 	"triage" = list(/datum/npc_order/triage, "none"),
 	"escort" = list(/datum/npc_order/escort, "target"),
 	"stand_down" = list(/datum/npc_order/stand_down, "none"),
@@ -36,6 +38,8 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 	var/armed_request = FALSE
 	/// Sanitised spawn settings waiting for clicks on turfs
 	var/list/pending_spawn
+	/// Sanitised assign settings waiting for clicks on humans that have no brain yet
+	var/list/pending_assign
 	var/marquee_active = FALSE
 	var/turf/marquee_start_turf
 	var/list/turf/marquee_highlighted_turfs
@@ -114,6 +118,7 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 	. = ..()
 	armed_order = null
 	pending_spawn = null
+	pending_assign = null
 	selecting_mode = FALSE
 	release_intercept()
 	end_marquee()
@@ -126,7 +131,7 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 
 /// Whether a click should reach the console: something is selected, an order or a spawn is armed or shift-click selecting is on
 /datum/npc_command_console/proc/wants_intercept()
-	return length(selection.selected) || armed_order || pending_spawn || selecting_mode
+	return length(selection.selected) || armed_order || pending_spawn || pending_assign || selecting_mode
 
 /datum/npc_command_console/proc/sync_click_intercept()
 	var/client/target = owner_client()
@@ -170,6 +175,15 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 			refresh()
 			return TRUE
 		do_spawn(user, get_turf(target), pending_spawn)
+		return TRUE
+
+	if(pending_assign)
+		if(right)
+			pending_assign = null
+			sync_click_intercept()
+			refresh()
+			return TRUE
+		do_assign(user, target, pending_assign)
 		return TRUE
 
 	if(armed_order)
@@ -443,6 +457,7 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 			armed_delay = delay
 			armed_request = request
 			pending_spawn = null
+			pending_assign = null
 			sync_click_intercept()
 			to_chat(user, SPAN_NOTICE("Click [entry[2] == "target" ? "a target" : "a place"] for the [order_key] order, right-click to cancel."))
 			refresh()
@@ -450,6 +465,7 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 		if("cancel_armed")
 			armed_order = null
 			pending_spawn = null
+			pending_assign = null
 			sync_click_intercept()
 			refresh()
 			return TRUE
@@ -544,6 +560,12 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 			return TRUE
 		if("arm_spawn")
 			arm_spawn(user, params)
+			return TRUE
+		if("arm_assign")
+			arm_assign(user, params)
+			return TRUE
+		if("release_ai")
+			release_selected(user)
 			return TRUE
 		if("set_difficulty")
 			set_difficulty(user, params)
@@ -672,6 +694,7 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 	var/faction = params["faction"]
 	if(faction && !(faction in human_ai_known_factions()))
 		faction = null
+	pending_assign = null
 	pending_spawn = list(
 		"job" = job,
 		"personality" = personality,
@@ -685,6 +708,93 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 	sync_click_intercept()
 	to_chat(user, SPAN_NOTICE("Click a turf to spawn [pending_spawn["count"]] as [job], right-click to stop."))
 	refresh()
+
+/// Arms the click tool that hands humans already in the round a brain, the settings are checked here and not trusted from the panel
+/datum/npc_command_console/proc/arm_assign(mob/user, list/params)
+	var/personality = params["personality"]
+	if(!(personality in GLOB.human_ai_personalities))
+		personality = "neutral"
+	var/role = params["role"]
+	if(role && !(role in GLOB.human_ai_roles))
+		role = null
+	var/faction = params["faction"]
+	if(faction && !(faction in human_ai_known_factions()))
+		faction = null
+	pending_assign = list(
+		"personality" = personality,
+		"role" = role,
+		"faction" = faction,
+		"range" = clamp(round(text2num(params["range"])), 0, 10),
+		"squad" = !!params["squad"],
+	)
+	armed_order = null
+	pending_spawn = null
+	sync_click_intercept()
+	to_chat(user, SPAN_NOTICE("Click a human to give it an AI, right-click to stop."))
+	refresh()
+
+/**
+ * Gives a brain to the human that was clicked, or to everyone without one within the range of the click when the tool has a range, and
+ * selects whoever took it so that they can be ordered at once. The tool stays armed for the next click.
+ */
+/datum/npc_command_console/proc/do_assign(mob/user, atom/clicked, list/settings)
+	var/list/targets = list()
+	var/turf/center = get_turf(clicked)
+	if(!center)
+		return null
+	if(settings["range"])
+		for(var/mob/living/carbon/human/near in range(settings["range"], center))
+			if(!human_ai_attach_refusal(near))
+				targets += near
+	else
+		var/mob/living/carbon/human/direct = clicked
+		if(!istype(direct))
+			for(var/mob/living/carbon/human/on_turf in center)
+				direct = on_turf
+				break
+		if(!istype(direct))
+			to_chat(user, SPAN_WARNING("Click a human."))
+			return null
+		var/refusal = human_ai_attach_refusal(direct)
+		if(refusal)
+			to_chat(user, SPAN_WARNING("No AI for that one, [refusal]."))
+			return null
+		targets += direct
+	if(!length(targets))
+		to_chat(user, SPAN_WARNING("Nobody there could be given an AI."))
+		return null
+	var/list/assigned = list()
+	var/list/failures = list()
+	for(var/mob/living/carbon/human/human as anything in targets)
+		var/refusal = assign_human_ai(human, settings["personality"], settings["role"], settings["faction"])
+		if(refusal)
+			failures += refusal
+		else
+			assigned += human
+	if(length(assigned) > 1 && settings["squad"])
+		create_human_ai_squad(assigned, null, "Assigned squad")
+	if(length(failures))
+		to_chat(user, SPAN_WARNING("[length(failures)] could not be given an AI: [failures[1]]."))
+	if(length(assigned))
+		message_admins("[key_name_admin(user)] gave an AI to [length(assigned)] existing humans at [get_area(center)] with the NPC command panel.")
+		last_report = "assign: [length(assigned)] given an AI"
+		selection.select_list(assigned)
+	sync_click_intercept()
+	refresh()
+	return assigned
+
+/// Takes the brain off the selected humans and leaves them standing there as plain mobs
+/datum/npc_command_console/proc/release_selected(mob/user)
+	var/released = 0
+	for(var/mob/living/carbon/human/human as anything in selection.get_selected())
+		if(detach_human_ai(human))
+			released++
+	if(released)
+		message_admins("[key_name_admin(user)] took the AI off [released] humans with the NPC command panel.")
+	last_report = "release: [released] humans let go"
+	sync_click_intercept()
+	refresh()
+	return released
 
 /// Spawns the armed group around the turf and returns the humans that came out
 /datum/npc_command_console/proc/do_spawn(mob/user, turf/center, list/settings)

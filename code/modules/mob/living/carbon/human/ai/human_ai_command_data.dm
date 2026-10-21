@@ -117,6 +117,7 @@ GLOBAL_VAR_INIT(npc_roster_sort_key, "name")
 	data["marquee_active"] = marquee_active
 	data["armed_order"] = armed_order
 	data["armed_spawn"] = !!pending_spawn
+	data["armed_assign"] = !!pending_assign
 	data["selected_count"] = length(selection.selected)
 	data["last_report"] = last_report
 	data["paused"] = SShuman_ai.paused

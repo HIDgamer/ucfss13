@@ -614,3 +614,57 @@
 #define HAI_SURRENDER_MERCY 40
 #define HAI_SURRENDER_ACCEPT_TIME (45 SECONDS)
 #define HAI_CAPTIVE_MERCY 30
+
+/// How long a unit reckons a ladder climb takes, and so how long it holds still for it.
+#define HAI_LADDER_TIME (4 SECONDS)
+
+/// Tiles around the point a unit told to hold an area keeps to.
+#define HAI_HOLD_AREA_RADIUS 6
+
+/// How far from itself a unit looks for a cell to put a prisoner in, and how far from it a captive can be and still be taken away.
+#define HAI_HOLDING_RANGE 25
+#define HAI_ESCORT_RANGE 7
+
+/// Tiles from the enemy at which a suicider arms its grenade, and the tiles from which a stealth unit that has not been found opens fire.
+#define HAI_BOMBER_RANGE 7
+#define HAI_AMBUSH_RANGE 7
+
+/// The stages of forcing a door with a charge: none under way, planting it, backing off and waiting for it to go off.
+#define HAI_FORCE_NONE 0
+#define HAI_FORCE_PLANT 1
+#define HAI_FORCE_RETREAT 2
+#define HAI_FORCE_WAIT 3
+
+/// What a welder and a coil of cable do for a machine's wounds, how much damage on a limb is worth the repair and how long a repair takes on another and on oneself.
+#define HAI_MED_WELD "weld"
+#define HAI_MED_CABLE "cable"
+#define HAI_SYNTH_REPAIR_MIN 6
+#define HAI_REPAIR_TIME 25
+#define HAI_REPAIR_SELF_TIME 45
+
+/// How far a maintenance unit looks for work, the gap between two looks, how long it leaves alone what it could not mend, the share of jobs it starts with a word, the damage on a wall that is worth a welder and how long the longest single job is expected to take.
+#define HAI_MAINT_RANGE 9
+#define HAI_MAINT_SCAN_GAP (3 SECONDS)
+#define HAI_MAINT_SKIP (3 MINUTES)
+#define HAI_MAINT_QUIP_CHANCE 30
+#define HAI_WALL_REPAIR_MIN 10
+#define HAI_MAINT_JOB_TIME (90 SECONDS)
+
+/// A maintenance unit's chatter: the quips it lets slip, the word it has about the job it takes up and the remark it makes about what it notices.
+#define HAI_EXPR_QUIP "quip"
+#define HAI_EXPR_TASK "task"
+#define HAI_EXPR_NOTICE "notice"
+
+/// The kinds of work a maintenance unit takes up.
+#define HAI_MAINT_LIGHT "light"
+#define HAI_MAINT_CLEAN "clean"
+#define HAI_MAINT_WALL "wall"
+#define HAI_MAINT_FLOOR "floor"
+#define HAI_MAINT_APC "apc"
+
+/// The most single steps it takes to put an APC right, the time between a maintenance unit's quips and looks at the people around it, and the tiles it watches them from.
+#define HAI_APC_STEP_LIMIT 24
+#define HAI_JOE_QUIP_GAP_MIN (25 SECONDS)
+#define HAI_JOE_QUIP_GAP_MAX (70 SECONDS)
+#define HAI_JOE_WATCH_GAP (4 SECONDS)
+#define HAI_JOE_WATCH_RANGE 5

@@ -94,6 +94,9 @@
 	var/obj/structure/machinery/door/airlock/airlock = door
 	if(istype(airlock))
 		if(airlock.locked || airlock.welded || airlock.isElectrified())
+			// Insurgents with a charge blow what they cannot open
+			if(try_force_door(door, next_turf))
+				return TRUE
 			remember_blocked(next_turf, "[door] is shut for good", HAI_DOOR_DENIED_MEMORY)
 			return FALSE
 		if(!airlock.arePowerSystemsOn())

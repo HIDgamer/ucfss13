@@ -8,7 +8,7 @@
 /datum/human_ai_brain/proc/is_settled()
 	if(holds_a_post())
 		return TRUE
-	return istype(current_order, /datum/npc_order/hold) || istype(current_order, /datum/npc_order/guard)
+	return istype(current_order, /datum/npc_order/hold) || istype(current_order, /datum/npc_order/guard) || istype(current_order, /datum/npc_order/hold_area)
 
 /// Whether the wearer knows how to rig the suit up, the suit refuses anyone else
 /datum/human_ai_brain/proc/can_use_ghillie()

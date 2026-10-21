@@ -143,6 +143,7 @@
 	brain.utility_ref = WEAKREF(cuffs)
 	INVOKE_ASYNC(cuffs, TYPE_PROC_REF(/obj/item/restraint, attack), prisoner, brain.body)
 	brain.prisoners++
+	brain.captive_ref = WEAKREF(prisoner)
 	brain.log_decision("cuffing [prisoner], hand [brain.body.get_active_hand()], adjacent [brain.body.Adjacent(prisoner)]")
 	return TRUE
 

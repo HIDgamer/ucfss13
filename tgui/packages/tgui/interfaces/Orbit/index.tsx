@@ -64,7 +64,13 @@ export const Orbit = () => {
 /** Controls filtering out the list of observables via search */
 const ObservableSearch = () => {
   const { act, data } = useBackend<OrbitData>();
-  const { humans = [], marines = [], survivors = [], xenos = [] } = data;
+  const {
+    ai = [],
+    humans = [],
+    marines = [],
+    survivors = [],
+    xenos = [],
+  } = data;
 
   let auto_observe = data.auto_observe;
 
@@ -75,6 +81,7 @@ const ObservableSearch = () => {
       marines,
       survivors,
       xenos,
+      ai,
     ]);
 
     if (mostRelevant !== undefined) {
@@ -205,6 +212,23 @@ const marineSplitter = (members: Array<Observable>) => {
     buildSquadObservable('Other', 'grey', other),
   ];
   return squads;
+};
+
+/** Splits the AI by what plays it, humans further by the side they are on */
+const aiSplitter = (members: Array<Observable>) => {
+  const groups = new Map<string, Array<Observable>>();
+
+  members.forEach((x) => {
+    const title =
+      x.ai_kind === 'Human'
+        ? `Human - ${capitalizeFirst(x.faction ?? 'unknown')}`
+        : (x.ai_kind ?? 'Other');
+    groups.set(title, [...(groups.get(title) ?? []), x]);
+  });
+
+  return Array.from(groups.keys())
+    .sort()
+    .map((title) => buildSquadObservable(title, 'olive', groups.get(title)!));
 };
 
 const rankList = [
@@ -370,6 +394,7 @@ const weyyuSplitter = (members: Array<Observable>) => {
 const ObservableContent = () => {
   const { data } = useBackend<OrbitData>();
   const {
+    ai = [],
     humans = [],
     responders = [],
     marines = [],
@@ -400,6 +425,12 @@ const ObservableContent = () => {
 
   return (
     <Stack vertical>
+      <GroupedObservable
+        color="olive"
+        section={ai}
+        title="AI"
+        splitter={aiSplitter}
+      />
       <GroupedObservable
         color="blue"
         section={marines}
@@ -596,6 +627,7 @@ const ObservableTooltip = (props: { readonly item: Observable }) => {
       caste,
       health,
       job,
+      role,
       full_name,
       icon,
       background_color,
@@ -635,6 +667,7 @@ const ObservableTooltip = (props: { readonly item: Observable }) => {
           {job}
         </LabeledList.Item>
       )}
+      {!!role && <LabeledList.Item label="AI role">{role}</LabeledList.Item>}
       {displayHealth && (
         <LabeledList.Item label="Health">{healthText}</LabeledList.Item>
       )}

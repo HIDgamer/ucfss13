@@ -54,6 +54,10 @@
 /datum/npc_order/proc/estimate_danger(datum/human_ai_brain/performer)
 	return danger
 
+/// Called when the order ends however it ends, for orders that changed something about the performer that has to be put back
+/datum/npc_order/proc/cleanup(datum/human_ai_brain/performer)
+	return
+
 /datum/npc_order/proc/begin(datum/human_ai_brain/performer)
 	brain = performer
 	started_at = world.time
@@ -464,6 +468,7 @@
 		ended.brain = null
 	if(current_order != ended)
 		return
+	ended.cleanup(src)
 	current_order = null
 	if(ended.roe && !roe_restore_time)
 		roe = roe_before_order

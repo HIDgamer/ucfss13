@@ -48,6 +48,9 @@ GLOBAL_LIST_INIT(human_ai_expressions, list(
  * extra fills %dir% in the line, emote_override replaces the emote that goes with the kind.
  */
 /datum/human_ai_brain/proc/express(kind, extra, emote_override)
+	// A Working Joe has its own voice and its own things to say
+	if(role?.joe_voice)
+		return joe_express(kind)
 	var/list/rule = GLOB.human_ai_expressions[kind]
 	if(!rule || !can_express())
 		return FALSE
@@ -73,6 +76,8 @@ GLOBAL_LIST_INIT(human_ai_expressions, list(
 	if(line)
 		line = replacetext(line, "%dir%", extra || "ahead")
 		line = replacetext(line, "%area%", here?.name || "this area")
+		if(callout_spot && (kind in list(HAI_EXPR_CONTACT, HAI_EXPR_XENO, HAI_EXPR_BACKUP)))
+			line = human_ai_add_callout(line, callout_spot)
 		if(radio_worthy(kind))
 			line = ";[line]"
 	talk_times[kind] = world.time
@@ -161,13 +166,17 @@ GLOBAL_LIST_EMPTY(human_ai_backup_radio)
 
 /datum/human_ai_brain/proc/announce_contact(mob/living/subject)
 	panic()
+	// The call-out says where the subject is in terms of what is next to it, the same place for every line this contact draws
+	callout_spot = describe_spot(subject)
 	// The first contact of a fight is a call for backup naming the area, the ones after it are the plain call-outs
 	if(call_for_backup(subject))
+		callout_spot = null
 		return
 	if(isxeno(subject) || iszombie(subject))
 		express(HAI_EXPR_XENO, direction_to(subject))
 	else
 		express(HAI_EXPR_CONTACT, direction_to(subject))
+	callout_spot = null
 
 /datum/human_ai_brain/proc/announce_kill()
 	if(personality.trait("mercy") <= 20)

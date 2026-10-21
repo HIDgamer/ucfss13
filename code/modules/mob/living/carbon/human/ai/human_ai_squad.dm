@@ -467,7 +467,7 @@ GLOBAL_LIST_EMPTY(human_ai_squads)
 		return FALSE
 	var/wanted = (length(members) >= 5) ? 2 : 1
 	var/list/chosen = list()
-	for(var/datum/human_ai_brain/candidate as anything in engaged)
+	for(var/datum/human_ai_brain/candidate as anything in flankers_first(engaged))
 		if(length(chosen) >= wanted)
 			break
 		if(candidate == leader || candidate.current_order || !candidate.peek_gun() || candidate.stress >= 50 || candidate.body.health < candidate.body.maxHealth * 0.6)
@@ -552,7 +552,7 @@ GLOBAL_LIST_EMPTY(human_ai_squads)
 		end_play("flank timed out")
 
 /datum/human_ai_brain/proc/flank_willingness()
-	return (personality.trait("aggression") * 0.4 + personality.trait("initiative") * 0.4 + (100 - personality.trait("caution")) * 0.2) * 0.01
+	return (personality.trait("aggression") * 0.4 + personality.trait("initiative") * 0.4 + (100 - personality.trait("caution")) * 0.2) * 0.01 + (role?.flanks ? 0.6 : 0)
 
 /// Tells the brain an enemy is out there, true when it took the news
 /datum/human_ai_brain/proc/receive_callout(mob/living/subject, turf/where)

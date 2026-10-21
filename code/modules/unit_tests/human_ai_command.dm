@@ -420,3 +420,89 @@
 	TEST_ASSERT(length(static_data["jobs"]) > 10, "The equipment preset list is empty")
 	for(var/mob/living/carbon/human/member as anything in crowd)
 		TEST_ASSERT_EQUAL(member.ai_brain?.error_total || 0, 0, "A brain threw errors")
+
+/// The assign tool gives a brain to a human that is already in the round, from the panel's click tool and from the proc behind the admin verb
+/datum/unit_test/human_ai_assign_tool
+	var/datum/npc_command_console/console
+
+/datum/unit_test/human_ai_assign_tool/Destroy()
+	QDEL_NULL(console)
+	return ..()
+
+/datum/unit_test/human_ai_assign_tool/Run()
+	var/datum/human_ai_arena/yard = new(list(
+		"##############",
+		"#............#",
+		"#............#",
+		"#............#",
+		"#............#",
+		"##############",
+	), run_loc_floor_bottom_left)
+	var/mob/living/carbon/human/admin = allocate(/mob/living/carbon/human, locate(yard.origin_x + 1, yard.origin_y + 1, yard.z))
+	console = make_console(admin)
+	TEST_ASSERT("arm_assign" in GLOB.npc_command_admin_actions, "A commander could arm the assign tool")
+	TEST_ASSERT("release_ai" in GLOB.npc_command_admin_actions, "A commander could take the AI off a unit")
+
+	// The proc behind the tool, and why it refuses
+	var/mob/living/carbon/human/plain = allocate(/mob/living/carbon/human, locate(yard.origin_x + 3, yard.origin_y + 2, yard.z))
+	TEST_ASSERT_NULL(plain.ai_brain, "The test human started with a brain")
+	TEST_ASSERT_NULL(assign_human_ai(plain, "zealot", "medic", FACTION_PMC), "A plain human was refused a brain")
+	TEST_ASSERT_NOTNULL(plain.ai_brain, "The human has no brain after it was assigned one")
+	TEST_ASSERT_EQUAL(plain.ai_brain.personality.id, "zealot", "The nature was not applied")
+	TEST_ASSERT_EQUAL(plain.ai_brain.role?.id, "medic", "The role was not applied")
+	TEST_ASSERT_EQUAL(plain.faction, FACTION_PMC, "The faction was not applied")
+	TEST_ASSERT_NOTNULL(assign_human_ai(plain), "A human that has a brain was given a second one")
+	var/mob/living/carbon/human/corpse = allocate(/mob/living/carbon/human, locate(yard.origin_x + 4, yard.origin_y + 2, yard.z))
+	corpse.stat = DEAD
+	TEST_ASSERT_NOTNULL(human_ai_attach_refusal(corpse), "A dead human was not refused")
+	TEST_ASSERT_NOTNULL(human_ai_attach_refusal(null), "Nobody was not refused")
+	detach_human_ai(plain)
+
+	// The click tool: one human at a time
+	var/mob/living/carbon/human/first = allocate(/mob/living/carbon/human, locate(yard.origin_x + 3, yard.origin_y + 1, yard.z))
+	var/mob/living/carbon/human/second = allocate(/mob/living/carbon/human, locate(yard.origin_x + 8, yard.origin_y + 3, yard.z))
+	var/mob/living/carbon/human/third = allocate(/mob/living/carbon/human, locate(yard.origin_x + 9, yard.origin_y + 3, yard.z))
+	var/mob/living/carbon/human/far = allocate(/mob/living/carbon/human, locate(yard.origin_x + 12, yard.origin_y + 1, yard.z))
+	console.handle_action(admin, "arm_assign", list("personality" = "veteran", "role" = "engineer", "faction" = FACTION_CLF, "range" = 0))
+	TEST_ASSERT_NOTNULL(console.pending_assign, "The assign tool was not armed")
+	TEST_ASSERT(console.wants_intercept(), "The armed assign tool would not take the click")
+	TEST_ASSERT(console.InterceptClickOn(admin, "left=1", first), "The armed assign tool did not take the click")
+	TEST_ASSERT_NOTNULL(first.ai_brain, "The human that was clicked got no brain")
+	TEST_ASSERT_EQUAL(first.ai_brain.personality.id, "veteran", "The clicked human has the wrong nature")
+	TEST_ASSERT_EQUAL(first.ai_brain.role?.id, "engineer", "The clicked human has the wrong role")
+	TEST_ASSERT_EQUAL(first.faction, FACTION_CLF, "The clicked human has the wrong faction")
+	TEST_ASSERT_NULL(second.ai_brain, "A human that was not clicked got a brain")
+	TEST_ASSERT(first in console.selection.get_selected(), "The human that was given an AI was not selected")
+	console.InterceptClickOn(admin, "left=1", locate(yard.origin_x + 6, yard.origin_y + 4, yard.z))
+	TEST_ASSERT_NULL(second.ai_brain, "A click on an empty tile gave somebody a brain")
+	TEST_ASSERT_NOTNULL(console.pending_assign, "The tool disarmed itself after a click")
+	console.InterceptClickOn(admin, "left=1", first)
+	TEST_ASSERT_EQUAL(length(console.selection.get_selected()), 1, "Clicking a human that has a brain again changed the selection")
+
+	// And with a reach, where what the panel sends is not trusted
+	console.handle_action(admin, "arm_assign", list("personality" = "no such nature", "role" = "no such role", "faction" = "no such faction", "range" = 3, "squad" = TRUE))
+	TEST_ASSERT_EQUAL(console.pending_assign["personality"], "neutral", "A bad nature got through")
+	TEST_ASSERT_NULL(console.pending_assign["role"], "A bad role got through")
+	TEST_ASSERT_NULL(console.pending_assign["faction"], "A bad faction got through")
+	TEST_ASSERT(console.InterceptClickOn(admin, "left=1", second), "The tool with a reach did not take the click")
+	TEST_ASSERT_NOTNULL(second.ai_brain, "The human that was clicked got no brain")
+	TEST_ASSERT_NOTNULL(third.ai_brain, "The human next to the click got no brain")
+	TEST_ASSERT_NULL(far.ai_brain, "A human out of reach got a brain")
+	TEST_ASSERT(second.ai_brain.squad && second.ai_brain.squad == third.ai_brain.squad, "The two were not put in one squad")
+	TEST_ASSERT(console.InterceptClickOn(admin, "right=1", second), "The right click did not stop the tool")
+	TEST_ASSERT_NULL(console.pending_assign, "The tool stayed armed")
+
+	// Letting go of the selected
+	console.selection.clear()
+	console.selection.select_list(list(first, second))
+	console.handle_action(admin, "release_ai", list())
+	TEST_ASSERT_NULL(first.ai_brain, "The AI was not taken off the first human")
+	TEST_ASSERT_NULL(second.ai_brain, "The AI was not taken off the second human")
+	TEST_ASSERT_NOTNULL(third.ai_brain, "The AI was taken off a human that was not selected")
+	TEST_ASSERT(isnull(first.ai_brain) && !first.is_human_ai_controlled, "The human is still marked as AI controlled")
+	detach_human_ai(third)
+
+	// Closing the window disarms it
+	console.pending_assign = list("range" = 0)
+	console.ui_close(admin)
+	TEST_ASSERT_NULL(console.pending_assign, "Closing the window left the assign tool armed")
