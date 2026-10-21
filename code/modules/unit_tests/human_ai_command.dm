@@ -294,11 +294,13 @@
 	var/reaction_before = SShuman_ai.reaction_mult
 	var/full_before = SShuman_ai.max_full
 	var/total_before = SShuman_ai.max_total
-	console.handle_action(admin, "set_difficulty", list("aim_error" = 9, "reaction" = 0, "aggression" = 0.5, "max_full" = 9999, "max_total" = 0))
+	console.handle_action(admin, "set_difficulty", list("aim_error" = 9, "reaction" = 0, "aggression" = 0.5, "max_full" = 9999, "max_total" = -5))
 	TEST_ASSERT_EQUAL(SShuman_ai.aim_error_mult, 4, "Aim error was not clamped")
 	TEST_ASSERT_EQUAL(SShuman_ai.reaction_mult, 0.25, "Reaction was not clamped")
-	TEST_ASSERT_EQUAL(SShuman_ai.max_full, 300, "The full fidelity cap was not clamped")
-	TEST_ASSERT_EQUAL(SShuman_ai.max_total, 1, "The total cap was not clamped")
+	TEST_ASSERT_EQUAL(SShuman_ai.max_full, 9999, "The full fidelity cap was held to a limit that is not there any more")
+	TEST_ASSERT_EQUAL(SShuman_ai.max_total, 0, "A negative total cap was not taken for no limit")
+	console.handle_action(admin, "set_difficulty", list("max_full" = 0))
+	TEST_ASSERT_EQUAL(SShuman_ai.max_full, 1, "The full fidelity cap went below one")
 	TEST_ASSERT(first.ai_brain.personality.trait("aggression") > reckless_aggression, "The global aggression did not reach the units")
 	console.handle_action(admin, "set_difficulty", list("aim_error" = aim_before, "reaction" = reaction_before, "aggression" = 0, "max_full" = full_before, "max_total" = total_before))
 	TEST_ASSERT_EQUAL(first.ai_brain.personality.trait("aggression"), reckless_aggression, "The aggression did not come back")
@@ -360,13 +362,15 @@
 	console = make_console(admin)
 	var/list/factions = list(FACTION_MARINE, FACTION_PMC, FACTION_CLF)
 	var/list/crowd = list()
-	for(var/index in 1 to HAI_MAX_TOTAL)
+	// A crowd as big as the old limit on how many there could be, which is not there any more
+	var/crowd_size = 150
+	for(var/index in 1 to crowd_size)
 		var/mob/living/carbon/human/member = allocate(/mob/living/carbon/human, pick(yard.floors))
 		member.faction = factions[1 + index % 3]
 		if(!attach_human_ai(member))
 			break
 		crowd += member
-	TEST_ASSERT(length(crowd) >= HAI_MAX_TOTAL - 5, "Only [length(crowd)] AI humans attached")
+	TEST_ASSERT(length(crowd) >= crowd_size - 5, "Only [length(crowd)] AI humans attached")
 	for(var/index in 1 to 12)
 		var/mob/living/carbon/human/hurt = crowd[index * 7]
 		hurt.adjustBruteLoss(10 * index)

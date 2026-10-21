@@ -98,6 +98,10 @@
 	breach_members = list()
 	breach_spots = list()
 
+/// Whether the brain is one of a team stacked at a door and not yet sent in, it stays where it stands instead of going back to its post
+/datum/human_ai_brain/proc/holding_stack()
+	return squad && squad.breach_state != HAI_BREACH_IDLE && (src in squad.breach_members)
+
 /datum/human_ai_squad/proc/breach_stacked()
 	for(var/datum/human_ai_brain/brain as anything in breach_members)
 		if(!member_valid(brain))
@@ -187,8 +191,9 @@
 				breach_note("exposed, the team would be caught by its own flash")
 				breach_state = HAI_BREACH_ENTER
 				return
-			breach_flash_wait = flash.det_time + 7
-			if(breach_thrower.throw_grenade(flash, breach_room_spot))
+			// The grenade is drawn before it is thrown and then goes off after its fuse
+			breach_flash_wait = HAI_GRENADE_DRAW_TIME + flash.det_time + 7
+			if(breach_thrower.throw_grenade(flash, breach_room_spot, FALSE))
 				breach_note("flash thrown")
 				flashes_thrown++
 				breach_state = HAI_BREACH_WAIT
@@ -201,7 +206,7 @@
 				breach_state = HAI_BREACH_ENTER
 		if(HAI_BREACH_ENTER)
 			var/area/room = get_area(breach_room_spot)
-			var/list/sectors = breach_opener.area_points(room, length(breach_members))
+			var/list/sectors = breach_opener.area_points(room, length(breach_members), breach_room_spot)
 			var/index = 0
 			for(var/datum/human_ai_brain/brain as anything in breach_members)
 				index++

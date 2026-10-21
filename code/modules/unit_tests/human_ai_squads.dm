@@ -54,14 +54,15 @@
 		var/list/spots = list()
 		for(var/slot in 0 to 3)
 			spots += squad.leader.formation_turf(lead_body, slot)
-		shapes[shape] = spots
+		// Numbers are indexes in a list, a key that is a number has to be text to stand for a shape
+		shapes["[shape]"] = spots
 		var/list/distinct = list()
 		for(var/turf/spot as anything in spots)
 			distinct[spot] = TRUE
 		TEST_ASSERT(length(distinct) >= 3, "Formation [shape] gave only [length(distinct)] different spots for 4 slots")
-	for(var/turf/spot as anything in shapes[HAI_FORM_COLUMN])
+	for(var/turf/spot as anything in shapes["[HAI_FORM_COLUMN]"])
 		TEST_ASSERT_EQUAL(spot.x, lead_body.x, "A column slot is not behind the leader")
-	var/list/line_spots = shapes[HAI_FORM_LINE]
+	var/list/line_spots = shapes["[HAI_FORM_LINE]"]
 	var/turf/first_line = line_spots[1]
 	for(var/turf/spot as anything in line_spots)
 		TEST_ASSERT_EQUAL(spot.y, first_line.y, "A line slot is not abreast of the others")

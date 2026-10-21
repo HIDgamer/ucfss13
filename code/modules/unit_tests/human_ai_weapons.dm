@@ -68,6 +68,9 @@
 	var/fired = 0
 	var/count = 0
 	for(var/gun_type in subtypesof(/obj/item/weapon/gun))
+		// The plasma caster only exists as part of a bracer, one held by a plain human throws when it is dropped
+		if(ispath(gun_type, /obj/item/weapon/gun/energy/yautja/plasma_caster))
+			continue
 		var/mob/living/carbon/human/human = new(shooter_turf)
 		human_ai_test_skills(human)
 		human.faction = FACTION_MARINE
@@ -327,13 +330,16 @@
 	var/datum/human_ai_brain/brain = shooter.ai_brain
 	brain.keep_awake = TRUE
 	var/rounds_before = pistol.current_mag.current_rounds
-	var/datum/callback/hurt_check = CALLBACK(src, PROC_REF(hurt), dummy)
+	var/start_health = dummy.health
+	var/start_max = dummy.maxHealth
+	// Waits for the pistol to be fired, the dummy being scratched is checked once it has been
 	var/waited = 0
-	while(waited++ < 80 && !hurt_check.Invoke())
+	while(waited++ < 80 && pistol.current_mag.current_rounds >= rounds_before)
 		sleep(2.5)
+	sleep(2 SECONDS)
 	TEST_ASSERT(brain.weapon_switches >= 1, "The brain never changed weapon, intent [brain.intent], rifle state [brain.weapon_state(rifle)], target [brain.get_target()], other [brain.find_other_gun(rifle)], errors [brain.error_total], log [brain.decision_log.Join(" | ")]")
 	TEST_ASSERT(pistol.current_mag.current_rounds < rounds_before, "The pistol was never fired")
-	TEST_ASSERT(dummy.health < dummy.maxHealth, "The pistol shots never hurt the dummy")
+	TEST_ASSERT(dummy.health < dummy.maxHealth, "The pistol shots never hurt the dummy, health [dummy.health] of [dummy.maxHealth] and was [start_health] of [start_max] to begin with")
 	TEST_ASSERT_EQUAL(brain.error_total, 0, "The brain threw errors")
 
 /// Fire mode, aim error and reaction time follow the range, the stress and the movement of the shooter

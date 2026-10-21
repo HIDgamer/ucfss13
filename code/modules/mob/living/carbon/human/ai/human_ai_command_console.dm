@@ -851,9 +851,10 @@ GLOBAL_LIST_INIT(npc_command_orders, list(
 		for(var/datum/human_ai_brain/brain as anything in SShuman_ai.brains)
 			brain.apply_posture()
 	if(!isnull(params["max_full"]))
-		SShuman_ai.max_full = clamp(round(text2num(params["max_full"])), 1, 300)
+		SShuman_ai.max_full = max(1, round(text2num(params["max_full"])))
+	// Nothing, or 0, is no limit on how many exist
 	if(!isnull(params["max_total"]))
-		SShuman_ai.max_total = clamp(round(text2num(params["max_total"])), 1, 500)
+		SShuman_ai.max_total = max(0, round(text2num(params["max_total"])))
 	message_admins("[key_name_admin(user)] changed the human AI difficulty: aim error [SShuman_ai.aim_error_mult], reaction [SShuman_ai.reaction_mult], aggression [SShuman_ai.aggression_bias], caps [SShuman_ai.max_full]/[SShuman_ai.max_total].")
 	refresh()
 

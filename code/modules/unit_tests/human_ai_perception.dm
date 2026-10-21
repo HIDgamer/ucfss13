@@ -107,9 +107,14 @@
 	detach_human_ai(watcher)
 	qdel(vanisher)
 
+	// A heard shot is guessed at to within a couple of tiles, so the rooms are tall enough for every guess to land inside them
 	var/datum/human_ai_arena/rooms = new(list(
 		"##############",
+		"#......#.....#",
+		"#......#.....#",
 		"#1.....D....2#",
+		"#......#.....#",
+		"#......#.....#",
 		"##############",
 	), run_loc_floor_bottom_left)
 	var/mob/living/carbon/xenomorph/hidden = make_dummy(rooms.mark("2"))

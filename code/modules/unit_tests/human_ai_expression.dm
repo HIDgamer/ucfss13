@@ -161,6 +161,13 @@
 			return TRUE
 	return FALSE
 
+/// What was said since the last reset, as kind and line
+/datum/unit_test/human_ai_reactions/proc/said_so_far()
+	var/list/heard = list()
+	for(var/list/entry in SShuman_ai.talk_log)
+		heard += "[entry[3]]: [entry[4]]"
+	return heard.Join(" | ")
+
 /datum/unit_test/human_ai_reactions/proc/reset()
 	brain.talk_times = list()
 	brain.last_talk_time = 0
@@ -196,7 +203,7 @@
 	// The next xeno is called out plainly, backup was only just called for
 	reset()
 	var/mob/living/carbon/xenomorph/drone/second = make_target_dummy(locate(start.x + 5, start.y + 1, start.z))
-	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(said), HAI_EXPR_XENO), 20), "The soldier never called the second xeno out, log [SShuman_ai.talk_log.len]")
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(said), HAI_EXPR_XENO), 20), "The soldier never called the second xeno out, it said [said_so_far()], contacts [length(brain.contacts)], target [brain.get_target()], second at [second.x],[second.y] and soldier at [soldier.x],[soldier.y], backup ready at [brain.next_backup_call] and now [world.time]: [brain.decision_log.Join(" | ")]")
 	for(var/list/candidate in SShuman_ai.talk_log)
 		if(candidate[3] == HAI_EXPR_XENO)
 			entry = candidate
