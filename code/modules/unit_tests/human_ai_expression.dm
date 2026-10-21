@@ -18,7 +18,7 @@
 				TEST_ASSERT(istext(line) && length(line) >= 3 && length(line) <= 90, "[voice_id] [kind] has a line of the wrong size: [line]")
 				TEST_ASSERT(!seen[line], "[voice_id] [kind] repeats [line]")
 				seen[line] = TRUE
-				TEST_ASSERT(!findtext(replacetext(line, "%dir%", ""), "%"), "[voice_id] [kind] has an unknown placeholder in [line]")
+				TEST_ASSERT(!findtext(replacetext(replacetext(line, "%dir%", ""), "%area%", ""), "%"), "[voice_id] [kind] has an unknown placeholder in [line]")
 		for(var/personality_id in bank.flavor)
 			TEST_ASSERT(GLOB.human_ai_personalities[personality_id], "[voice_id] has flavor for [personality_id], which is not a personality")
 			for(var/kind in bank.flavor[personality_id])
@@ -183,12 +183,25 @@
 	brain = soldier.ai_brain
 	reset()
 	var/mob/living/carbon/xenomorph/drone/dummy = make_target_dummy(locate(start.x + 8, start.y, start.z))
-	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(said), HAI_EXPR_XENO), 8), "The soldier never called the xeno out, log [SShuman_ai.talk_log.len]")
+	// The first contact of a fight is a call for backup that gives the direction and names the area
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(said), HAI_EXPR_BACKUP), 8), "The soldier never called for backup on first contact, log [SShuman_ai.talk_log.len]")
 	var/list/entry
+	for(var/list/candidate in SShuman_ai.talk_log)
+		if(candidate[3] == HAI_EXPR_BACKUP)
+			entry = candidate
+	TEST_ASSERT(findtext(entry[4], "east") || findtext(entry[4], "ahead"), "The call for backup has no direction: [entry[4]]")
+	var/area/here = get_area(soldier)
+	TEST_ASSERT(findtext(entry[4], here.name), "The call for backup does not name the area [here.name]: [entry[4]]")
+
+	// The next xeno is called out plainly, backup was only just called for
+	reset()
+	var/mob/living/carbon/xenomorph/drone/second = make_target_dummy(locate(start.x + 8, start.y + 1, start.z))
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(said), HAI_EXPR_XENO), 8), "The soldier never called the second xeno out, log [SShuman_ai.talk_log.len]")
 	for(var/list/candidate in SShuman_ai.talk_log)
 		if(candidate[3] == HAI_EXPR_XENO)
 			entry = candidate
 	TEST_ASSERT(findtext(entry[4], "east") || findtext(entry[4], "ahead"), "The call-out has no direction: [entry[4]]")
+	qdel(second)
 
 	reset()
 	brain.give_order(new /datum/npc_order/fortify)

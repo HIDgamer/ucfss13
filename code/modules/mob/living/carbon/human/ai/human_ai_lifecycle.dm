@@ -21,6 +21,7 @@ GLOBAL_LIST_EMPTY(ai_human_list)
 	brain.home_turf = get_turf(human)
 	brain.RegisterSignal(human, COMSIG_HUMAN_BULLET_ACT, TYPE_PROC_REF(/datum/human_ai_brain, signal_bullet_act))
 	brain.RegisterSignal(human, COMSIG_HUMAN_TAKE_DAMAGE, TYPE_PROC_REF(/datum/human_ai_brain, signal_take_damage))
+	brain.issue_hack_tools()
 	brain.start()
 	brain.log_decision("attached ([brain.personality.id])")
 	return TRUE

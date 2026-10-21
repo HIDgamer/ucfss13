@@ -19,6 +19,9 @@
 		var/mob/living/carbon/human/other = candidate
 		if(iszombie(other))
 			return HAI_DISP_HOSTILE
+		// A grudge outranks being on the same side, that is how a friend who keeps shooting the brain becomes an enemy
+		if(is_overridden_hostile(other))
+			return HAI_DISP_HOSTILE
 		if(other.faction == body.faction || LAZYISIN(body.faction_group, other.faction))
 			return HAI_DISP_FRIEND
 		if(aggression != HAI_AGGRO_OTHERS && human_ai_faction_relation(body.faction, other.faction) == HAI_REL_FRIENDLY)
@@ -27,7 +30,7 @@
 			return HAI_DISP_NEUTRAL
 		if(is_overridden_hostile(other))
 			return HAI_DISP_HOSTILE
-		if(other.ai_brain?.surrendered && personality.trait("mercy") >= 40)
+		if((other.ai_brain?.surrendered && personality.trait("mercy") >= 40) || accepts_surrender_of(other))
 			return HAI_DISP_NEUTRAL
 		if(faction_is_enemy(other.faction))
 			return HAI_DISP_HOSTILE
@@ -47,6 +50,10 @@
 	if(!target)
 		if(target_ref)
 			set_target(null)
+		return
+	// A grudge that has run out leaves the target a friend again, and it is let go unless an order insists on it
+	if(!QDELETED(target) && target.stat != DEAD && ishuman(target) && get_disposition(target) <= HAI_DISP_FRIEND && current_order?.forced_target() != target)
+		set_target(null)
 		return
 	if(!QDELETED(target) && target.stat == DEAD)
 		stress = max(0, stress - HAI_KILL_RELIEF)

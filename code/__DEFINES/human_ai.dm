@@ -436,6 +436,8 @@
 #define HAI_RALLY_RANGE 8
 #define HAI_RALLY_COOLDOWN 80
 #define HAI_EXPR_RALLY "rally"
+#define HAI_EXPR_WATCH_FIRE "watch_fire"
+#define HAI_EXPR_BACKUP "backup"
 
 /// Tiles around a security brain that it looks for someone to cuff within.
 #define HAI_PRISONER_RANGE 8
@@ -575,3 +577,40 @@
 
 /// How long after a body is revived the brain waits for a player to take it before the AI takes it back.
 #define HAI_REVIVE_GRACE (5 SECONDS)
+
+/// Hits from its own side a brain forgives before it hits back, how long hits are counted over and how long it holds the grudge afterwards.
+#define HAI_TOLERANCE_HITS 3
+#define HAI_TOLERANCE_WINDOW (30 SECONDS)
+#define HAI_TOLERANCE_GRUDGE (60 SECONDS)
+
+/// Tiles a call for backup carries, how many allies answer it, how long a caller waits before calling again and the shortest gap between two backup calls over the radio from one faction.
+#define HAI_BACKUP_RANGE 25
+#define HAI_BACKUP_ANSWERS 4
+#define HAI_BACKUP_GAP (25 SECONDS)
+#define HAI_BACKUP_RADIO_GAP (8 SECONDS)
+
+/// Tiles around the body it looks for something worth picking up, deciseconds between two pick-ups and the most a brain picks up in its life.
+#define HAI_LOOT_RANGE 5
+#define HAI_LOOT_GAP (4 SECONDS)
+#define HAI_LOOT_LIMIT 12
+
+/// Tiles a player's voice command carries to a unit, how many units answer one command and how long a unit waits before it takes another from the same player.
+#define HAI_VOICE_RANGE 7
+#define HAI_VOICE_ANSWERS 8
+#define HAI_VOICE_GAP (3 SECONDS)
+
+/// How far a body must be mended past the point of death before a shock is tried, how long a medic spends on one shock, how long a body that did not take is left alone, and how far a rescuer looks for a downed friend.
+#define HAI_DEFIB_MARGIN 10
+#define HAI_DEFIB_TIME (12 SECONDS)
+#define HAI_DEFIB_RETRY (25 SECONDS)
+#define HAI_RESCUE_RANGE 5
+/// How loyal a soldier that is not a medic has to be to risk dragging a downed friend out of fire.
+#define HAI_RESCUE_LOYALTY 35
+
+/// How long a unit waits before it rigs a ghillie suit up again.
+#define HAI_CAMO_GAP (30 SECONDS)
+
+/// How much mercy a unit needs to take the surrender of an enemy who calls it out, how long it keeps its word, and how much mercy a soldier that is not a guard needs to put restraints on a captive.
+#define HAI_SURRENDER_MERCY 40
+#define HAI_SURRENDER_ACCEPT_TIME (45 SECONDS)
+#define HAI_CAPTIVE_MERCY 30

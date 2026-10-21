@@ -24910,7 +24910,8 @@
 "fyD" = (
 /obj/structure/machinery/light,
 /obj/effect/decal/cleanable/dirt,
-/obj/structure/ladder/multiz{
+/obj/structure/ladder{
+	height = 2;
 	id = "cicladder1"
 	},
 /turf/open/floor/plating/almayer,
@@ -35190,7 +35191,7 @@
 	},
 /obj/structure/ladder{
 	height = 2;
-	id = "cicladder3"
+	id = "cicladder2"
 	},
 /obj/structure/sign/safety/ladder{
 	pixel_x = 23;
@@ -64443,15 +64444,6 @@
 "uOi" = (
 /turf/closed/wall/almayer/outer,
 /area/almayer/lifeboat_pumps/south2)
-"uOl" = (
-/obj/structure/machinery/door/firedoor/border_only/almayer{
-	dir = 2
-	},
-/obj/structure/machinery/door/airlock/multi_tile/almayer/glass{
-	name = "\improper Cryogenics Bay"
-	},
-/turf/open/floor/almayer/test_floor4,
-/area/almayer/living/cryo_cells)
 "uOJ" = (
 /obj/effect/decal/cleanable/dirt,
 /turf/open/floor/almayer/mono,
@@ -67556,8 +67548,9 @@
 /obj/structure/machinery/light{
 	dir = 1
 	},
-/obj/structure/ladder/multiz{
-	id = "cicladder3"
+/obj/structure/ladder{
+	height = 2;
+	id = "cicladder2"
 	},
 /turf/open/floor/plating/almayer,
 /area/almayer/living/briefing)
@@ -113778,7 +113771,7 @@ iFp
 iFp
 iFp
 iFp
-ktX
+wDr
 rll
 wbN
 wbN
@@ -113981,7 +113974,7 @@ iFp
 iFp
 iFp
 iFp
-ktX
+wDr
 oBr
 aLT
 hjs
@@ -114184,7 +114177,7 @@ iFp
 iFp
 iFp
 iFp
-ktX
+wDr
 oBr
 aLT
 beU
@@ -120094,7 +120087,7 @@ nci
 bqc
 qIf
 lsC
-uOl
+bBd
 aPr
 bfl
 bSb

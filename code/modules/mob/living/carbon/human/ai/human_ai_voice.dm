@@ -94,6 +94,8 @@ GLOBAL_LIST_INIT(human_ai_voices, init_human_ai_voices())
 		"moving" = list("Moving!", "Going round!", "Flanking, cover me!", "On the move!"),
 		"explosion" = list("Explosion!", "What was that blast?", "Incoming!", "That was close!"),
 		"rally" = list("Hold the line!", "Stay with me!", "Keep it together!", "Steady, steady!"),
+		"watch_fire" = list("Watch your fire!", "Hey, I'm on your side!", "Friendly! Check your fire!", "Careful, that's a friendly!"),
+		"backup" = list("Contact %dir% in %area%, need backup!", "Engaged in %area%, hostiles %dir%, send help!", "Taking fire in %area%, %dir%, I need backup!", "Under attack in %area%, enemy %dir%, backup now!"),
 	)
 	convos = list(
 		list("Did you eat yet?", "Not yet, the mess was out of everything good."),

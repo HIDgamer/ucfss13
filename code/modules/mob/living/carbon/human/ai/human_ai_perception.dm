@@ -292,9 +292,13 @@
 	var/mob/living/shooter = bullet?.firer
 	if(!istype(shooter))
 		return
-	last_attacker_ref = WEAKREF(shooter)
 	last_hurt_time = world.time
 	express(HAI_EXPR_PAIN)
+	// Someone on its own side is not an enemy, it is given a warning and a few chances before it is
+	if(shooter != body && get_disposition(shooter) <= HAI_DISP_FRIEND)
+		note_friendly_hit(shooter)
+		return
+	last_attacker_ref = WEAKREF(shooter)
 	on_shot_at(shooter)
 
 /// Damage with no shooter behind it, so whoever stands next to the body takes the blame

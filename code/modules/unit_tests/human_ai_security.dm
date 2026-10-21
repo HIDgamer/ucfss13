@@ -180,7 +180,12 @@
 		if(brain.body.x > block.origin_x + 11)
 			inside++
 		TEST_ASSERT_EQUAL(brain.error_total, 0, "A brain threw errors during the breach: [brain.decision_log.Join(" | ")]")
-	TEST_ASSERT(inside >= 2, "Only [inside] of the team went in: [team.breach_log.Join(" | ")]")
+	if(inside < 2)
+		var/list/member_logs = list()
+		for(var/datum/human_ai_brain/brain as anything in team.members)
+			member_logs += "[brain.body.x],[brain.body.y]: [brain.decision_log.Join(" | ")]"
+		TEST_FAIL("Only [inside] of the team went in: [team.breach_log.Join(" | ")] // [member_logs.Join(" // ")]")
+		return
 	TEST_ASSERT(occupant.stat != CONSCIOUS || occupant.health < occupant.maxHealth, "The man inside was not touched")
 	var/list/to_detach = list()
 	for(var/datum/human_ai_brain/brain as anything in team.members)

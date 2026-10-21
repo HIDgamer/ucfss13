@@ -10,6 +10,12 @@
 /obj/structure/machinery/door/human_ai_obstacle(mob/living/carbon/human/walker)
 	return density ? HAI_OBS_DOOR : HAI_OBS_NONE
 
+/// A retractable railing can be climbed, no other blast door or shutter has a way through by hand
+/obj/structure/machinery/door/poddoor/human_ai_obstacle(mob/living/carbon/human/walker)
+	if(!density)
+		return HAI_OBS_NONE
+	return climbable ? HAI_OBS_CLIMB : HAI_OBS_DOOR
+
 /mob/living/human_ai_obstacle(mob/living/carbon/human/walker)
 	return density ? HAI_OBS_MOB : HAI_OBS_NONE
 
@@ -83,6 +89,8 @@
 	if(door.operating)
 		next_step_time = world.time + 4
 		return TRUE
+	if(istype(door, /obj/structure/machinery/door/poddoor))
+		return handle_poddoor(door, next_turf)
 	var/obj/structure/machinery/door/airlock/airlock = door
 	if(istype(airlock))
 		if(airlock.locked || airlock.welded || airlock.isElectrified())
@@ -99,23 +107,50 @@
 	next_step_time = world.time + door.openspeed + 2
 	return TRUE
 
+/**
+ * Blast doors and shutters have no handle and do not answer to a push, nobody opens them by hand. They are worked from a button, or forced
+ * with a crowbar once their power is out. A brain without a crowbar leaves a powered one alone for a good while.
+ */
+/datum/human_ai_brain/proc/handle_poddoor(obj/structure/machinery/door/poddoor/shutter, turf/next_turf)
+	if(!(shutter.stat & NOPOWER) || shutter.unacidable)
+		remember_blocked(next_turf, "[shutter] is powered and shut, it has no handle", HAI_DOOR_DENIED_MEMORY)
+		return FALSE
+	return start_pry(shutter, next_turf)
+
+/// Something to force a door with that the body carries anywhere, a proper crowbar by preference
 /datum/human_ai_brain/proc/find_crowbar()
-	for(var/obj/item/tool/crowbar/crowbar in list(body.l_hand, body.r_hand, body.belt))
-		return crowbar
-	return null
+	var/obj/item/forcer
+	for(var/obj/item/candidate in body.get_contents())
+		if(candidate.flags_item & (NODROP|ITEM_ABSTRACT))
+			continue
+		if(HAS_TRAIT(candidate, TRAIT_TOOL_CROWBAR))
+			return candidate
+		if(!forcer && candidate.can_pry())
+			forcer = candidate
+	return forcer
 
 /datum/human_ai_brain/proc/start_pry(obj/structure/machinery/door/door, turf/next_turf)
-	var/obj/item/tool/crowbar/crowbar = find_crowbar()
+	var/obj/item/crowbar = find_crowbar()
 	if(!crowbar)
-		remember_blocked(next_turf, "[door] has no power and there is no crowbar")
+		remember_blocked(next_turf, "[door] has no power and there is no crowbar", HAI_DOOR_DENIED_MEMORY)
 		return FALSE
 	acting_until = world.time + 15 SECONDS
 	INVOKE_ASYNC(src, PROC_REF(pry_door), door, crowbar)
 	return TRUE
 
-/datum/human_ai_brain/proc/pry_door(obj/structure/machinery/door/door, obj/item/tool/crowbar/crowbar)
-	if(!QDELETED(door) && !QDELETED(crowbar) && body)
+/// Takes the crowbar in hand and heaves at the door with it, the door gives only if it really is dead
+/datum/human_ai_brain/proc/pry_door(obj/structure/machinery/door/door, obj/item/crowbar)
+	if(QDELETED(body) || QDELETED(door) || QDELETED(crowbar) || !hand_item(crowbar))
+		acting_until = 0
+		return
+	body.face_atom(door)
+	body.visible_message(SPAN_WARNING("[body] wedges [crowbar] into [door] and heaves!"), SPAN_NOTICE("You wedge [crowbar] into [door]."))
+	playsound(door, 'sound/items/Crowbar.ogg', 25, TRUE)
+	sleep(1.5 SECONDS)
+	if(!QDELETED(body) && !QDELETED(door) && !QDELETED(crowbar) && !stopped && body.stat == CONSCIOUS && body.Adjacent(door) && crowbar.loc == body)
 		door.attackby(crowbar, body)
+		pries++
+		log_decision("forced [door] with [crowbar]")
 	acting_until = 0
 
 /// Whether getting over something climbable is worth the time right now: the brain has an enemy in sight, is under fire, running or clear of a hazard. A hard order alone is not a hurry

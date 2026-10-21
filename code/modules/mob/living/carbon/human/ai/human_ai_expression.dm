@@ -32,6 +32,8 @@ GLOBAL_LIST_INIT(human_ai_expressions, list(
 	HAI_EXPR_EXPLOSION = list(100, FALSE, null),
 	HAI_EXPR_CONVO = list(600, FALSE, null),
 	HAI_EXPR_RALLY = list(120, TRUE, null),
+	HAI_EXPR_WATCH_FIRE = list(60, TRUE, null),
+	HAI_EXPR_BACKUP = list(200, TRUE, null),
 ))
 
 /// Whether the body is in a state to talk or emote at all
@@ -70,6 +72,7 @@ GLOBAL_LIST_INIT(human_ai_expressions, list(
 		return FALSE
 	if(line)
 		line = replacetext(line, "%dir%", extra || "ahead")
+		line = replacetext(line, "%area%", here?.name || "this area")
 		if(radio_worthy(kind))
 			line = ";[line]"
 	talk_times[kind] = world.time
@@ -99,11 +102,26 @@ GLOBAL_LIST_INIT(human_ai_expressions, list(
 	INVOKE_ASYNC(body, TYPE_PROC_REF(/mob, say), line)
 	return TRUE
 
-/// Kinds a squad passes over the radio when the body wears a headset, at most once in a while per squad
+/// Whether the body wears a headset to speak into
+/datum/human_ai_brain/proc/has_headset()
+	return istype(body.wear_l_ear, /obj/item/device/radio/headset) || istype(body.wear_r_ear, /obj/item/device/radio/headset)
+
+/// Time a faction's units may next call for backup over the radio, so a whole firefight does not drown the channel
+GLOBAL_LIST_EMPTY(human_ai_backup_radio)
+
+/**
+ * Kinds that go over the radio when the body wears a headset: a squad's call-outs at most once in a while per squad, and a call for backup from
+ * anyone, squad or not, at most once in a while per faction.
+ */
 /datum/human_ai_brain/proc/radio_worthy(kind)
-	if(!squad || !(kind in list(HAI_EXPR_CONTACT, HAI_EXPR_XENO, HAI_EXPR_MAN_DOWN, HAI_EXPR_MEDIC, HAI_EXPR_FALL_BACK)))
+	if(!has_headset())
 		return FALSE
-	if(!istype(body.wear_l_ear, /obj/item/device/radio/headset) && !istype(body.wear_r_ear, /obj/item/device/radio/headset))
+	if(kind == HAI_EXPR_BACKUP)
+		if(world.time < GLOB.human_ai_backup_radio[body.faction])
+			return FALSE
+		GLOB.human_ai_backup_radio[body.faction] = world.time + HAI_BACKUP_RADIO_GAP
+		return TRUE
+	if(!squad || !(kind in list(HAI_EXPR_CONTACT, HAI_EXPR_XENO, HAI_EXPR_MAN_DOWN, HAI_EXPR_MEDIC, HAI_EXPR_FALL_BACK)))
 		return FALSE
 	return squad.take_radio()
 
@@ -143,6 +161,9 @@ GLOBAL_LIST_INIT(human_ai_expressions, list(
 
 /datum/human_ai_brain/proc/announce_contact(mob/living/subject)
 	panic()
+	// The first contact of a fight is a call for backup naming the area, the ones after it are the plain call-outs
+	if(call_for_backup(subject))
+		return
 	if(isxeno(subject) || iszombie(subject))
 		express(HAI_EXPR_XENO, direction_to(subject))
 	else

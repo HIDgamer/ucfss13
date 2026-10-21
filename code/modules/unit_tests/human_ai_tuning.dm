@@ -402,18 +402,30 @@
 	var/datum/human_ai_brain/hacker = raider.ai_brain
 	TEST_ASSERT(hacker.can_hack_doors(), "A CLF unit cannot hack doors")
 	TEST_ASSERT(!gate.allowed(raider), "The test door lets the CLF in without a hack")
+	// The bare test body had nowhere to carry the tools it is issued, a pack gives it somewhere
+	dress(raider, new /obj/item/storage/backpack/lightpack(raider), WEAR_BACK)
+	hacker.issue_hack_tools()
+	TEST_ASSERT(hacker.find_hack_tools(), "The raider was not issued a screwdriver and wirecutters, it wears [raider.back] and carries [english_list(raider.get_contents())]")
 	var/datum/npc_order/move/go = new
 	go.target_turf = beyond
 	TEST_ASSERT(hacker.give_order(go), "A move command was refused")
 	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(hacked_open), hacker), 25), "The raider never hacked the door open: [hacker.decision_log.Join(" | ")]")
+	TEST_ASSERT(!gate.requiresID(), "The ID scanner wire of the hacked door was not cut")
+	TEST_ASSERT(!gate.panel_open, "The raider left the access panel of the hacked door open")
+	TEST_ASSERT(gate.allowed(raider), "The hacked door still asks the raider for access")
 	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(order_over), go), 30), "The raider never got through the door, it is at [raider.x],[raider.y]: [hacker.decision_log.Join(" | ")]")
 	TEST_ASSERT(get_dist(raider, beyond) <= 3, "The raider stopped [get_dist(raider, beyond)] tiles short of the goal")
 	TEST_ASSERT_EQUAL(hacker.error_total, 0, "The raider's brain threw errors")
 	detach_human_ai(raider)
 
-	// A marine cannot hack it and the door is left alone for a good while, instead of being walked up to again and again
-	gate.close(TRUE)
-	sleep(3 SECONDS)
+	// A marine cannot hack it and the door is left alone for a good while, instead of being walked up to again and again.
+	// The raider left its door with the scanner wire cut, which lets anyone through, so the marine gets a fresh door that wants a card.
+	qdel(gate)
+	sleep(1)
+	gate = new /obj/structure/machinery/door/airlock/almayer/generic(door_turf)
+	gate.req_access = list(ACCESS_MARINE_COMMAND)
+	SSxeno_pathfinding.push_delta(door_turf)
+	TEST_ASSERT(!gate.allowed(null) && gate.requiresID(), "The fresh door does not ask for a card")
 	var/mob/living/carbon/human/marine = make_soldier(locate(block.origin_x + 4, block.origin_y + 3, block.z), FACTION_MARINE, FALSE)
 	var/datum/human_ai_brain/stuck = marine.ai_brain
 	TEST_ASSERT(!stuck.can_hack_doors(), "A marine can hack doors")
@@ -438,6 +450,147 @@
 	TEST_ASSERT(stuck.blocked_turfs[door_turf] > world.time + HAI_DOOR_DENIED_MEMORY * 0.5, "The door a marine cannot open was only remembered for a moment")
 	TEST_ASSERT_EQUAL(stuck.error_total, 0, "The marine's brain threw errors")
 	detach_human_ai(marine)
+
+/// A CLF unit with no screwdriver and wirecutters cannot get past a door it has no access to and leaves it alone, until it is given them
+/datum/unit_test/human_ai_door_hacking_tools
+	var/obj/structure/machinery/door/airlock/gate
+
+/datum/unit_test/human_ai_door_hacking_tools/proc/hacked_open(datum/human_ai_brain/brain)
+	return brain.hacks >= 1
+
+/datum/unit_test/human_ai_door_hacking_tools/Run()
+	TEST_ASSERT(SSxeno_pathfinding.available, "The native pathfinder is not available, these scenarios need it")
+	var/datum/human_ai_arena/block = new(list(
+		"####################",
+		"#..........#.......#",
+		"#..........#.......#",
+		"#..........A.......#",
+		"#..........#.......#",
+		"#..........#.......#",
+		"####################",
+	), run_loc_floor_bottom_left)
+	gate = block.first_door("A")
+	var/turf/door_turf = get_turf(gate)
+	var/turf/inside = locate(block.origin_x + 3, block.origin_y + 3, block.z)
+	var/turf/beyond = locate(block.origin_x + 15, block.origin_y + 3, block.z)
+
+	var/mob/living/carbon/human/raider = make_soldier(inside, FACTION_CLF, FALSE)
+	var/datum/human_ai_brain/hacker = raider.ai_brain
+	TEST_ASSERT(!hacker.find_hack_tools(), "A bare raider with nowhere to carry anything has tools")
+	var/datum/npc_order/move/go = new
+	go.target_turf = beyond
+	TEST_ASSERT(hacker.give_order(go), "A move command was refused")
+	sleep(15 SECONDS)
+	TEST_ASSERT_EQUAL(hacker.hacks, 0, "The raider hacked a door with no tools: [hacker.decision_log.Join(" | ")]")
+	TEST_ASSERT(gate.density, "The door was opened without a hack")
+	TEST_ASSERT(!gate.panel_open, "The raider opened an access panel with no screwdriver")
+	TEST_ASSERT(gate.requiresID(), "The raider cut a wire with no wirecutters")
+	TEST_ASSERT(hacker.is_blocked_turf(door_turf), "The door it cannot get through was not remembered: [hacker.decision_log.Join(" | ")]")
+
+	// A lone screwdriver is no use either, it takes both
+	var/obj/item/storage/backpack/lightpack/pack = new(raider)
+	dress(raider, pack, WEAR_BACK)
+	new /obj/item/tool/screwdriver(pack)
+	TEST_ASSERT(!hacker.find_hack_tools(), "A screwdriver alone counted as a hacking kit")
+
+	hacker.issue_hack_tools()
+	TEST_ASSERT(hacker.find_hack_tools(), "The raider was not given the missing wirecutters, it wears [raider.back] and carries [english_list(raider.get_contents())]")
+	var/screwdrivers = 0
+	for(var/obj/item/tool/screwdriver/spare in raider.get_contents())
+		screwdrivers++
+	TEST_ASSERT_EQUAL(screwdrivers, 1, "The raider was given a second screwdriver on top of its own")
+	hacker.blocked_turfs.Cut()
+	var/datum/npc_order/move/again = new
+	again.target_turf = beyond
+	TEST_ASSERT(hacker.give_order(again), "The second move command was refused")
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(hacked_open), hacker), 25), "The raider never hacked the door once it had the tools: [hacker.decision_log.Join(" | ")]")
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(order_over), again), 30), "The raider never got through the door: [hacker.decision_log.Join(" | ")]")
+	TEST_ASSERT_EQUAL(hacker.error_total, 0, "The raider's brain threw errors")
+	detach_human_ai(raider)
+
+/// Shutters have no handle: a powered one stays shut for everyone, a dead one stays shut without a crowbar and gives to one
+/datum/unit_test/human_ai_shutters
+	var/obj/structure/machinery/door/poddoor/shutters/shutter
+
+/datum/unit_test/human_ai_shutters/proc/shutter_open()
+	return !shutter.density
+
+/datum/unit_test/human_ai_shutters/Run()
+	TEST_ASSERT(SSxeno_pathfinding.available, "The native pathfinder is not available, these scenarios need it")
+	var/datum/human_ai_arena/block = new(list(
+		"####################",
+		"#..........#.......#",
+		"#..........#.......#",
+		"#..........D.......#",
+		"#..........#.......#",
+		"#..........#.......#",
+		"####################",
+	), run_loc_floor_bottom_left)
+	var/obj/structure/machinery/door/airlock/frame = block.first_door("D")
+	var/turf/door_turf = get_turf(frame)
+	qdel(frame)
+	shutter = allocate(/obj/structure/machinery/door/poddoor/shutters, door_turf)
+	shutter.stat &= ~NOPOWER
+	SSxeno_pathfinding.push_delta(door_turf)
+	var/turf/inside = locate(block.origin_x + 3, block.origin_y + 3, block.z)
+	var/turf/beyond = locate(block.origin_x + 15, block.origin_y + 3, block.z)
+
+	// Powered and nothing to force it with, the unit gives up on it and does not open it by hand
+	var/mob/living/carbon/human/marine = make_soldier(inside, FACTION_MARINE, FALSE)
+	var/datum/human_ai_brain/brain = marine.ai_brain
+	var/datum/npc_order/move/go = new
+	go.target_turf = beyond
+	TEST_ASSERT(brain.give_order(go), "A move command was refused")
+	sleep(12 SECONDS)
+	TEST_ASSERT(shutter.density, "A powered shutter was opened by hand: [brain.decision_log.Join(" | ")]")
+	TEST_ASSERT_EQUAL(brain.pries, 0, "A powered shutter was forced")
+	TEST_ASSERT(brain.is_blocked_turf(door_turf), "The shutter it cannot open was not remembered: [brain.decision_log.Join(" | ")]")
+	TEST_ASSERT(brain.blocked_turfs[door_turf] > world.time + HAI_DOOR_DENIED_MEMORY * 0.5, "The shutter it cannot open was only remembered for a moment")
+
+	// Dead, but still no crowbar
+	shutter.stat |= NOPOWER
+	brain.blocked_turfs.Cut()
+	var/datum/npc_order/move/second = new
+	second.target_turf = beyond
+	TEST_ASSERT(brain.give_order(second), "The second move command was refused")
+	sleep(12 SECONDS)
+	TEST_ASSERT(shutter.density, "A dead shutter was opened with no crowbar: [brain.decision_log.Join(" | ")]")
+	TEST_ASSERT_EQUAL(brain.pries, 0, "A dead shutter was forced with nothing to force it with")
+
+	TEST_ASSERT_EQUAL(brain.error_total, 0, "The brain threw errors")
+	detach_human_ai(marine)
+
+	// Dead and a crowbar in the pack, in a block of its own so what the first unit learned about the first shutter is not in the way
+	var/datum/human_ai_arena/second_block = new(list(
+		"####################",
+		"#..........#.......#",
+		"#..........#.......#",
+		"#..........D.......#",
+		"#..........#.......#",
+		"#..........#.......#",
+		"####################",
+	), run_loc_floor_bottom_left, 20, 40)
+	var/obj/structure/machinery/door/airlock/second_frame = second_block.first_door("D")
+	var/turf/second_door_turf = get_turf(second_frame)
+	qdel(second_frame)
+	shutter = allocate(/obj/structure/machinery/door/poddoor/shutters, second_door_turf)
+	shutter.stat |= NOPOWER
+	SSxeno_pathfinding.push_delta(second_door_turf)
+	var/mob/living/carbon/human/engineer = make_soldier(locate(second_block.origin_x + 3, second_block.origin_y + 3, second_block.z), FACTION_MARINE, FALSE)
+	var/datum/human_ai_brain/forcer = engineer.ai_brain
+	var/obj/item/storage/backpack/lightpack/pack = new(engineer)
+	dress(engineer, pack, WEAR_BACK)
+	var/obj/item/tool/crowbar/bar = new(pack)
+	TEST_ASSERT(forcer.find_crowbar() == bar, "The unit does not see the crowbar in its pack, it carries [english_list(engineer.get_contents())]")
+	var/datum/npc_order/move/third = new
+	third.target_turf = locate(second_block.origin_x + 15, second_block.origin_y + 3, second_block.z)
+	TEST_ASSERT(forcer.give_order(third), "The third move command was refused")
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(shutter_open)), 25), "The dead shutter was not forced with a crowbar: [forcer.decision_log.Join(" | ")]")
+	TEST_ASSERT(forcer.pries >= 1, "The shutter opened without the crowbar being used")
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(order_over), third), 30), "The unit never got through the forced shutter: [forcer.decision_log.Join(" | ")]")
+	TEST_ASSERT(!QDELETED(bar), "The crowbar is gone")
+	TEST_ASSERT_EQUAL(forcer.error_total, 0, "The brain threw errors")
+	detach_human_ai(engineer)
 
 /// A body that dies with a brain takes the AI back when it is revived, with the same nature and role, unless a player has it
 /datum/unit_test/human_ai_revival
@@ -481,3 +634,52 @@
 	sleep(HAI_REVIVE_GRACE + 2 SECONDS)
 	TEST_ASSERT_NULL(stranger.ai_brain, "A body that never had a brain got one by being healed")
 	detach_human_ai(soldier)
+
+
+/// A wall of tables with no gap still gets crossed by a brain with a goal beyond it, and a wall with a gap is gone through and not climbed
+/datum/unit_test/human_ai_table_wall
+
+/// Sends the soldier to the goal with a move order and waits for it to end
+/datum/unit_test/human_ai_table_wall/proc/cross(mob/living/carbon/human/soldier, turf/goal)
+	var/datum/human_ai_brain/brain = soldier.ai_brain
+	var/datum/npc_order/move/go = new
+	go.target_turf = goal
+	TEST_ASSERT(brain.give_order(go), "A move command was refused")
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(order_over), go), 60), "The move order across the tables never ended, the soldier is at [soldier.x],[soldier.y], vaults [brain.vaults], detours [brain.climb_detours]: [brain.decision_log.Join(" | ")]")
+	return go
+
+/datum/unit_test/human_ai_table_wall/Run()
+	TEST_ASSERT(SSxeno_pathfinding.available, "The native pathfinder is not available, these scenarios need it")
+	var/datum/human_ai_arena/solid = new(list(
+		"####################",
+		"#.........T........#",
+		"#.........T........#",
+		"#.........T........#",
+		"####################",
+	), run_loc_floor_bottom_left)
+	var/turf/start = locate(solid.origin_x + 3, solid.origin_y + 2, solid.z)
+	var/turf/goal = locate(solid.origin_x + 16, solid.origin_y + 2, solid.z)
+	var/mob/living/carbon/human/soldier = make_soldier(start, FACTION_MARINE, FALSE)
+	var/datum/npc_order/move/crossing = cross(soldier, goal)
+	TEST_ASSERT_EQUAL(crossing.status, HAI_ORDER_DONE, "The order across a solid wall of tables ended as [crossing.status] and not done: [soldier.ai_brain.decision_log.Join(" | ")]")
+	TEST_ASSERT(soldier.ai_brain.vaults >= 1, "The soldier got across a solid wall of tables without climbing")
+	TEST_ASSERT(get_dist(soldier, goal) <= 2, "The soldier stopped [get_dist(soldier, goal)] tiles short of the goal")
+	TEST_ASSERT_EQUAL(soldier.ai_brain.error_total, 0, "The brain threw errors")
+	detach_human_ai(soldier)
+
+	var/datum/human_ai_arena/gapped = new(list(
+		"####################",
+		"#.........T........#",
+		"#.........T........#",
+		"#..................#",
+		"#.........T........#",
+		"####################",
+	), run_loc_floor_bottom_left)
+	var/turf/gap_start = locate(gapped.origin_x + 3, gapped.origin_y + 3, gapped.z)
+	var/turf/gap_goal = locate(gapped.origin_x + 16, gapped.origin_y + 3, gapped.z)
+	var/mob/living/carbon/human/walker = make_soldier(gap_start, FACTION_MARINE, FALSE)
+	var/datum/npc_order/move/through = cross(walker, gap_goal)
+	TEST_ASSERT_EQUAL(through.status, HAI_ORDER_DONE, "The order through a wall of tables with a gap ended as [through.status] and not done: [walker.ai_brain.decision_log.Join(" | ")]")
+	TEST_ASSERT_EQUAL(walker.ai_brain.vaults, 0, "The soldier climbed a table with a gap right beside it: [walker.ai_brain.decision_log.Join(" | ")]")
+	TEST_ASSERT_EQUAL(walker.ai_brain.error_total, 0, "The brain threw errors")
+	detach_human_ai(walker)
