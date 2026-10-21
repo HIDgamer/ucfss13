@@ -361,6 +361,10 @@
 /obj/item/explosive/plastic/breaching_charge/handle_explosion(turf/target_turf, dir, cause_data)
 	var/explosion_target = get_step(target_turf, dir)
 	create_shrapnel(explosion_target, shrapnel_volume, dir, shrapnel_spread, shrapnel_type, cause_data)
+	// What the charge was stuck to goes with the first of the blast, and the charge with it, so the rest of it cannot wait on a timer of its own
+	if(QDELETED(src))
+		cell_explosion(target_turf, explosion_strength, explosion_strength, EXPLOSION_FALLOFF_SHAPE_EXPONENTIAL, dir, cause_data)
+		return
 	addtimer(CALLBACK(src, PROC_REF(trigger_explosion), target_turf, dir, cause_data), 1)
 
 /obj/item/explosive/plastic/breaching_charge/proc/trigger_explosion(turf/target_turf, dir, cause_data)

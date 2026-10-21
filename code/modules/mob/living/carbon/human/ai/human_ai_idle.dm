@@ -5,7 +5,7 @@
 	intents = list(HAI_INTENT_IDLE)
 
 /datum/human_ai_action/idle_life/get_weight(datum/human_ai_brain/brain)
-	if(brain.current_order || brain.waypoint || brain.follow_ref || brain.surrendered || brain.broken_kind || brain.civilian_alarm())
+	if(brain.current_order || brain.waypoint || brain.follow_ref || brain.surrendered || brain.broken_kind || brain.civilian_alarm() || brain.holding_stack())
 		return 0
 	if(brain.idle_goal)
 		return 12

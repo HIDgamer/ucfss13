@@ -11,6 +11,7 @@ SUBSYSTEM_DEF(human_ai)
 	/// Brains thinking above the dormant tier, never above max_full
 	var/full_count = 0
 	var/max_full = HAI_MAX_FULL
+	/// Brains allowed to exist at all, 0 for no limit
 	var/max_total = HAI_MAX_TOTAL
 	/// Think interval multiplier, raised by the lag switch
 	var/interval_multiplier = 1
@@ -162,7 +163,7 @@ SUBSYSTEM_DEF(human_ai)
 	return TRUE
 
 /datum/controller/subsystem/human_ai/proc/has_room()
-	return length(brains) < max_total
+	return !max_total || length(brains) < max_total
 
 /// Shortest wait before the next think for a tier at the current lag switch level
 /datum/controller/subsystem/human_ai/proc/interval_for(tier)

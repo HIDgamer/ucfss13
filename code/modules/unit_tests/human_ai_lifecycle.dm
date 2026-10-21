@@ -58,6 +58,12 @@
 	SShuman_ai.max_total = length(SShuman_ai.brains)
 	var/mob/living/carbon/human/over_cap = make_human()
 	TEST_ASSERT(!attach_human_ai(over_cap), "The population cap did not hold")
+	// 0 is no limit, and that is how the game starts
+	SShuman_ai.max_total = 0
+	TEST_ASSERT(SShuman_ai.has_room(), "No limit still said there was no room")
+	TEST_ASSERT(attach_human_ai(over_cap), "No limit still refused a brain")
+	detach_human_ai(over_cap)
+	TEST_ASSERT_EQUAL(HAI_MAX_TOTAL, 0, "The default is a limit on how many brains exist")
 	SShuman_ai.max_total = saved_max_total
 
 	TEST_ASSERT(detach_human_ai(first), "Detach reported failure")

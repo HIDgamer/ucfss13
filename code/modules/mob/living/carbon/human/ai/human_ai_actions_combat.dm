@@ -7,12 +7,12 @@
 	if(brain.roe == HAI_ROE_WEAPONS_HOLD && world.time > brain.last_shot_at_time + 100)
 		return 0
 	var/mob/living/target = brain.get_target()
-	if(!target || world.time > brain.target_seen_time + 20 || world.time < brain.reaction_until)
+	if(!target || world.time > brain.target_seen_time + 20 || world.time < brain.reaction_until || world.time < brain.hands_busy_until)
 		return 0
 	// A stealth unit lies in wait and opens fire once the enemy is close or has found it
 	if(brain.role?.ambush && !brain.suppressed() && get_dist(brain.body, target) > HAI_AMBUSH_RANGE)
 		return 0
-	if(brain.spares_downed(target) || brain.baton_pressing(target))
+	if(brain.spares_downed(target) || brain.baton_pressing(target) || brain.wall_in_line(target))
 		return 0
 	var/obj/item/weapon/gun/held_gun = brain.peek_gun()
 	if(held_gun && brain.lethal_forbidden() && !brain.gun_is_nonlethal(held_gun))
@@ -44,6 +44,9 @@
 		return 0
 	if(brain.reload_phase != HAI_RELOAD_NONE)
 		return 100
+	// The gun stays down while a grenade is being drawn and thrown
+	if(world.time < brain.hands_busy_until)
+		return 0
 	if(brain.is_acting())
 		return 0
 	switch(brain.weapon_state(gun))

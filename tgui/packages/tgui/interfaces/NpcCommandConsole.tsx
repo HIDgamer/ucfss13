@@ -1524,7 +1524,7 @@ const DifficultyTab = () => {
           <NumberInput
             value={difficulty.max_full}
             minValue={1}
-            maxValue={300}
+            maxValue={2000}
             step={5}
             onChange={(value) => act('set_difficulty', { max_full: value })}
           />
@@ -1535,11 +1535,14 @@ const DifficultyTab = () => {
         <LabeledList.Item label="Total AI cap">
           <NumberInput
             value={difficulty.max_total}
-            minValue={1}
-            maxValue={500}
+            minValue={0}
+            maxValue={10000}
             step={10}
             onChange={(value) => act('set_difficulty', { max_total: value })}
           />
+          <Box inline ml={1} color="label">
+            0 is no limit, the ones past the full fidelity cap sleep
+          </Box>
         </LabeledList.Item>
         <LabeledList.Item label="Budget">
           Load {difficulty.load} of the AI budget, idle brains slowed by{' '}

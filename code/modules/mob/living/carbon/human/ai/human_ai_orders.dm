@@ -520,8 +520,8 @@
 		found = next_turf
 	return found
 
-/// Open floor spots in the area, spaced out, for walking through it
-/datum/human_ai_brain/proc/area_points(area/room, count)
+/// Open floor spots in the area, spaced out, for walking through it, and when told where from only the ones that can be walked to from there
+/datum/human_ai_brain/proc/area_points(area/room, count, turf/reachable_from)
 	var/list/points = list()
 	if(!room)
 		return points
@@ -529,8 +529,17 @@
 	for(var/turf/open/candidate in room)
 		if(!candidate.density)
 			open += candidate
+	var/tries = 0
 	while(length(open) && length(points) < count)
 		var/turf/pick = pick_n_take(open)
+		// An area can be bigger than the room and be in pieces, a spot nobody can get to is no use to the man sent to it
+		if(reachable_from)
+			if(pick.z != reachable_from.z || get_dist(reachable_from, pick) > HAI_BREACH_SECTOR_RANGE)
+				continue
+			if(++tries > HAI_BREACH_SECTOR_TRIES)
+				break
+			if(SSxeno_pathfinding?.available && !human_ai_route_exists(reachable_from, pick))
+				continue
 		var/spaced = TRUE
 		for(var/turf/other as anything in points)
 			if(get_dist(other, pick) < 4)

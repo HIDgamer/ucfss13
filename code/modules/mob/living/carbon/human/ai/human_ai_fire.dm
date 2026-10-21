@@ -29,6 +29,22 @@
 				return FALSE
 	return TRUE
 
+/// Whether a wall or a shut door stands between the body and the point, so that a bullet fired at it ends there
+/datum/human_ai_brain/proc/wall_in_line(atom/target)
+	var/turf/here = get_turf(body)
+	var/turf/there = get_turf(target)
+	if(!here || !there || here == there || here.z != there.z)
+		return FALSE
+	for(var/turf/line_turf as anything in get_line(here, there))
+		if(line_turf == here || line_turf == there)
+			continue
+		if(line_turf.density)
+			return TRUE
+		for(var/obj/structure/machinery/door/door in line_turf)
+			if(door.density)
+				return TRUE
+	return FALSE
+
 /// A living mob that a stray bullet must not reach: anyone who is not an enemy
 /datum/human_ai_brain/proc/is_protected(mob/living/candidate)
 	return candidate != body && candidate.stat != DEAD && !is_valid_target(candidate)
@@ -177,6 +193,13 @@
 /// Fires at the target with the right mode and an imperfect aim, true when a shot went out
 /datum/human_ai_brain/proc/shoot(obj/item/weapon/gun/gun, atom/target)
 	var/datum/human_ai_gun_appraisal/appraisal = get_human_ai_gun_appraisal(gun)
+	// The gun is down while a grenade is drawn and thrown, and it does not come back up until the hands are free
+	if(world.time < hands_busy_until)
+		return FALSE
+	// Nothing is fired into a wall, and a shot that wobbles into the wall beside the target is aimed at the target itself further down
+	if(wall_in_line(target))
+		wall_holds++
+		return FALSE
 	if(gun.get_gun_user() != body)
 		gun.set_gun_user(body)
 	if(appraisal.two_handed && !(gun.flags_item & WIELDED) && !body.get_inactive_hand())
@@ -191,13 +214,20 @@
 	if(body.a_intent != INTENT_HARM)
 		body.a_intent_change(INTENT_HARM)
 
-	// The aim wanders a little, so roll it a few times and take one that does not put a friend in the line, holding fire when none is safe
+	// The aim wanders a little, so roll it a few times and take one that does not put a friend in the line or into a wall, holding fire when none is safe
 	var/atom/aimed
+	var/wall_only = FALSE
 	for(var/attempt in 1 to HAI_FF_AIM_TRIES)
 		var/atom/rolled = aim_point(target, gun)
-		if(!friendly_in_lane(rolled))
+		var/friend_in_way = friendly_in_lane(rolled)
+		var/wall_in_way = wall_in_line(rolled)
+		if(!friend_in_way && !wall_in_way)
 			aimed = rolled
 			break
+		if(wall_in_way && !friend_in_way)
+			wall_only = TRUE
+	if(!aimed && wall_only && !friendly_in_lane(target))
+		aimed = target
 	if(!aimed)
 		ff_holds++
 		volley_pause_until = world.time + HAI_FF_HOLD

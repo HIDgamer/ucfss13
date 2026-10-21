@@ -92,26 +92,57 @@
 			return flash
 	return null
 
-/// Takes the grenade in hand, primes it and throws it at the target
-/datum/human_ai_brain/proc/throw_grenade(obj/item/explosive/grenade/grenade, mob/living/target)
-	var/kind = human_ai_grenade_kind(grenade)
+/**
+ * Takes the gun down and the grenade out, which cannot be done with the gun at the shoulder. The pin is pulled and the grenade thrown once the time it
+ * takes has passed, by which time the target has moved and a friend may have walked into the way, and the hands are busy a moment longer getting the
+ * gun back up. Nothing is shot in any of it.
+ */
+/datum/human_ai_brain/proc/throw_grenade(obj/item/explosive/grenade/grenade, atom/target, recheck = TRUE)
 	next_grenade_time = world.time + HAI_GRENADE_COOLDOWN
 	var/obj/item/weapon/gun/gun = peek_gun()
 	if(gun && (gun.flags_item & WIELDED))
 		gun.unwield(body)
-	var/turf/spot = get_turf(target)
 	take_out_of_holder(grenade)
 	if(!body.put_in_hands(grenade, FALSE))
 		grenade.forceMove(body.loc)
 		return FALSE
 	if(grenade == body.get_inactive_hand())
 		body.swap_hand()
+	body.face_atom(target)
+	hands_busy_until = world.time + HAI_GRENADE_DRAW_TIME + HAI_GRENADE_RECOVER_TIME
+	acting_until = world.time + HAI_GRENADE_DRAW_TIME
+	INVOKE_ASYNC(src, PROC_REF(lob_grenade), grenade, target, gun, recheck)
+	return TRUE
+
+/// The second half of a throw: waits out the draw, checks the throw is still a good one, primes the grenade and throws it
+/datum/human_ai_brain/proc/lob_grenade(obj/item/explosive/grenade/grenade, atom/target, obj/item/weapon/gun/gun, recheck = TRUE)
+	var/kind = human_ai_grenade_kind(grenade)
+	var/turf/spot = get_turf(target)
+	sleep(HAI_GRENADE_DRAW_TIME)
+	if(QDELETED(src) || QDELETED(body))
+		return
+	acting_until = 0
+	// Whoever it was thrown at has moved on in the meantime, a place has not
+	if(!QDELETED(target))
+		var/mob/living/victim = target
+		if(!istype(victim) || victim.stat != DEAD)
+			spot = get_turf(target)
+	if(stopped || QDELETED(grenade) || grenade.loc != body || body.stat != CONSCIOUS || body.is_mob_incapacitated())
+		hands_busy_until = world.time
+		return
+	// A friend may have stepped into the way while the grenade was being drawn, which is looked at again for a throw the unit chose itself and not for one a plan has already made sure of
+	if(!spot || (recheck && !grenade_spot_is_safe(spot, kind)))
+		log_decision("did not throw [grenade.name], the throw was no longer safe")
+		stow_item(grenade)
+		hands_busy_until = world.time + 5
+		return
 	body.face_atom(spot)
 	grenade.attack_self(body)
 	if(!grenade.active)
 		grenade_blocked_until = world.time + HAI_GRENADE_BLOCK_TIME
 		log_decision("[grenade.name] would not prime")
-		return FALSE
+		hands_busy_until = world.time
+		return
 	body.throw_item(spot)
 	grenades_thrown++
 	switch(kind)
@@ -124,7 +155,6 @@
 	if(gun && gun.loc == body && gun == body.get_inactive_hand())
 		body.swap_hand()
 	log_decision("threw [grenade.name] at [target]")
-	return TRUE
 
 /datum/human_ai_action/throw_grenade
 	id = "throw_grenade"
@@ -132,7 +162,7 @@
 	intents = list(HAI_INTENT_ENGAGE)
 
 /datum/human_ai_action/throw_grenade/get_weight(datum/human_ai_brain/brain)
-	if(brain.reload_phase != HAI_RELOAD_NONE)
+	if(brain.reload_phase != HAI_RELOAD_NONE || world.time < brain.hands_busy_until)
 		return 0
 	var/mob/living/target = brain.get_target()
 	if(!target || !brain.grenade_for(target))

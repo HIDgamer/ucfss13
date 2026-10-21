@@ -103,8 +103,14 @@
 /datum/unit_test/human_ai_breach
 	var/datum/human_ai_squad/team
 	var/mob/living/carbon/human/occupant
+	var/door_x = 0
+	var/list/went_in = list()
 
 /datum/unit_test/human_ai_breach/proc/breach_over()
+	// The team goes back to its posts once the room is cleared, so who went in is noted as it happens
+	for(var/datum/human_ai_brain/brain as anything in team.members)
+		if(brain.body.x > door_x)
+			went_in |= brain
 	return team.breach_state == HAI_BREACH_IDLE && length(team.breach_log) > 2
 
 /datum/unit_test/human_ai_breach/proc/log_has(text)
@@ -159,6 +165,7 @@
 	TEST_ASSERT(SSxeno_pathfinding.available, "The native pathfinder is not available, these scenarios need it")
 	var/datum/human_ai_arena/block = build()
 	var/turf/door_turf = locate(block.origin_x + 11, block.origin_y + 2, block.z)
+	door_x = door_turf.x
 	var/datum/npc_order/breach/go = new
 	go.target_turf = door_turf
 	TEST_ASSERT(team.issue_order(go) >= 2, "The breach did not start: [team.breach_log.Join(" | ")]")
@@ -175,15 +182,18 @@
 		TEST_ASSERT(position > last_position, "The breach did [step] out of order: [team.breach_log.Join(" | ")]")
 		last_position = position
 	TEST_ASSERT_EQUAL(team.flashes_thrown, 1, "The team threw [team.flashes_thrown] flashes")
-	var/inside = 0
+	// The flash was not only asked for, it left a hand
+	var/left_a_hand = 0
 	for(var/datum/human_ai_brain/brain as anything in team.members)
-		if(brain.body.x > block.origin_x + 11)
-			inside++
+		left_a_hand += brain.grenades_thrown
+	TEST_ASSERT_EQUAL(left_a_hand, 1, "The flash was asked for and never thrown: [team.breach_log.Join(" | ")]")
+	for(var/datum/human_ai_brain/brain as anything in team.members)
 		TEST_ASSERT_EQUAL(brain.error_total, 0, "A brain threw errors during the breach: [brain.decision_log.Join(" | ")]")
+	var/inside = length(went_in)
 	if(inside < 2)
 		var/list/member_logs = list()
 		for(var/datum/human_ai_brain/brain as anything in team.members)
-			member_logs += "[brain.body.x],[brain.body.y]: [brain.decision_log.Join(" | ")]"
+			member_logs += "[brain.body.x],[brain.body.y] blind [brain.body.eye_blind] blurry [brain.body.eye_blurry] stat [brain.body.stat] order [brain.current_order?.type] acting [brain.is_acting()] hands [brain.hands_busy_until > world.time]: [brain.decision_log.Join(" | ")]"
 		TEST_FAIL("Only [inside] of the team went in: [team.breach_log.Join(" | ")] // [member_logs.Join(" // ")]")
 		return
 	TEST_ASSERT(occupant.stat != CONSCIOUS || occupant.health < occupant.maxHealth, "The man inside was not touched")

@@ -348,16 +348,18 @@ GLOBAL_LIST_INIT(frozen_items, list(SQUAD_MARINE_1 = list(), SQUAD_MARINE_2 = li
 	var/datum/job/job = GET_MAPPED_ROLE(occupant.job)
 	if(ishuman(occupant))
 		var/mob/living/carbon/human/H = occupant
-		job.on_cryo(H)
+		// A body with no job of its own, like an NPC made from an equipment preset, has no job to hand back
+		job?.on_cryo(H)
 		if(H.assigned_squad)
 			var/datum/squad/S = H.assigned_squad
 			S.forget_marine_in_squad(H)
 
-	//Cryoing someone out removes someone from the Marines, blocking further larva spawns until accounted for
-	SSticker.mode.latejoin_update(job, -1)
+	if(job)
+		//Cryoing someone out removes someone from the Marines, blocking further larva spawns until accounted for
+		SSticker.mode.latejoin_update(job, -1)
 
-	//Handle job slot/tater cleanup.
-	GLOB.RoleAuthority.free_role(GET_MAPPED_ROLE(occupant.job), TRUE)
+		//Handle job slot/tater cleanup.
+		GLOB.RoleAuthority.free_role(job, TRUE)
 
 	var/occupant_ref = WEAKREF(occupant)
 	//Delete them from datacore.

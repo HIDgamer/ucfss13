@@ -115,6 +115,17 @@
 	var/next_resist_time = 0
 	var/fire_rolls = 0
 	var/next_grenade_time = 0
+	/// The gun last held, the one it is going to take up and when it may look for one again, guns it could not get to until the time given, how many it took up again and shots held back for a wall in the way
+	var/datum/weakref/main_gun_ref
+	var/datum/weakref/recover_ref
+	var/next_recover_search = 0
+	var/list/recover_skips = list()
+	var/recovered_weapons = 0
+	var/wall_holds = 0
+	/// Until when the hands are tied up with something that is not shooting, a grenade being drawn and thrown for one
+	var/hands_busy_until = 0
+	/// The light on a tile as the unit sees it when set, for tests that need a dark place
+	var/light_override
 	var/grenade_blocked_until = 0
 	var/grenades_thrown = 0
 	var/weapon_switches = 0
@@ -377,6 +388,9 @@
 	maint_skips = null
 	joe_noticed = null
 	patient_skips = null
+	main_gun_ref = null
+	recover_ref = null
+	recover_skips = null
 	stair_entry = null
 	stair_exit = null
 	stair_goal = null
@@ -502,6 +516,7 @@
 	validate_target()
 	check_order()
 	tidy_hands()
+	remember_gun()
 	update_mood()
 	check_break()
 	refresh_intent()

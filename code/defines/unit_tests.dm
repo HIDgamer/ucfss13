@@ -116,6 +116,7 @@
 #include "..\modules\unit_tests\human_ai_stairs.dm"
 #include "..\modules\unit_tests\human_ai_teamwork.dm"
 #include "..\modules\unit_tests\human_ai_tuning.dm"
+#include "..\modules\unit_tests\human_ai_vision.dm"
 #include "..\modules\unit_tests\human_ai_weapons.dm"
 #include "..\modules\unit_tests\human_ai_arena.dm"
 #include "..\modules\unit_tests\emote_panels.dm"

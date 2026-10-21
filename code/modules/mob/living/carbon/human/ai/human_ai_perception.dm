@@ -16,6 +16,10 @@
 		for(var/mob/living/candidate in view(sight_range(), body))
 			if(candidate == body || candidate.stat == DEAD || (candidate.faction == body.faction && !isxeno(candidate) && !iszombie(candidate)))
 				continue
+			// Somebody in the dark past what the eyes reach, or hiding under a cloak, is not there as far as the unit can tell
+			var/turf/candidate_turf = get_turf(candidate)
+			if(!candidate_turf || !clarity_of(candidate, candidate_turf, get_dist(here, candidate_turf)))
+				continue
 			var/disposition = get_disposition(candidate)
 			if(disposition < HAI_DISP_HOSTILE)
 				if(disposition >= HAI_DISP_WARY && ishuman(candidate))
@@ -79,12 +83,8 @@
 	seconds *= moved ? 0.6 : 1.4
 	if(candidate.body_position == LYING_DOWN)
 		seconds *= 1.6
-	if(distance > 2 && body.see_in_dark < 6)
-		var/light = there.get_lumcount()
-		if(light < 0.2)
-			seconds *= 2.5
-		else if(light < 0.4)
-			seconds *= 1.5
+	// A dim place or a half hidden body takes longer, one that cannot be made out at all never gets here
+	seconds /= max(clarity_of(candidate, there, distance), 0.05)
 	return seconds / (0.5 + personality.trait("alertness") * 0.01)
 
 /// How dangerous the subject looks right now
@@ -327,7 +327,12 @@
 /datum/human_ai_brain/proc/on_shot_at(mob/living/shooter)
 	if(!shooter || shooter == body || get_disposition(shooter) <= HAI_DISP_FRIEND)
 		return
-	identify_now(shooter)
+	var/turf/shooter_turf = get_turf(shooter)
+	// A shooter it cannot make out, in the dark or under a cloak, is known by the way the shot came from and nothing more
+	if(shooter_turf && !clarity_of(shooter, shooter_turf, get_dist(body, shooter_turf)))
+		look_toward_shot(shooter, shooter_turf)
+	else
+		identify_now(shooter)
 	body.face_atom(shooter)
 	alert_until = world.time + 8 SECONDS
 	last_shot_at_time = world.time

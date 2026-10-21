@@ -20,8 +20,8 @@
 
 /// Brains allowed to think at ENGAGED/ALERT/IDLE fidelity at once.
 #define HAI_MAX_FULL 60
-/// Brains allowed to exist at all.
-#define HAI_MAX_TOTAL 150
+/// Brains allowed to exist at all, 0 for no limit. The ones past HAI_MAX_FULL are put to sleep and not refused, so the count is not what costs anything.
+#define HAI_MAX_TOTAL 0
 
 /// Errors a brain may throw before it is switched off.
 #define HAI_MAX_ERRORS 5
@@ -452,6 +452,9 @@
 /// Longest a breach may take, and how long the team has to clear the room after going in.
 #define HAI_BREACH_TIMEOUT (90 SECONDS)
 #define HAI_BREACH_CLEAR_TIME (15 SECONDS)
+/// How far from where a team goes in the spots it is sent to clear may be, and how many it tries to find one it can walk to.
+#define HAI_BREACH_SECTOR_RANGE 14
+#define HAI_BREACH_SECTOR_TRIES 24
 
 /// Sheets one metal barricade costs, deciseconds it takes to build, free turfs the builder must keep around it, mines laid per order.
 #define HAI_BARRICADE_COST 4
@@ -677,6 +680,23 @@
 #define HAI_STAIR_SKIP (2 MINUTES)
 /// How many of the stairs of a real map the test of them tries.
 #define HAI_REAL_STAIR_SAMPLES 3
+
+/// How long it takes to pull a grenade and pull its pin with a gun in the hands before it is thrown, and how long the hands are busy afterwards getting the gun back up. Nothing is shot in either.
+#define HAI_GRENADE_DRAW_TIME (1.2 SECONDS)
+#define HAI_GRENADE_RECOVER_TIME (1 SECONDS)
+
+/// What a unit can make out in the dark and of something hiding: the light on a tile below which it counts as dark, the light below which it counts as dim, the farthest a cloaked or camouflaged body can be made out from, and the alpha at or below which a body counts as camouflaged.
+#define HAI_DARK_LIGHT 0.15
+#define HAI_DIM_LIGHT 0.35
+#define HAI_CONCEAL_SIGHT 2
+#define HAI_CONCEAL_ALPHA 100
+/// How far a unit wearing night vision goggles makes things out in the dark.
+#define HAI_NIGHT_VISION_REACH 20
+
+/// How far a unit that has lost its gun looks for one to take up, the gap between two looks and how long a gun that could not be reached is left alone.
+#define HAI_RECOVER_RANGE 9
+#define HAI_RECOVER_SEARCH_GAP (1.5 SECONDS)
+#define HAI_RECOVER_SKIP (20 SECONDS)
 
 /// The kinds of work a maintenance unit takes up.
 #define HAI_MAINT_LIGHT "light"

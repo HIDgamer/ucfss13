@@ -1,10 +1,20 @@
 /// A shooter holds fire for a friend on the line, past the target where a miss carries on, or beside it where the aim can wander, and a clear line is still taken
 /datum/unit_test/human_ai_friendly_fire
+	var/aim_before
+
+/datum/unit_test/human_ai_friendly_fire/Destroy()
+	// The aim is made exact for the test and put back for whatever runs next
+	if(!isnull(aim_before))
+		SShuman_ai.aim_error_mult = aim_before
+	return ..()
 
 /datum/unit_test/human_ai_friendly_fire/proc/ready_to_fire(datum/human_ai_brain/brain, obj/item/weapon/gun/gun)
 	return brain.gun_can_shoot_now(gun)
 
 /datum/unit_test/human_ai_friendly_fire/Run()
+	// A shot rolls its aim with a wobble and goes out when one roll misses the friend, so the wobble is taken out of the line a friend stands on
+	aim_before = SShuman_ai.aim_error_mult
+	SShuman_ai.aim_error_mult = 0
 	var/datum/human_ai_arena/field = new(list(
 		"####################",
 		"#..................#",

@@ -10,19 +10,18 @@ GLOBAL_LIST_INIT(human_ai_splint_zones, list("l_arm", "r_arm", "l_leg", "r_leg",
 /// The times each body was shocked back to life by an AI medic, by reference text to list(how many times, when it was last)
 GLOBAL_LIST_EMPTY(human_ai_revive_log)
 
-/// The limbs with a broken bone that has no splint on it
-/datum/human_ai_brain/proc/broken_limbs()
-	var/list/obj/limb/found = list()
+/// Whether any bone is broken and not splinted, which is asked every think of every brain and so stops at the first one it finds
+/datum/human_ai_brain/proc/has_broken_limb()
 	for(var/obj/limb/limb as anything in body.limbs)
 		if(limb.is_broken() && !(limb.status & (LIMB_DESTROYED|LIMB_ROBOT|LIMB_SYNTHSKIN)))
-			found += limb
-	return found
+			return TRUE
+	return FALSE
 
 /// How badly off the body is from 0 for sound to 1 for on the brink, a bone broken and not splinted counts for a good deal
 /datum/human_ai_brain/proc/hurt_level()
 	var/level = 1 - clamp(body.health / max(body.maxHealth, 1), 0, 1)
-	if(length(broken_limbs()))
-		level = max(level, 0.45)
+	if(level < 0.45 && has_broken_limb())
+		level = 0.45
 	return level
 
 /// Whether the body is wounded enough to see to before anything else
@@ -34,7 +33,7 @@ GLOBAL_LIST_EMPTY(human_ai_revive_log)
  * medic's. Fire, a blast about to go off and being shot at where it stands are worse than that, and those it moves for.
  */
 /datum/human_ai_brain/proc/must_hold_still()
-	if(!length(broken_limbs()))
+	if(!has_broken_limb())
 		return FALSE
 	return !(body.on_fire || hazard_turf || suppressed())
 
