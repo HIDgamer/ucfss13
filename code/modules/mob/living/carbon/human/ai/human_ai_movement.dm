@@ -87,6 +87,7 @@
 	stuck_recoveries = 0
 	route_retries = 0
 	climb_detours = 0
+	no_route_count = 0
 	path = null
 
 /// Gets the body onto its feet, false while that takes the turn
@@ -181,10 +182,14 @@
 			if(!stair_inner && plan_stairs(here, goal_turf))
 				return null
 			route_retries++
-			if(route_retries > HAI_ROUTE_RETRIES)
+			// Stepping about on the way to nowhere does not make the answer any better, so these are counted on their own
+			no_route_count++
+			if(route_retries > HAI_ROUTE_RETRIES || no_route_count > HAI_ROUTE_RETRIES)
 				log_decision("no route to [goal_turf.x],[goal_turf.y]")
 				move_state = HAI_MOVE_BLOCKED
 				return null
+		else if(length(routed))
+			no_route_count = 0
 	if(length(path))
 		return path[1]
 	return get_step(here, get_dir(here, goal_turf))

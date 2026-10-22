@@ -2306,6 +2306,7 @@
 #include "code\modules\mob\living\carbon\human\ai\human_ai_stealth.dm"
 #include "code\modules\mob\living\carbon\human\ai\human_ai_tolerance.dm"
 #include "code\modules\mob\living\carbon\human\ai\human_ai_traps.dm"
+#include "code\modules\mob\living\carbon\human\ai\human_ai_vehicles.dm"
 #include "code\modules\mob\living\carbon\human\ai\human_ai_vision.dm"
 #include "code\modules\mob\living\carbon\human\ai\human_ai_voice.dm"
 #include "code\modules\mob\living\carbon\human\ai\human_ai_voice_commands.dm"

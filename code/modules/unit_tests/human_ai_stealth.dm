@@ -232,6 +232,26 @@
 	human_ai_footstep(friend, locate(middle.x + 2, middle.y, middle.z), HAI_FOOTSTEP_RANGE)
 	TEST_ASSERT_EQUAL(brain.footsteps_heard, 3, "A friend's step was heard as an enemy's")
 
+	// Nobody goes to look for a prisoner being led off, a man out cold, or one it can see
+	var/list/spots = list(locate(middle.x + 2, middle.y, middle.z))
+	walker.pulledby = friend
+	human_ai_footstep(walker, spots[1], HAI_FOOTSTEP_RANGE)
+	walker.pulledby = null
+	walker.handcuffed = new /obj/item/restraint/handcuffs(walker)
+	human_ai_footstep(walker, spots[1], HAI_FOOTSTEP_RANGE)
+	qdel(walker.handcuffed)
+	walker.handcuffed = null
+	walker.stat = UNCONSCIOUS
+	human_ai_footstep(walker, spots[1], HAI_FOOTSTEP_RANGE)
+	walker.stat = CONSCIOUS
+	var/datum/ai_contact/seen = brain.ensure_contact(walker, TRUE)
+	seen.visible = TRUE
+	seen.notice = 1
+	human_ai_footstep(walker, spots[1], HAI_FOOTSTEP_RANGE)
+	brain.remove_contact(walker)
+	TEST_ASSERT_EQUAL(brain.footsteps_heard, 3, "A step that nobody makes by himself, or that is made in plain sight, was heard: [brain.footsteps_heard]")
+	TEST_ASSERT_NULL(brain.investigate_turf, "A unit went to look into a step that nobody made by himself")
+
 	// The difficulty and the alarm change how well it is heard
 	SShuman_ai.detection_mult = 0.25
 	human_ai_footstep(walker, locate(middle.x + 2, middle.y, middle.z), HAI_FOOTSTEP_RANGE)

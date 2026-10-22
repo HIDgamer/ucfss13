@@ -28,6 +28,21 @@ GLOBAL_LIST_EMPTY(human_ai_posts)
 			return length - 1
 	return HAI_POST_VIEW
 
+/// The way the unit keeps watch standing where it is, the way it sees furthest, worked out once for each place it stands in
+/datum/human_ai_brain/proc/watch_direction()
+	var/turf/here = get_turf(body)
+	if(watch_dir && watch_turf == here)
+		return watch_dir
+	watch_turf = here
+	var/best_view = -1
+	watch_dir = body.dir
+	for(var/direction in GLOB.alldirs)
+		var/view = post_sight(here, direction)
+		if(view > best_view)
+			best_view = view
+			watch_dir = direction
+	return watch_dir
+
 /**
  * How good the turf is to stand watch from, as list(value, facing), null when it is no use at all. Something solid at its back and a long view
  * the other way is best, an open floor that is seen from everywhere is poor and a dead end that sees nothing is worse, and a spot far from home loses a little.

@@ -222,7 +222,10 @@
 		end_investigation()
 		return FALSE
 	if(world.time < search_wait_until)
-		body.setDir(turn(body.dir, 90))
+		// Looking round the place, a quarter turn every little while and not one at every think
+		if(world.time >= next_look_time)
+			next_look_time = world.time + HAI_LOOK_GAP
+			body.setDir(turn(body.dir, 90))
 		return TRUE
 	if(!search_points)
 		search_points = pick_search_points(investigate_turf)
@@ -245,6 +248,9 @@
 /datum/human_ai_brain/proc/hear_noise(turf/source_turf, kind, distance, noise_range, atom/emitter)
 	var/mob/living/maker = ismob(emitter) ? emitter : null
 	if(maker == body)
+		return
+	// A step from someone it can see tells it nothing it does not know
+	if(kind == HAI_NOISE_STEP && maker && get_contact(maker)?.visible)
 		return
 	if(kind == HAI_NOISE_EXPLOSION)
 		express(HAI_EXPR_EXPLOSION)

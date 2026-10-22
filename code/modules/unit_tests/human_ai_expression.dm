@@ -200,10 +200,11 @@
 	var/area/here = get_area(soldier)
 	TEST_ASSERT(findtext(entry[4], here.name), "The call for backup does not name the area [here.name]: [entry[4]]")
 
-	// The next xeno is called out plainly, backup was only just called for
+	// The next xeno is called out plainly, backup was only just called for. The battle cry that follows the first contact is let out first, since a line spoken inside the short gap after another is swallowed
+	sleep(5 SECONDS)
 	reset()
 	var/mob/living/carbon/xenomorph/drone/second = make_target_dummy(locate(start.x + 5, start.y + 1, start.z))
-	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(said), HAI_EXPR_XENO), 20), "The soldier never called the second xeno out, it said [said_so_far()], contacts [length(brain.contacts)], target [brain.get_target()], second at [second.x],[second.y] and soldier at [soldier.x],[soldier.y], backup ready at [brain.next_backup_call] and now [world.time]: [brain.decision_log.Join(" | ")]")
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(said), HAI_EXPR_XENO), 20), "The soldier never called the second xeno out, it said [said_so_far()], contacts [length(brain.contacts)], target [brain.get_target()], second at [second.x],[second.y] and soldier at [soldier.x],[soldier.y], backup ready at [brain.next_backup_call] and now [world.time], its contact [brain.get_contact(second)?.notice] visible [brain.get_contact(second)?.visible], clarity [brain.clarity_of(second, get_turf(second), get_dist(soldier, second))], light [brain.light_at(get_turf(second))], reach [brain.eye_reach()], alarm [brain.vigilance()], facing [soldier.dir]: [brain.decision_log.Join(" | ")]")
 	for(var/list/candidate in SShuman_ai.talk_log)
 		if(candidate[3] == HAI_EXPR_XENO)
 			entry = candidate

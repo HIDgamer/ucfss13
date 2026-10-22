@@ -44,7 +44,7 @@
 	switch(pick_weight(choices))
 		if("look")
 			// On watch the brain only glances either side of the way it faces, it does not turn its back on the approach
-			body.setDir(has_post && post_dir ? turn(post_dir, pick(0, 0, 45, -45)) : turn(body.dir, pick(45, -45, 90, -90)))
+			body.setDir(turn((has_post && post_dir) ? post_dir : watch_direction(), pick(0, 0, 45, -45)))
 		if("wander")
 			return start_wander()
 		if("talk")

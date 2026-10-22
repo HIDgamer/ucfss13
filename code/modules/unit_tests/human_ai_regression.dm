@@ -17,6 +17,8 @@ GLOBAL_LIST_INIT(human_ai_regression_batches, list(
 		/datum/unit_test/human_ai_gun_sweep,
 		/datum/unit_test/human_ai_gun_duels,
 		/datum/unit_test/human_ai_sidearm,
+		/datum/unit_test/human_ai_point_blank,
+		/datum/unit_test/human_ai_vehicles,
 		/datum/unit_test/human_ai_fire_discipline,
 		/datum/unit_test/human_ai_grenades,
 		/datum/unit_test/human_ai_grenade_timing,
@@ -74,6 +76,7 @@ GLOBAL_LIST_INIT(human_ai_regression_batches, list(
 		/datum/unit_test/human_ai_expression_rules,
 		/datum/unit_test/human_ai_reactions,
 		/datum/unit_test/human_ai_idle_life,
+		/datum/unit_test/human_ai_turning,
 		/datum/unit_test/human_ai_chatter_audit,
 	),
 	"roles" = list(

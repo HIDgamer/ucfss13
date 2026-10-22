@@ -455,6 +455,13 @@
 /// How far from where a team goes in the spots it is sent to clear may be, and how many it tries to find one it can walk to.
 #define HAI_BREACH_SECTOR_RANGE 14
 #define HAI_BREACH_SECTOR_TRIES 24
+/// How far from where it stands a patrol is sent to its points, how long a unit waits between two quarter turns when it looks round a place.
+#define HAI_PATROL_RANGE 30
+#define HAI_LOOK_GAP 7
+/// Inside this many tiles of a new enemy a unit reacts twice as fast, it does not need to take stock of what is on top of it.
+#define HAI_REFLEX_RANGE 3
+/// The gap between two looks round for a vehicle of a side the unit fights.
+#define HAI_VEHICLE_SCAN_GAP (2 SECONDS)
 
 /// Sheets one metal barricade costs, deciseconds it takes to build, free turfs the builder must keep around it, mines laid per order.
 #define HAI_BARRICADE_COST 4

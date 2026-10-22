@@ -109,6 +109,9 @@
 
 /// Starts the reaction delay before the first shot at something new
 /datum/human_ai_brain/proc/start_reaction(speed = 1)
+	var/mob/living/target = get_target()
+	if(target && get_dist(body, target) <= HAI_REFLEX_RANGE)
+		speed *= 2
 	var/delay = HAI_REACTION_TIME * personality.scaled("alertness", 1.4, 0.6) * SShuman_ai.reaction_mult / speed
 	reaction_until = world.time + delay
 
