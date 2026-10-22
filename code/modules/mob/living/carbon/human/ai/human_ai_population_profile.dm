@@ -265,7 +265,7 @@ GLOBAL_LIST_EMPTY(npc_population_extra_watchers)
 	switch(behavior)
 		if(HAI_POP_PATROL)
 			var/datum/npc_order/patrol/route = new
-			route.waypoints = human.ai_brain.area_points(get_area(human), 5)
+			route.waypoints = human.ai_brain.area_points(get_area(human), 5, get_turf(human), HAI_PATROL_RANGE)
 			if(length(route.waypoints) < 2)
 				qdel(route)
 				return null

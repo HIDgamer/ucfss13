@@ -19,6 +19,9 @@
 		return TRUE
 	if(gun_is_dry(gun))
 		return TRUE
+	// An empty gun is not reloaded with the enemy on top of the unit, another gun is taken up instead
+	if(weapon_state(gun) == HAI_WEAPON_EMPTY && target_adjacent())
+		return TRUE
 	if(lethal_forbidden() && !gun_is_nonlethal(gun))
 		return TRUE
 	var/datum/human_ai_gun_appraisal/appraisal = get_human_ai_gun_appraisal(gun)

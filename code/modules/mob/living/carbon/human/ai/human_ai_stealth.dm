@@ -48,6 +48,7 @@
 
 /// A subject has just been made out for what it is
 /datum/human_ai_brain/proc/note_spotted(datum/ai_contact/contact)
+	log_decision("made out [contact.get_subject()]")
 	contact.cue_stage = HAI_CUE_ALERT
 	show_cue(HAI_CUE_ALERT)
 	raise_vigilance(0.6)
@@ -85,15 +86,19 @@
 	alert_until = max(alert_until, world.time + 10 SECONDS)
 	body.face_atom(fallen)
 	log_decision("found [fallen] [fallen.stat == DEAD ? "dead" : "down"]")
-	if(get_target() || intent == HAI_INTENT_ENGAGE)
+	// A medic goes to the man to see to him, and a man the squad saw fall is no mystery, so it does not go looking for who did it
+	if(get_target() || intent == HAI_INTENT_ENGAGE || role?.id == "medic" || squad?.saw_fall(fallen))
 		return
 	express(HAI_EXPR_MAN_DOWN)
 	show_cue(HAI_CUE_ALERT)
 	begin_investigation(open_turf_near(there) || there, 0.6)
 
-/// A step was taken on the floor, heard by anyone of another side close enough, a man running carries and a man walking does not. The steps of the AI's own men are not listened for, they see each other
+/// A step was taken on the floor, heard by anyone of another side close enough, a man running carries and a man walking does not. The steps of the AI's own men are not listened for, they see each other,
+/// and a man out cold, dragged along or in cuffs is not making his own steps
 /proc/human_ai_footstep(mob/living/carbon/human/walker, turf/step_turf, noise_range)
 	if(!length(GLOB.ai_human_list) || !step_turf || walker.ai_brain)
+		return
+	if(walker.stat != CONSCIOUS || walker.pulledby || walker.handcuffed || walker.buckled)
 		return
 	for(var/mob/living/carbon/human/listener as anything in SSspatial_grid.ai_humans_in_range(step_turf, noise_range))
 		var/datum/human_ai_brain/brain = listener.ai_brain
@@ -103,3 +108,10 @@
 		if(distance > noise_range)
 			continue
 		brain.hear_noise(step_turf, HAI_NOISE_STEP, distance, noise_range, walker)
+
+/// Whether the man was lost from the squad's own ranks, which it knows about
+/datum/human_ai_squad/proc/saw_fall(mob/living/carbon/human/lost)
+	for(var/datum/weakref/ref as anything in fallen)
+		if(ref.resolve() == lost)
+			return TRUE
+	return FALSE

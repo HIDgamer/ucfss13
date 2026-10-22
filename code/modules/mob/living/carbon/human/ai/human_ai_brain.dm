@@ -140,6 +140,16 @@
 	/// Told to keep the lights off whatever the dark
 	var/lights_out = FALSE
 	var/footsteps_heard = 0
+	/// The vehicle of an enemy side it is firing on, when it last looked for one and how many shots it put into vehicles
+	var/datum/weakref/vehicle_ref
+	var/next_vehicle_scan = 0
+	var/vehicle_shots = 0
+	/// How many times in a row the router found no way to the goal, kept apart from the retries because a step sideways on the way gives those back
+	var/no_route_count = 0
+	/// The way it keeps watch where it stands and the place that was worked out for, and when it last turned to look round a place
+	var/watch_dir
+	var/turf/watch_turf
+	var/next_look_time = 0
 	var/bodies_found = 0
 	/// Until when the hands are tied up with something that is not shooting, a grenade being drawn and thrown for one
 	var/hands_busy_until = 0
@@ -411,6 +421,8 @@
 	recover_ref = null
 	recover_skips = null
 	known_bodies = null
+	vehicle_ref = null
+	watch_turf = null
 	GLOB.human_ai_lit_lamps -= src
 	gear_job = null
 	lamp_area = null

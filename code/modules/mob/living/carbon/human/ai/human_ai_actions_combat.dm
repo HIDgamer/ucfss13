@@ -125,8 +125,9 @@
 	if(brain.holding_melee_weapon())
 		return 65
 	var/obj/item/weapon/gun/gun = brain.peek_gun()
-	if(gun && brain.weapon_state(gun) == HAI_WEAPON_READY && brain.gun_can_shoot_now(gun))
-		return 20
+	// A gun that works is used at arm's length too: the moment of reaction and the gaps between shots are waited out, they are not filled with punches
+	if(gun && !brain.gun_unusable(gun) && brain.weapon_state(gun) != HAI_WEAPON_EMPTY)
+		return 0
 	return 50
 
 /datum/human_ai_action/melee/trigger(datum/human_ai_brain/brain)

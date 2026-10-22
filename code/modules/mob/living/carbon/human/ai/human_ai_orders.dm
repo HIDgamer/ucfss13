@@ -205,8 +205,20 @@
 		if(prob(15))
 			performer.body.setDir(turn(performer.body.dir, pick(90, -90)))
 		return FALSE
+	if(waypoint_index > length(waypoints))
+		waypoint_index = 1
 	if(performer.move_to(waypoints[waypoint_index], HAI_ARRIVE_DISTANCE, sprint))
 		return TRUE
+	// A place nothing leads to is struck off the route, and a patrol with nowhere left to go is over, it does not walk at walls for ever
+	if(performer.move_state == HAI_MOVE_BLOCKED)
+		waypoints.Cut(waypoint_index, waypoint_index + 1)
+		if(!length(waypoints))
+			performer.log_decision("nowhere to patrol")
+			finish(HAI_ORDER_FAILED)
+			return FALSE
+		if(waypoint_index > length(waypoints))
+			waypoint_index = 1
+		return FALSE
 	wait_until = world.time + HAI_PATROL_PAUSE
 	waypoint_index = (waypoint_index % length(waypoints)) + 1
 	return FALSE
@@ -225,7 +237,8 @@
 		return performer.move_to(dest, max(0, radius - 1), sprint)
 	if(world.time >= wait_until)
 		wait_until = world.time + rand(30, 60)
-		performer.body.setDir(facing || pick(GLOB.cardinals))
+		// On watch it looks the way it sees furthest and glances either side of it, it does not turn about at random
+		performer.body.setDir(facing || turn(performer.watch_direction(), pick(0, 0, 45, -45)))
 	return FALSE
 
 /datum/npc_order/regroup
@@ -313,7 +326,9 @@
 		return FALSE
 	if(performer.move_to(waypoints[waypoint_index], HAI_ARRIVE_DISTANCE, FALSE))
 		return TRUE
-	wait_until = world.time + HAI_PATROL_PAUSE
+	// A spot that cannot be reached is passed over, there is nothing to look at there
+	if(performer.move_state != HAI_MOVE_BLOCKED)
+		wait_until = world.time + HAI_PATROL_PAUSE
 	waypoint_index++
 	return FALSE
 
@@ -520,22 +535,25 @@
 		found = next_turf
 	return found
 
-/// Open floor spots in the area, spaced out, for walking through it, and when told where from only the ones that can be walked to from there
-/datum/human_ai_brain/proc/area_points(area/room, count, turf/reachable_from)
+/// Open floor spots in the area, spaced out, for walking through it, and when told where from only the ones within reach of it that can be walked to from there
+/datum/human_ai_brain/proc/area_points(area/room, count, turf/reachable_from, max_range = HAI_BREACH_SECTOR_RANGE)
 	var/list/points = list()
 	if(!room)
 		return points
 	var/list/open = list()
-	for(var/turf/open/candidate in room)
-		if(!candidate.density)
-			open += candidate
+	if(reachable_from)
+		// An area can be bigger than the room, a whole planet, and be in pieces: the spots worth a look are the ones near, and a spot nobody can get to is no use to the man sent to it
+		for(var/turf/open/candidate in range(max_range, reachable_from))
+			if(!candidate.density && candidate.loc == room)
+				open += candidate
+	else
+		for(var/turf/open/candidate in room)
+			if(!candidate.density)
+				open += candidate
 	var/tries = 0
 	while(length(open) && length(points) < count)
 		var/turf/pick = pick_n_take(open)
-		// An area can be bigger than the room and be in pieces, a spot nobody can get to is no use to the man sent to it
 		if(reachable_from)
-			if(pick.z != reachable_from.z || get_dist(reachable_from, pick) > HAI_BREACH_SECTOR_RANGE)
-				continue
 			if(++tries > HAI_BREACH_SECTOR_TRIES)
 				break
 			if(SSxeno_pathfinding?.available && !human_ai_route_exists(reachable_from, pick))
