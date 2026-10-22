@@ -5,6 +5,8 @@
 
 /datum/buildmode_mode
 	var/key = "oops"
+	/// The icon of the mode's button when it has none of its own, null is the one named like the key
+	var/icon_key
 	var/help = "Someone forgot to set help text!"
 
 	var/datum/buildmode/BM
@@ -34,7 +36,7 @@
 	return
 
 /datum/buildmode_mode/proc/get_button_iconstate()
-	return "buildmode_[key]"
+	return "buildmode_[icon_key || key]"
 
 /datum/buildmode_mode/proc/show_help(client/c)
 	to_chat(c, SPAN_NOTICE("\

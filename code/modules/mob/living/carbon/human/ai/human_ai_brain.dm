@@ -157,6 +157,8 @@
 	var/light_override
 	var/grenade_blocked_until = 0
 	var/grenades_thrown = 0
+	/// Live grenades that landed close and were picked up and thrown back
+	var/grenades_returned = 0
 	var/weapon_switches = 0
 	var/other_gun_check_time = 0
 	var/datum/weakref/other_gun_ref

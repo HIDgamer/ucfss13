@@ -14,13 +14,27 @@
 /datum/npc_command_selection/proc/get_selected()
 	for(var/mob/living/carbon/human/human as anything in selected)
 		if(!valid(human))
-			selected -= human
+			forget(human)
 	return selected.Copy()
+
+/// Takes the human out of the selection and stops listening for it being deleted
+/datum/npc_command_selection/proc/forget(mob/living/carbon/human/human)
+	if(!(human in selected))
+		return
+	selected -= human
+	UnregisterSignal(human, COMSIG_PARENT_QDELETING)
+
+/// A selected human that is deleted is let go at once, so that a selection nobody asks about again cannot keep it from being freed
+/datum/npc_command_selection/proc/on_member_deleted(datum/source)
+	SIGNAL_HANDLER
+	selected -= source
 
 /datum/npc_command_selection/proc/select(mob/living/carbon/human/human)
 	if(!valid(human))
 		return FALSE
-	selected |= human
+	if(!(human in selected))
+		selected += human
+		RegisterSignal(human, COMSIG_PARENT_QDELETING, PROC_REF(on_member_deleted))
 	return TRUE
 
 /datum/npc_command_selection/proc/select_list(list/humans)
@@ -31,7 +45,7 @@
 	return count
 
 /datum/npc_command_selection/proc/deselect(mob/living/carbon/human/human)
-	selected -= human
+	forget(human)
 
 /datum/npc_command_selection/proc/toggle(mob/living/carbon/human/human)
 	if(human in selected)
@@ -40,11 +54,13 @@
 	return select(human)
 
 /datum/npc_command_selection/proc/clear()
-	selected = list()
+	for(var/mob/living/carbon/human/human as anything in selected.Copy())
+		forget(human)
 
 /datum/npc_command_selection/proc/is_selected(mob/living/carbon/human/human)
 	return human in selected
 
 /datum/npc_command_selection/Destroy()
+	clear()
 	selected = null
 	return ..()

@@ -23,11 +23,23 @@
 /datum/xeno_command_selection/proc/get_selected(hivenumber)
 	for(var/mob/living/carbon/xenomorph/xeno as anything in selected)
 		if(QDELETED(xeno) || xeno.stat == DEAD || !xeno.is_ai_controlled || !xeno.ai_controller || xeno.client)
-			selected -= xeno
+			forget(xeno)
 			continue
 		if(hivenumber && xeno.hivenumber != hivenumber)
-			selected -= xeno
+			forget(xeno)
 	return selected.Copy()
+
+/// Takes the xeno out of the selection and stops listening for it being deleted.
+/datum/xeno_command_selection/proc/forget(mob/living/carbon/xenomorph/xeno)
+	if(!(xeno in selected))
+		return
+	selected -= xeno
+	UnregisterSignal(xeno, COMSIG_PARENT_QDELETING)
+
+/// A selected xeno that is deleted is let go at once, so that a selection nobody asks about again cannot keep it from being freed.
+/datum/xeno_command_selection/proc/on_member_deleted(datum/source)
+	SIGNAL_HANDLER
+	selected -= source
 
 /// Adds a single xeno to the selection if it's actually a valid selectable unit (same-hive AI-piloted, no client). Silently no-ops on an invalid candidate rather than erroring - mirrors how attempt_plant_weeds()/can_build_here() elsewhere in the xeno codebase treat a bad target as a no-op, not an exception.
 /datum/xeno_command_selection/proc/select(mob/living/carbon/xenomorph/xeno, hivenumber)
@@ -35,7 +47,9 @@
 		return FALSE
 	if(hivenumber && xeno.hivenumber != hivenumber)
 		return FALSE
-	selected |= xeno
+	if(!(xeno in selected))
+		selected += xeno
+		RegisterSignal(xeno, COMSIG_PARENT_QDELETING, PROC_REF(on_member_deleted))
 	return TRUE
 
 /// Adds every valid xeno in the list - used by the roster's "select all" and the marquee box's rectangle scan.
@@ -44,7 +58,7 @@
 		select(xeno, hivenumber)
 
 /datum/xeno_command_selection/proc/deselect(mob/living/carbon/xenomorph/xeno)
-	selected -= xeno
+	forget(xeno)
 
 /datum/xeno_command_selection/proc/toggle(mob/living/carbon/xenomorph/xeno, hivenumber)
 	if(xeno in selected)
@@ -53,7 +67,13 @@
 	return select(xeno, hivenumber)
 
 /datum/xeno_command_selection/proc/clear()
-	selected = list()
+	for(var/mob/living/carbon/xenomorph/xeno as anything in selected.Copy())
+		forget(xeno)
+
+/datum/xeno_command_selection/Destroy()
+	clear()
+	selected = null
+	return ..()
 
 /datum/xeno_command_selection/proc/is_selected(mob/living/carbon/xenomorph/xeno)
 	return (xeno in selected)

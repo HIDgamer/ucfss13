@@ -671,6 +671,8 @@
 #define HAI_PATIENT_SKIP (30 SECONDS)
 #define HAI_REVIVE_LIMIT 2
 #define HAI_REVIVE_WINDOW (3 MINUTES)
+/// How often the shared lists of the AI are cleared of entries that can no longer matter
+#define HAI_PRUNE_INTERVAL (1 MINUTES)
 #define HAI_HURT_FRACTION 0.7
 #define HAI_REGEAR_RANGE 25
 
@@ -691,6 +693,14 @@
 /// How long it takes to pull a grenade and pull its pin with a gun in the hands before it is thrown, and how long the hands are busy afterwards getting the gun back up. Nothing is shot in either.
 #define HAI_GRENADE_DRAW_TIME (1.2 SECONDS)
 #define HAI_GRENADE_RECOVER_TIME (1 SECONDS)
+/// A live grenade within this many tiles is picked up and thrown back when its fuse allows
+#define HAI_THROW_BACK_REACH 1
+/// The shortest fuse worth the pickup in deciseconds, with less the unit gets clear instead
+#define HAI_THROW_BACK_MIN_FUSE 8
+/// Deciseconds the pickup takes before the throw
+#define HAI_THROW_BACK_PICKUP 3
+/// The furthest a grenade is thrown back, which is as far as a hand throw goes
+#define HAI_THROW_BACK_RANGE 7
 
 /// What a unit can make out in the dark and of something hiding: the light on a tile below which it counts as dark, the light at and above which it is as good as daylight, the share of a subject it makes out at the dark limit,
 /// the farthest a cloaked or camouflaged body can be made out from, and the alpha at or below which a body counts as camouflaged.
@@ -722,6 +732,8 @@
 #define HAI_LAMP_LIGHT 0.3
 /// Most lamps the AI keeps lit at once on the whole server, the lights are not free.
 #define HAI_LAMP_CAP 60
+/// A unit does not light a flare with another one burning this close, a flare lights about as far as that
+#define HAI_FLARE_SPACING 8
 #define HAI_WELD_HOLD (12 SECONDS)
 
 /// How far a unit that has lost its gun looks for one to take up, the gap between two looks and how long a gun that could not be reached is left alone.
@@ -742,3 +754,12 @@
 #define HAI_JOE_QUIP_GAP_MAX (70 SECONDS)
 #define HAI_JOE_WATCH_GAP (4 SECONDS)
 #define HAI_JOE_WATCH_RANGE 5
+
+/// The sides of the NPC command panel: the AI humans and the hive's AI xenos.
+#define NPC_PANEL_HUMANS "humans"
+#define NPC_PANEL_XENOS "xenos"
+
+/// The kinds of mob that have an AI, which the AI tool of build mode gives and takes.
+#define NPC_AI_HUMAN "human"
+#define NPC_AI_ZOMBIE "zombie"
+#define NPC_AI_XENO "xeno"

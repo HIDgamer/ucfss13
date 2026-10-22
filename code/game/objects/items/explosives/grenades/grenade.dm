@@ -22,6 +22,8 @@
 	var/has_arm_sound = TRUE
 	var/underslug_launchable = FALSE
 	var/hand_throwable = TRUE
+	/// When a timed fuse was lit, null while the grenade is not lit
+	var/primed_at
 	harmful = TRUE //Is it harmful? Are they banned for synths?
 	antigrief_protection = TRUE //Should it be checked by antigrief?
 	ground_offset_x = 7
@@ -110,6 +112,7 @@
 		activate_sensors()
 	else
 		active = TRUE
+		primed_at = world.time
 		det_time ? addtimer(CALLBACK(src, PROC_REF(prime)), det_time) : prime()
 	w_class = SIZE_MASSIVE // We cheat a little, primed nades become massive so they cant be stored anywhere
 	update_icon()

@@ -272,6 +272,22 @@
 	detach_human_ai(medic)
 	TEST_ASSERT_NULL(GLOB.human_ai_patient_claims["aid test"], "A destroyed brain was left holding a claim")
 
+	// What can no longer matter is taken out of the shared lists now and then, and what still can is left alone
+	var/mob/living/carbon/human/other_medic = make_medic(run_loc_floor_bottom_left)
+	var/datum/human_ai_brain/other_doctor = other_medic.ai_brain
+	GLOB.human_ai_patient_claims["run out"] = list(other_doctor, world.time - 1)
+	GLOB.human_ai_patient_claims["held"] = list(other_doctor, world.time + 100)
+	GLOB.human_ai_revive_log["old"] = list(1, world.time - HAI_REVIVE_WINDOW - 1)
+	GLOB.human_ai_revive_log["recent"] = list(1, world.time)
+	human_ai_prune_globals()
+	TEST_ASSERT_NULL(GLOB.human_ai_patient_claims["run out"], "A claim that ran out was kept")
+	TEST_ASSERT_NOTNULL(GLOB.human_ai_patient_claims["held"], "A claim that still holds was dropped")
+	TEST_ASSERT_NULL(GLOB.human_ai_revive_log["old"], "The shock count of a body past its window was kept")
+	TEST_ASSERT_NOTNULL(GLOB.human_ai_revive_log["recent"], "The shock count of a body in its window was dropped")
+	GLOB.human_ai_patient_claims -= "held"
+	GLOB.human_ai_revive_log -= "recent"
+	detach_human_ai(other_medic)
+
 /// A hurt soldier that is being shot at from out of sight gets behind something, a sound one is not moved to, and neither of them takes a stroll
 /datum/unit_test/human_ai_hurt_conduct
 	var/mob/living/carbon/human/subject

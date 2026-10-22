@@ -132,7 +132,7 @@ so that it doesn't double up on the delays) so that it applies the delay immedia
 		var/mob/living/carbon/xenomorph/xeno_target = target
 		hive_command_console.selection.toggle(xeno_target, hivenumber)
 		hive_command_console.sync_click_intercept()
-		SStgui.update_uis(hive_command_console)
+		hive_command_console.refresh()
 		return TRUE
 
 	if(alt_pressed && shift_pressed)

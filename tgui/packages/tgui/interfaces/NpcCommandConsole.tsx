@@ -16,7 +16,6 @@ import {
   Table,
   Tabs,
 } from '../components';
-import { Window } from '../layouts';
 
 type OrderInfo = { key: string; name: string; needs: string };
 
@@ -129,7 +128,6 @@ type Data = {
   marquee_active: BooleanLike;
   armed_order: string | null;
   armed_spawn: BooleanLike;
-  armed_assign: BooleanLike;
   selected_count: number;
   last_report: string | null;
   paused: BooleanLike;
@@ -198,6 +196,7 @@ type Data = {
   roles: string[];
   factions: string[];
   jobs: string[];
+  squad_templates: SquadTemplate[];
 };
 
 const TABS = [
@@ -280,57 +279,49 @@ const stressColor = (stress: number) => {
   return 'good';
 };
 
-export const NpcCommandConsole = () => {
+/** The human side of the NPC command panel. */
+export const HumanCommandSide = () => {
   const { act, data } = useBackend<Data>();
-  const { tab, paused, restricted, faction_scope } = data;
+  const { tab, paused, restricted } = data;
   const visibleTabs = restricted
     ? TABS.filter(([key]) => COMMANDER_TABS.includes(key))
     : TABS;
 
   return (
-    <Window
-      title={faction_scope ? `NPC Command - ${faction_scope}` : 'NPC Command'}
-      theme="admin"
-      width={1040}
-      height={780}
-    >
-      <Window.Content scrollable>
-        <Stack vertical>
-          <Stack.Item>
-            <ControlBar />
-          </Stack.Item>
-          <Stack.Item>
-            <Tabs>
-              {visibleTabs.map(([key, label]) => (
-                <Tabs.Tab
-                  key={key}
-                  selected={tab === key}
-                  onClick={() => act('set_tab', { tab: key })}
-                >
-                  {label}
-                </Tabs.Tab>
-              ))}
-              {!!paused && (
-                <Tabs.Tab color="bad" selected>
-                  ALL AI PAUSED
-                </Tabs.Tab>
-              )}
-            </Tabs>
-          </Stack.Item>
-          <Stack.Item>
-            {tab === 'roster' && <RosterTab />}
-            {tab === 'squads' && <SquadsTab />}
-            {tab === 'orders' && <ActiveOrdersTab />}
-            {tab === 'personality' && <PersonalityTab />}
-            {tab === 'relations' && <RelationsTab />}
-            {tab === 'population' && <PopulationTab />}
-            {tab === 'spawner' && <SpawnerTab />}
-            {tab === 'difficulty' && <DifficultyTab />}
-            {tab === 'debug' && <DebugTab />}
-          </Stack.Item>
-        </Stack>
-      </Window.Content>
-    </Window>
+    <Stack vertical>
+      <Stack.Item>
+        <ControlBar />
+      </Stack.Item>
+      <Stack.Item>
+        <Tabs>
+          {visibleTabs.map(([key, label]) => (
+            <Tabs.Tab
+              key={key}
+              selected={tab === key}
+              onClick={() => act('set_tab', { tab: key })}
+            >
+              {label}
+            </Tabs.Tab>
+          ))}
+          {!!paused && (
+            <Tabs.Tab color="bad" selected>
+              ALL AI PAUSED
+            </Tabs.Tab>
+          )}
+        </Tabs>
+      </Stack.Item>
+      <Stack.Item>
+        {tab === 'roster' && <RosterTab />}
+        {tab === 'squads' && <SquadsTab />}
+        {tab === 'orders' && <ActiveOrdersTab />}
+        {tab === 'personality' && <PersonalityTab />}
+        {tab === 'relations' && <RelationsTab />}
+        {tab === 'population' && <PopulationTab />}
+        {tab === 'spawner' && <SpawnerTab />}
+        {tab === 'difficulty' && <DifficultyTab />}
+        {tab === 'debug' && <DebugTab />}
+      </Stack.Item>
+    </Stack>
   );
 };
 
@@ -343,7 +334,6 @@ const ControlBar = () => {
     marquee_active,
     armed_order,
     armed_spawn,
-    armed_assign,
     last_report,
     orders,
     brains,
@@ -354,13 +344,9 @@ const ControlBar = () => {
     <Section
       title={`Selection: ${selected_count} of ${brains} AI humans`}
       buttons={
-        armed_order || armed_spawn || armed_assign ? (
+        armed_order || armed_spawn ? (
           <Button color="bad" icon="ban" onClick={() => act('cancel_armed')}>
-            {armed_spawn
-              ? 'Stop spawning'
-              : armed_assign
-                ? 'Stop assigning'
-                : `Cancel ${armed_order}`}
+            {armed_spawn ? 'Stop spawning' : `Cancel ${armed_order}`}
           </Button>
         ) : null
       }
@@ -1249,71 +1235,72 @@ const PopulationTab = () => {
   );
 };
 
-const AssignSection = () => {
+const ReleaseSection = () => {
   const { act, data } = useBackend<Data>();
-  const { roles, factions, personalities, armed_assign, selected_count } = data;
-  const [role, setRole] = useState('');
-  const [faction, setFaction] = useState('');
-  const [personality, setPersonality] = useState('neutral');
-  const [range, setRange] = useState(0);
-  const [squad, setSquad] = useState(false);
+  const { selected_count } = data;
 
   return (
     <Section
-      title="Give existing mobs an AI"
+      title="Mobs that already exist"
       buttons={
-        <>
-          <Button
-            icon="crosshairs"
-            color="good"
-            selected={!!armed_assign}
-            onClick={() =>
-              act('arm_assign', {
-                role,
-                faction,
-                personality,
-                range,
-                squad: squad ? 1 : 0,
-              })
-            }
-          >
-            Arm, then click a human
-          </Button>
-          <Button
-            icon="user-slash"
-            color="bad"
-            disabled={!selected_count}
-            tooltip="Takes the AI off the selected humans and leaves them standing there"
-            onClick={() => act('release_ai')}
-          >
-            Release the selected
-          </Button>
-        </>
+        <Button
+          icon="user-slash"
+          color="bad"
+          disabled={!selected_count}
+          tooltip="Takes the AI off the selected humans and leaves them standing there"
+          onClick={() => act('release_ai')}
+        >
+          Release the selected
+        </Button>
+      }
+    >
+      <Box color="label">
+        To give an AI to humans, zombies or xenomorphs that already exist, use
+        the AI tool of build mode.
+      </Box>
+    </Section>
+  );
+};
+
+type SquadTemplate = {
+  id: string;
+  name: string;
+  size: number;
+};
+
+const TemplateSection = () => {
+  const { act, data } = useBackend<Data>();
+  const { squad_templates, personalities, armed_spawn } = data;
+  const [template, setTemplate] = useState('');
+  const [personality, setPersonality] = useState('neutral');
+  const [range, setRange] = useState(2);
+
+  return (
+    <Section
+      title="Spawn a whole squad"
+      buttons={
+        <Button
+          icon="crosshairs"
+          color="good"
+          selected={!!armed_spawn}
+          disabled={!template}
+          onClick={() => act('arm_template', { template, personality, range })}
+        >
+          Arm, then click a turf
+        </Button>
       }
     >
       <LabeledList>
-        <LabeledList.Item label="Role kit">
+        <LabeledList.Item label="Squad">
           <Dropdown
-            width="12rem"
-            placeholder="From their job"
-            selected={role || null}
-            options={['', ...roles].map((entry) => ({
-              displayText: entry || 'From their job',
-              value: entry,
+            width="16rem"
+            placeholder="Pick a squad"
+            selected={template || null}
+            options={squad_templates.map((entry) => ({
+              displayText: `${entry.name} (${entry.size})`,
+              value: entry.id,
             }))}
-            onSelected={(value) => setRole(value)}
-          />
-        </LabeledList.Item>
-        <LabeledList.Item label="Faction">
-          <Dropdown
-            width="12rem"
-            placeholder="Keep theirs"
-            selected={faction || null}
-            options={['', ...factions].map((entry) => ({
-              displayText: entry || 'Keep theirs',
-              value: entry,
-            }))}
-            onSelected={(value) => setFaction(value)}
+            onSelected={(value) => setTemplate(value)}
           />
         </LabeledList.Item>
         <LabeledList.Item label="Nature">
@@ -1327,23 +1314,14 @@ const AssignSection = () => {
             onSelected={(value) => setPersonality(value)}
           />
         </LabeledList.Item>
-        <LabeledList.Item label="Reach (tiles)">
+        <LabeledList.Item label="Spread (tiles)">
           <NumberInput
             value={range}
             minValue={0}
-            maxValue={10}
+            maxValue={6}
             step={1}
             onChange={(value) => setRange(value)}
           />
-          <Box inline ml={1} color="label">
-            0 is only the human clicked, more takes everyone without an AI that
-            close to the click
-          </Box>
-        </LabeledList.Item>
-        <LabeledList.Item label="Squad">
-          <Button.Checkbox checked={squad} onClick={() => setSquad(!squad)}>
-            Put them in one squad
-          </Button.Checkbox>
         </LabeledList.Item>
       </LabeledList>
     </Section>
@@ -1369,7 +1347,10 @@ const SpawnerTab = () => {
   return (
     <Stack vertical>
       <Stack.Item>
-        <AssignSection />
+        <ReleaseSection />
+      </Stack.Item>
+      <Stack.Item>
+        <TemplateSection />
       </Stack.Item>
       <Stack.Item>
     <Section

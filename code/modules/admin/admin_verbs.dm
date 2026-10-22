@@ -164,9 +164,7 @@ GLOBAL_LIST_INIT(admin_verbs_spawn, list(
 	/client/proc/create_humans,
 	/client/proc/create_xenos,
 	/client/proc/hive_status,
-	/client/proc/xeno_command_console,
-	/client/proc/npc_command_console,
-	/client/proc/assign_human_ai_tool,
+	/client/proc/npc_command_panel,
 	/client/proc/assign_vehicle_faction,
 ))
 

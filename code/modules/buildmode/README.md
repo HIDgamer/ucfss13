@@ -72,6 +72,26 @@ Existing varieties:
 
 		Delete the object.
 
++ AI
+
+	**Description**:
+
+	Gives an AI to mobs that are already there, humans, zombies and xenomorphs, and takes it off again. It replaces the assign tool of the NPC command panel.
+
+	**Controls**:
+
+	+ *Right click on the mode selector*:
+
+		Choose the nature, role kit and faction of the humans, how many tiles around a click are given an AI too, and whether the humans are put in one squad.
+
+	+ *Left click a mob*:
+
+		Give it an AI.
+
+	+ *Right click a mob*:
+
+		Take its AI off.
+
 + Fill
 
 	**Description**:

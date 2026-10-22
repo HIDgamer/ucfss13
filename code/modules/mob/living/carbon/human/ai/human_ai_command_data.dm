@@ -97,6 +97,10 @@ GLOBAL_VAR_INIT(npc_roster_sort_key, "name")
 	for(var/id in GLOB.human_ai_roles)
 		data["roles"] += id
 	data["factions"] = human_ai_known_factions()
+	data["squad_templates"] = list()
+	for(var/template_id in GLOB.human_ai_squad_templates)
+		var/list/template = GLOB.human_ai_squad_templates[template_id]
+		data["squad_templates"] += list(list("id" = template_id, "name" = template["name"], "size" = human_ai_template_size(template)))
 	data["jobs"] = list()
 	for(var/job in GLOB.gear_name_presets_list)
 		data["jobs"] += job
@@ -117,7 +121,6 @@ GLOBAL_VAR_INIT(npc_roster_sort_key, "name")
 	data["marquee_active"] = marquee_active
 	data["armed_order"] = armed_order
 	data["armed_spawn"] = !!pending_spawn
-	data["armed_assign"] = !!pending_assign
 	data["selected_count"] = length(selection.selected)
 	data["last_report"] = last_report
 	data["paused"] = SShuman_ai.paused

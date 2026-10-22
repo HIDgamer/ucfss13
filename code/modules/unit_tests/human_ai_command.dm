@@ -438,15 +438,15 @@
 	for(var/mob/living/carbon/human/member as anything in crowd)
 		TEST_ASSERT_EQUAL(member.ai_brain?.error_total || 0, 0, "A brain threw errors")
 
-/// The assign tool gives a brain to a human that is already in the round, from the panel's click tool and from the proc behind the admin verb
-/datum/unit_test/human_ai_assign_tool
-	var/datum/npc_command_console/console
+/// The AI tool of build mode gives an AI to a mob of any kind that has one and takes it off again, and the panel keeps only the release
+/datum/unit_test/human_ai_buildmode_ai
+	var/datum/buildmode_mode/ai/mode
 
-/datum/unit_test/human_ai_assign_tool/Destroy()
-	QDEL_NULL(console)
+/datum/unit_test/human_ai_buildmode_ai/Destroy()
+	QDEL_NULL(mode)
 	return ..()
 
-/datum/unit_test/human_ai_assign_tool/Run()
+/datum/unit_test/human_ai_buildmode_ai/Run()
 	var/datum/human_ai_arena/yard = new(list(
 		"##############",
 		"#............#",
@@ -455,71 +455,197 @@
 		"#............#",
 		"##############",
 	), run_loc_floor_bottom_left)
+	TEST_ASSERT(!("arm_assign" in GLOB.npc_command_admin_actions), "The panel still has an assign tool")
+	TEST_ASSERT("release_ai" in GLOB.npc_command_admin_actions, "A commander could take the AI off a unit")
+	mode = new /datum/buildmode_mode/ai(null)
+
+	// Every kind that has an AI is known, and the others are refused
+	var/mob/living/carbon/human/plain = allocate(/mob/living/carbon/human, locate(yard.origin_x + 3, yard.origin_y + 2, yard.z))
+	var/mob/living/carbon/human/zombie = allocate(/mob/living/carbon/human, locate(yard.origin_x + 5, yard.origin_y + 2, yard.z))
+	zombie.set_species(SPECIES_ZOMBIE)
+	var/mob/living/carbon/xenomorph/drone/xeno = allocate(/mob/living/carbon/xenomorph/drone, locate(yard.origin_x + 7, yard.origin_y + 2, yard.z))
+	var/mob/living/simple_animal/cat/cat = allocate(/mob/living/simple_animal/cat, locate(yard.origin_x + 9, yard.origin_y + 2, yard.z))
+	TEST_ASSERT_EQUAL(npc_ai_kind(plain), NPC_AI_HUMAN, "A human is not known as a human")
+	TEST_ASSERT_EQUAL(npc_ai_kind(zombie), NPC_AI_ZOMBIE, "A zombie is not known as a zombie")
+	TEST_ASSERT_EQUAL(npc_ai_kind(xeno), NPC_AI_XENO, "A xenomorph is not known as one")
+	TEST_ASSERT_NULL(npc_ai_kind(cat), "A cat was said to have an AI")
+	TEST_ASSERT_NOTNULL(npc_ai_give(cat), "A mob with no AI to give was not refused")
+	TEST_ASSERT_EQUAL(length(mode.give(cat, null)), 0, "A click on a mob with no AI gave something")
+
+	// A click gives the AI of the kind, the settings are the humans'
+	mode.personality = "veteran"
+	mode.role = "engineer"
+	mode.faction = FACTION_CLF
+	TEST_ASSERT_EQUAL(length(mode.give(plain, null)), 1, "The click did not give the human an AI")
+	TEST_ASSERT_NOTNULL(plain.ai_brain, "The human has no brain after the click")
+	TEST_ASSERT_EQUAL(plain.ai_brain.personality.id, "veteran", "The nature was not applied")
+	TEST_ASSERT_EQUAL(plain.ai_brain.role?.id, "engineer", "The role was not applied")
+	TEST_ASSERT_EQUAL(plain.faction, FACTION_CLF, "The faction was not applied")
+	TEST_ASSERT_EQUAL(length(mode.give(zombie, null)), 1, "The click did not give the zombie an AI")
+	TEST_ASSERT_NOTNULL(zombie.zombie_ai_controller, "The zombie has no controller after the click")
+	TEST_ASSERT_EQUAL(length(mode.give(xeno, null)), 1, "The click did not give the xenomorph an AI")
+	TEST_ASSERT_NOTNULL(xeno.ai_controller, "The xenomorph has no controller after the click")
+	TEST_ASSERT(xeno in GLOB.ai_xeno_list, "The xenomorph is not in the list of AI xenomorphs")
+	TEST_ASSERT_NOTNULL(npc_ai_give(plain), "A human that has a brain was given a second one")
+	TEST_ASSERT_EQUAL(length(mode.give(plain, null)), 0, "A second click gave an AI again")
+
+	// The same through the click of the mode, a tile with a mob on it counts, an empty one does not
+	TEST_ASSERT_EQUAL(length(mode.take(plain, null)), 1, "The right click did not take the AI off the human")
+	TEST_ASSERT_NULL(plain.ai_brain, "The human still has a brain")
+	TEST_ASSERT_EQUAL(length(mode.take(plain, null)), 0, "A mob with no AI had one taken off")
+	mode.when_clicked(null, "left=1", locate(yard.origin_x + 3, yard.origin_y + 2, yard.z))
+	TEST_ASSERT_NOTNULL(plain.ai_brain, "A left click on the tile with the human did not give an AI")
+	mode.when_clicked(null, "right=1", plain)
+	TEST_ASSERT_NULL(plain.ai_brain, "A right click on the human did not take the AI off")
+	mode.when_clicked(null, "left=1", locate(yard.origin_x + 11, yard.origin_y + 3, yard.z))
+	TEST_ASSERT_NULL(plain.ai_brain, "A click on an empty tile gave somebody an AI")
+
+	// Taking it off leaves the mobs standing there
+	TEST_ASSERT(npc_ai_take(zombie), "The AI was not taken off the zombie")
+	TEST_ASSERT_NULL(zombie.zombie_ai_controller, "The zombie still has a controller")
+	TEST_ASSERT(npc_ai_take(xeno), "The AI was not taken off the xenomorph")
+	TEST_ASSERT_NULL(xeno.ai_controller, "The xenomorph still has a controller")
+	TEST_ASSERT(!(xeno in GLOB.ai_xeno_list), "The xenomorph stayed in the list of AI xenomorphs")
+	TEST_ASSERT(!npc_ai_take(cat), "The AI of a cat was taken off")
+
+	// A reach gives it to everyone close to the click and the humans can be put in a squad
+	var/mob/living/carbon/human/first = allocate(/mob/living/carbon/human, locate(yard.origin_x + 3, yard.origin_y + 3, yard.z))
+	var/mob/living/carbon/human/second = allocate(/mob/living/carbon/human, locate(yard.origin_x + 4, yard.origin_y + 3, yard.z))
+	var/mob/living/carbon/human/far = allocate(/mob/living/carbon/human, locate(yard.origin_x + 12, yard.origin_y + 1, yard.z))
+	mode.reach = 3
+	mode.squad = TRUE
+	TEST_ASSERT(length(mode.give(first, null)) >= 2, "The reach did not give an AI to the ones close to the click")
+	TEST_ASSERT_NOTNULL(second.ai_brain, "The human next to the click got no AI")
+	TEST_ASSERT_NULL(far.ai_brain, "A human out of reach got an AI")
+	TEST_ASSERT(first.ai_brain.squad && first.ai_brain.squad == second.ai_brain.squad, "The humans were not put in one squad")
+	TEST_ASSERT(length(mode.take(first, null)) >= 2, "The reach did not take the AI off the ones close to the click")
+	TEST_ASSERT(isnull(first.ai_brain) && isnull(second.ai_brain) && !first.is_human_ai_controlled, "A human is still marked as AI controlled")
+	mode.reach = 0
+	mode.squad = FALSE
+	for(var/mob/living/living as anything in list(plain, zombie, xeno, first, second))
+		npc_ai_take(living)
+
+/// The NPC command panel is one window for both sides, the human console and the hive console: a user is let into the sides they have the right to and no more, and what the panel made goes with it
+/datum/unit_test/human_ai_npc_panel
+	var/datum/npc_command_panel/panel
+	var/datum/npc_command_panel/leader_panel
+
+/datum/unit_test/human_ai_npc_panel/Destroy()
+	QDEL_NULL(panel)
+	QDEL_NULL(leader_panel)
+	return ..()
+
+/datum/unit_test/human_ai_npc_panel/Run()
+	var/mob/living/carbon/human/admin = allocate(/mob/living/carbon/human)
+	panel = new(admin)
+	TEST_ASSERT_EQUAL(panel.mode, NPC_PANEL_HUMANS, "The panel did not start on the human side")
+	TEST_ASSERT(!panel.can_humans(admin) && !panel.can_xenos(admin), "A user with no rights was let into a side")
+	TEST_ASSERT(!panel.open(admin, NPC_PANEL_HUMANS), "The panel opened for a user with no rights")
+	TEST_ASSERT(!panel.switch_mode(admin, NPC_PANEL_XENOS), "A user with no rights switched to the xeno side")
+	TEST_ASSERT(!open_npc_panel_for(admin, NPC_PANEL_HUMANS), "A mob with no ckey was given a panel")
+
+	// An admin has both sides, and the xeno side asks which hive until one is picked
+	panel.humans.access_override = TRUE
+	TEST_ASSERT(panel.can_humans(admin) && panel.can_xenos(admin), "An admin was not let into both sides")
+	TEST_ASSERT(panel.open(admin, NPC_PANEL_XENOS), "The panel did not open for an admin")
+	TEST_ASSERT_EQUAL(panel.mode, NPC_PANEL_XENOS, "The panel did not open on the side that was asked for")
+	var/list/data = panel.ui_data(admin)
+	TEST_ASSERT(data["needs_hive"], "An admin who has not picked a hive was not asked for one")
+	TEST_ASSERT(data["panel_humans"] && data["panel_xenos"], "The panel did not offer both sides to an admin")
+	TEST_ASSERT_EQUAL(length(panel.ui_static_data(admin)["available_hives"]), length(GLOB.hive_datum), "The admin was not offered every hive")
+	TEST_ASSERT(!panel.handle_action(admin, "pick_hive", list("hive" = "no such hive")), "A hive that does not exist was picked")
+	TEST_ASSERT(panel.handle_action(admin, "pick_hive", list("hive" = XENO_HIVE_NORMAL)), "Picking a hive did nothing")
+	var/datum/xeno_command_console/made = panel.xenos
+	TEST_ASSERT(made && panel.owns_xenos, "Picking a hive did not give the panel a hive console of its own")
+	TEST_ASSERT(made.hive == GLOB.hive_datum[XENO_HIVE_NORMAL], "The hive console is for another hive than the one picked")
+	TEST_ASSERT(made.panel_ref?.resolve() == panel, "The hive console does not know that the panel is its window")
+	data = panel.ui_data(admin)
+	TEST_ASSERT(!data["needs_hive"] && data["panel_mode"] == NPC_PANEL_XENOS, "The panel still asked for a hive after one was picked")
+
+	// Switching sides, an unknown side changes nothing, and the human side takes its own controls again
+	panel.handle_action(admin, "set_panel_mode", list("mode" = "bogus"))
+	TEST_ASSERT_EQUAL(panel.mode, NPC_PANEL_XENOS, "An unknown side changed the panel")
+	panel.handle_action(admin, "set_panel_mode", list("mode" = NPC_PANEL_HUMANS))
+	TEST_ASSERT_EQUAL(panel.mode, NPC_PANEL_HUMANS, "The panel did not go back to the human side")
+	TEST_ASSERT(panel.handle_action(admin, "select_all", list()), "A control of the human side was not passed on to it")
+	panel.humans.access_override = FALSE
+	TEST_ASSERT(!panel.handle_action(admin, "pick_hive", list("hive" = XENO_HIVE_NORMAL)), "A user who lost their rights picked a hive")
+	panel.humans.access_override = TRUE
+
+	// Deleting the panel deletes the consoles it made
+	var/datum/npc_command_console/humans = panel.humans
+	qdel(panel)
+	panel = null
+	TEST_ASSERT(QDELETED(made) && QDELETED(humans), "The consoles that the panel made outlived it")
+
+	// A hive leader has the xeno side only, on the console that the leader keeps, which the panel leaves alone when it goes
+	var/mob/living/carbon/xenomorph/drone/leader = allocate(/mob/living/carbon/xenomorph/drone)
+	leader.hive_pos = 2
+	leader_panel = new(leader)
+	TEST_ASSERT(!leader_panel.can_humans(leader), "A hive leader was let into the human side")
+	TEST_ASSERT(leader_panel.can_xenos(leader), "A hive leader was not let into the xeno side")
+	TEST_ASSERT(leader_panel.open(leader, NPC_PANEL_HUMANS), "The panel did not open for a hive leader")
+	TEST_ASSERT_EQUAL(leader_panel.mode, NPC_PANEL_XENOS, "A hive leader was left on a side they have no right to")
+	var/datum/xeno_command_console/own = leader.hive_command_console
+	TEST_ASSERT(own && leader_panel.xenos == own && !leader_panel.owns_xenos, "The hive console the leader keeps was not the one the panel used")
+	TEST_ASSERT(leader_panel.handle_action(leader, "toggle_selecting_mode", list()), "A control of the xeno side was not passed on to it")
+	TEST_ASSERT(own.selecting_mode, "The hive console did not get the control")
+	TEST_ASSERT(!leader_panel.handle_action(leader, "pick_hive", list("hive" = XENO_HIVE_NORMAL)), "A hive leader picked a hive")
+	qdel(leader_panel)
+	leader_panel = null
+	TEST_ASSERT(!QDELETED(own) && !own.panel_ref, "The panel took the leader's own hive console with it")
+
+/// Squad templates are made of equipment presets that exist, spawn whole under one leader from the NPC command panel, and the panel does not trust what it is sent
+/datum/unit_test/human_ai_squad_templates
+	var/datum/npc_command_console/console
+
+/datum/unit_test/human_ai_squad_templates/Destroy()
+	QDEL_NULL(console)
+	return ..()
+
+/datum/unit_test/human_ai_squad_templates/Run()
+	TEST_ASSERT(length(GLOB.human_ai_squad_templates) >= 5, "There are hardly any squad templates")
+	for(var/template_id in GLOB.human_ai_squad_templates)
+		var/list/template = GLOB.human_ai_squad_templates[template_id]
+		TEST_ASSERT(human_ai_template_size(template) > 1, "The squad [template["name"]] is not a squad")
+		for(var/list/entry in template["members"])
+			TEST_ASSERT((entry["job"] in GLOB.gear_name_presets_list), "The squad [template["name"]] has [entry["job"]], which is not an equipment preset")
+			TEST_ASSERT(entry["count"] >= 1, "The squad [template["name"]] has none of [entry["job"]]")
+
+	var/datum/human_ai_arena/yard = new(list(
+		"####################",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"####################",
+	), run_loc_floor_bottom_left)
 	var/mob/living/carbon/human/admin = allocate(/mob/living/carbon/human, locate(yard.origin_x + 1, yard.origin_y + 1, yard.z))
 	console = make_console(admin)
-	TEST_ASSERT("arm_assign" in GLOB.npc_command_admin_actions, "A commander could arm the assign tool")
-	TEST_ASSERT("release_ai" in GLOB.npc_command_admin_actions, "A commander could take the AI off a unit")
+	TEST_ASSERT("arm_template" in GLOB.npc_command_admin_actions, "A commander could spawn whole squads")
+	var/list/static_data = console.ui_static_data(admin)
+	TEST_ASSERT_EQUAL(length(static_data["squad_templates"]), length(GLOB.human_ai_squad_templates), "The panel was not told about every squad")
 
-	// The proc behind the tool, and why it refuses
-	var/mob/living/carbon/human/plain = allocate(/mob/living/carbon/human, locate(yard.origin_x + 3, yard.origin_y + 2, yard.z))
-	TEST_ASSERT_NULL(plain.ai_brain, "The test human started with a brain")
-	TEST_ASSERT_NULL(assign_human_ai(plain, "zealot", "medic", FACTION_PMC), "A plain human was refused a brain")
-	TEST_ASSERT_NOTNULL(plain.ai_brain, "The human has no brain after it was assigned one")
-	TEST_ASSERT_EQUAL(plain.ai_brain.personality.id, "zealot", "The nature was not applied")
-	TEST_ASSERT_EQUAL(plain.ai_brain.role?.id, "medic", "The role was not applied")
-	TEST_ASSERT_EQUAL(plain.faction, FACTION_PMC, "The faction was not applied")
-	TEST_ASSERT_NOTNULL(assign_human_ai(plain), "A human that has a brain was given a second one")
-	var/mob/living/carbon/human/corpse = allocate(/mob/living/carbon/human, locate(yard.origin_x + 4, yard.origin_y + 2, yard.z))
-	corpse.stat = DEAD
-	TEST_ASSERT_NOTNULL(human_ai_attach_refusal(corpse), "A dead human was not refused")
-	TEST_ASSERT_NOTNULL(human_ai_attach_refusal(null), "Nobody was not refused")
-	detach_human_ai(plain)
+	console.handle_action(admin, "arm_template", list("template" = "no such squad"))
+	TEST_ASSERT_NULL(console.pending_spawn, "A squad that does not exist armed the tool")
+	console.handle_action(admin, "arm_template", list("template" = "uscm_fireteam", "personality" = "no such nature", "range" = 99))
+	TEST_ASSERT_NOTNULL(console.pending_spawn, "The tool was not armed")
+	TEST_ASSERT_EQUAL(console.pending_spawn["personality"], "neutral", "A bad nature got through")
+	TEST_ASSERT_EQUAL(console.pending_spawn["range"], 6, "The spread was not held to what a spawn may have")
+	console.handle_action(admin, "arm_template", list("template" = "uscm_fireteam", "personality" = "veteran", "range" = 2))
+	TEST_ASSERT(console.InterceptClickOn(admin, "left=1", locate(yard.origin_x + 10, yard.origin_y + 3, yard.z)), "The armed tool did not take the click")
 
-	// The click tool: one human at a time
-	var/mob/living/carbon/human/first = allocate(/mob/living/carbon/human, locate(yard.origin_x + 3, yard.origin_y + 1, yard.z))
-	var/mob/living/carbon/human/second = allocate(/mob/living/carbon/human, locate(yard.origin_x + 8, yard.origin_y + 3, yard.z))
-	var/mob/living/carbon/human/third = allocate(/mob/living/carbon/human, locate(yard.origin_x + 9, yard.origin_y + 3, yard.z))
-	var/mob/living/carbon/human/far = allocate(/mob/living/carbon/human, locate(yard.origin_x + 12, yard.origin_y + 1, yard.z))
-	console.handle_action(admin, "arm_assign", list("personality" = "veteran", "role" = "engineer", "faction" = FACTION_CLF, "range" = 0))
-	TEST_ASSERT_NOTNULL(console.pending_assign, "The assign tool was not armed")
-	TEST_ASSERT(console.wants_intercept(), "The armed assign tool would not take the click")
-	TEST_ASSERT(console.InterceptClickOn(admin, "left=1", first), "The armed assign tool did not take the click")
-	TEST_ASSERT_NOTNULL(first.ai_brain, "The human that was clicked got no brain")
-	TEST_ASSERT_EQUAL(first.ai_brain.personality.id, "veteran", "The clicked human has the wrong nature")
-	TEST_ASSERT_EQUAL(first.ai_brain.role?.id, "engineer", "The clicked human has the wrong role")
-	TEST_ASSERT_EQUAL(first.faction, FACTION_CLF, "The clicked human has the wrong faction")
-	TEST_ASSERT_NULL(second.ai_brain, "A human that was not clicked got a brain")
-	TEST_ASSERT(first in console.selection.get_selected(), "The human that was given an AI was not selected")
-	console.InterceptClickOn(admin, "left=1", locate(yard.origin_x + 6, yard.origin_y + 4, yard.z))
-	TEST_ASSERT_NULL(second.ai_brain, "A click on an empty tile gave somebody a brain")
-	TEST_ASSERT_NOTNULL(console.pending_assign, "The tool disarmed itself after a click")
-	console.InterceptClickOn(admin, "left=1", first)
-	TEST_ASSERT_EQUAL(length(console.selection.get_selected()), 1, "Clicking a human that has a brain again changed the selection")
-
-	// And with a reach, where what the panel sends is not trusted
-	console.handle_action(admin, "arm_assign", list("personality" = "no such nature", "role" = "no such role", "faction" = "no such faction", "range" = 3, "squad" = TRUE))
-	TEST_ASSERT_EQUAL(console.pending_assign["personality"], "neutral", "A bad nature got through")
-	TEST_ASSERT_NULL(console.pending_assign["role"], "A bad role got through")
-	TEST_ASSERT_NULL(console.pending_assign["faction"], "A bad faction got through")
-	TEST_ASSERT(console.InterceptClickOn(admin, "left=1", second), "The tool with a reach did not take the click")
-	TEST_ASSERT_NOTNULL(second.ai_brain, "The human that was clicked got no brain")
-	TEST_ASSERT_NOTNULL(third.ai_brain, "The human next to the click got no brain")
-	TEST_ASSERT_NULL(far.ai_brain, "A human out of reach got a brain")
-	TEST_ASSERT(second.ai_brain.squad && second.ai_brain.squad == third.ai_brain.squad, "The two were not put in one squad")
-	TEST_ASSERT(console.InterceptClickOn(admin, "right=1", second), "The right click did not stop the tool")
-	TEST_ASSERT_NULL(console.pending_assign, "The tool stayed armed")
-
-	// Letting go of the selected
-	console.selection.clear()
-	console.selection.select_list(list(first, second))
-	console.handle_action(admin, "release_ai", list())
-	TEST_ASSERT_NULL(first.ai_brain, "The AI was not taken off the first human")
-	TEST_ASSERT_NULL(second.ai_brain, "The AI was not taken off the second human")
-	TEST_ASSERT_NOTNULL(third.ai_brain, "The AI was taken off a human that was not selected")
-	TEST_ASSERT(isnull(first.ai_brain) && !first.is_human_ai_controlled, "The human is still marked as AI controlled")
-	detach_human_ai(third)
-
-	// Closing the window disarms it
-	console.pending_assign = list("range" = 0)
-	console.ui_close(admin)
-	TEST_ASSERT_NULL(console.pending_assign, "Closing the window left the assign tool armed")
+	var/list/spawned = console.selection.get_selected()
+	var/list/template = GLOB.human_ai_squad_templates["uscm_fireteam"]
+	TEST_ASSERT_EQUAL(length(spawned), human_ai_template_size(template), "The squad did not come out whole")
+	var/mob/living/carbon/human/leader = spawned[1]
+	TEST_ASSERT(leader.ai_brain.squad, "The squad leader is in no squad")
+	TEST_ASSERT(leader.ai_brain.squad.leader == leader.ai_brain, "The first of the members is not the leader of the squad")
+	TEST_ASSERT_EQUAL(leader.ai_brain.squad.name, template["name"], "The squad does not have the name of its template")
+	for(var/mob/living/carbon/human/member as anything in spawned)
+		TEST_ASSERT(member.ai_brain.squad == leader.ai_brain.squad, "A member of the squad is in another squad")
+		TEST_ASSERT_EQUAL(member.ai_brain.personality.id, "veteran", "A member of the squad does not have the nature that was asked for")
+	for(var/mob/living/carbon/human/member as anything in spawned)
+		detach_human_ai(member)
+		qdel(member)

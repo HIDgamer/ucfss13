@@ -776,6 +776,9 @@
 	if(ai_controller)
 		detach_xeno_ai(src)
 
+	// The leader's command console holds the xeno as its owner and the xeno holds the console, which neither would be freed from
+	QDEL_NULL(hive_command_console)
+
 	if(tracked_marker)
 		tracked_marker.xenos_tracking -= src
 		tracked_marker = null
