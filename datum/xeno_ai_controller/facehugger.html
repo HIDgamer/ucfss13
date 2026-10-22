@@ -1,0 +1,63 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/xeno_ai_controller/facehugger - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/xeno_ai_controller/facehugger.html#proc">Proc Details</a></header><main><h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/facehugger.html">facehugger</a> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm#L19"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm 19"></a></h1><p>Facehugger AI - a pure ambush predator. Leap (the pounce ability) can hug
+on landing regardless of whether the target is standing or lying down -
+can_hug() (Facehuggers.dm) never checks body_position at all, only the
+slow manual melee windup (UnarmedAttack()/execute_facehugger_hug()) is
+restricted to LYING_DOWN targets. So the correct AI is: always prefer
+leaping, at any range including already-adjacent, since it's strictly
+better than the interruptible windup and works on anyone; only fall back
+to approaching/waiting on the slow windup while Leap is on cooldown (a
+short one, 3 seconds), which will only actually connect if the target
+happens to already be down.</p>
+<p>Also hides (xenohide) while patrolling, same &quot;lie in wait&quot; identity the
+caste already has via its own base_actions - nothing un-hides it again
+since neither moving nor landing a hug breaks the hide (only a stat
+change does, per the ability's own signal handler), which suits an
+ambush predator fine.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/xeno_ai_controller/facehugger.html#proc/attempt_cover_tuck">attempt_cover_tuck</a></th><td>&quot;Can hide under tables and items to ambush&quot; - seeks a nearby table/rack
+tile and tucks under it before flattening, instead of hiding in the open
+wherever she happens to be standing. Returns TRUE while walking to cover
+(owns the patrol tick); once on a cover tile the normal hide/ambush idle
+takes over.</td></tr><tr><th><a href="datum/xeno_ai_controller/facehugger.html#proc/attempt_leap">attempt_leap</a></th><td>Fires Leap at target if it's off cooldown and within its reach (including adjacent - it's still strictly better than the slow melee windup); returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/wait behavior.</td></tr><tr><th><a href="datum/xeno_ai_controller/facehugger.html#proc/attempt_long_range">attempt_long_range</a></th><td>Watcher strain trades hiding for long-range sight - but her own on_life() (watcher.dm) saps her
+health every tick she's standing, off weeds, AND not zoomed, the exact inverse of a passive buff:
+more a &quot;stay zoomed or take chip damage&quot; nudge than an optional toggle. handles_movement/
+should_delay are both FALSE on the facehugger variant specifically (facehugger_abilities.dm), so
+there's no windup or movement penalty to weigh - safe to just keep this on essentially always.</td></tr><tr><th><a href="datum/xeno_ai_controller/facehugger.html#proc/get_desperate_threshold">get_desperate_threshold</a></th><td>Never - same reasoning as larva.dm's identical override, she has no attack worth turning around for.</td></tr><tr><th><a href="datum/xeno_ai_controller/facehugger.html#proc/process_movement">process_movement</a></th><td>Same duplication tradeoff as crusher.dm/ravager.dm/runner.dm - attempting
+the leap (checked even when already adjacent, unlike every other dash
+caste's controller) differs enough from the base melee policy to warrant
+a full override.</td></tr><tr><th><a href="datum/xeno_ai_controller/facehugger.html#proc/process_target">process_target</a></th><td>&quot;Can teamup with other hive members to stun and capture&quot; - a marine a
+sister has already stunned or floored is the perfect hug; prefer them over
+whoever the generic nearest-hostile scan happened to pick.</td></tr><tr><th><a href="datum/xeno_ai_controller/facehugger.html#proc/should_flee">should_flee</a></th><td><strong>Real bug, not a tuning nit</strong>: had no should_flee()/get_flee_threshold()
+override at all before Phase 3, so a one-hit-fragile (max_health =
+XENO_HEALTH_LARVA) caste with no attack worth trading inherited the base
+should_flee()'s &quot;target's in the same rough shape, finish it&quot; and &quot;not
+fighting alone&quot; exceptions - both assume a xeno that can actually win a
+fight, which she never can. This deliberately does NOT mirror larva.dm's
+&quot;flee from any spotted hostile&quot; override - her whole gameplan is closing
+distance and Leaping (process_movement()/attempt_leap() above, confirmed
+correct this session), so should_flee() only needs to matter AFTER she's
+actually taken real damage, at a much higher threshold than the
+population default, with none of the base version's talk-herself-back-
+into-a-fight exceptions.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_cover_tuck"><aside class="declaration">proc </aside>attempt_cover_tuck<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm#L77"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm 77"></a></aside></h3><p>&quot;Can hide under tables and items to ambush&quot; - seeks a nearby table/rack
+tile and tucks under it before flattening, instead of hiding in the open
+wherever she happens to be standing. Returns TRUE while walking to cover
+(owns the patrol tick); once on a cover tile the normal hide/ambush idle
+takes over.</p><h3 id="proc/attempt_leap"><aside class="declaration">proc </aside>attempt_leap<aside>(/<a href="atom.html">atom</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm#L145"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm 145"></a></aside></h3><p>Fires Leap at target if it's off cooldown and within its reach (including adjacent - it's still strictly better than the slow melee windup); returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/wait behavior.</p><h3 id="proc/attempt_long_range"><aside class="declaration">proc </aside>attempt_long_range<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm#L64"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm 64"></a></aside></h3><p>Watcher strain trades hiding for long-range sight - but her own on_life() (watcher.dm) saps her
+health every tick she's standing, off weeds, AND not zoomed, the exact inverse of a passive buff:
+more a &quot;stay zoomed or take chip damage&quot; nudge than an optional toggle. handles_movement/
+should_delay are both FALSE on the facehugger variant specifically (facehugger_abilities.dm), so
+there's no windup or movement penalty to weigh - safe to just keep this on essentially always.</p><h3 id="proc/get_desperate_threshold"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/get_desperate_threshold">↑</a></aside>get_desperate_threshold<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm#L41"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm 41"></a></aside></h3><p>Never - same reasoning as larva.dm's identical override, she has no attack worth turning around for.</p><h3 id="proc/process_movement">process_movement<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm#L123"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm 123"></a></aside></h3><p>Same duplication tradeoff as crusher.dm/ravager.dm/runner.dm - attempting
+the leap (checked even when already adjacent, unlike every other dash
+caste's controller) differs enough from the base melee policy to warrant
+a full override.</p><h3 id="proc/process_target">process_target<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm#L101"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm 101"></a></aside></h3><p>&quot;Can teamup with other hive members to stun and capture&quot; - a marine a
+sister has already stunned or floored is the perfect hug; prefer them over
+whoever the generic nearest-hostile scan happened to pick.</p><h3 id="proc/should_flee">should_flee<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm#L35"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/facehugger.dm 35"></a></aside></h3><p><strong>Real bug, not a tuning nit</strong>: had no should_flee()/get_flee_threshold()
+override at all before Phase 3, so a one-hit-fragile (max_health =
+XENO_HEALTH_LARVA) caste with no attack worth trading inherited the base
+should_flee()'s &quot;target's in the same rough shape, finish it&quot; and &quot;not
+fighting alone&quot; exceptions - both assume a xeno that can actually win a
+fight, which she never can. This deliberately does NOT mirror larva.dm's
+&quot;flee from any spotted hostile&quot; override - her whole gameplan is closing
+distance and Leaping (process_movement()/attempt_leap() above, confirmed
+correct this session), so should_flee() only needs to matter AFTER she's
+actually taken real damage, at a much higher threshold than the
+population default, with none of the base version's talk-herself-back-
+into-a-fight exceptions.</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

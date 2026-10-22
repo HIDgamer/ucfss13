@@ -1,0 +1,8 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../"><link rel="stylesheet" href="dmdoc.css"><title>/obj/item/device/working_joe_pda/bracer_link - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>/<a href="obj.html">obj</a>/<a href="obj/item.html">item</a>/<a href="obj/item/device/working_joe_pda.html">device/working_joe_pda</a>/<a href="obj/item/device/working_joe_pda/bracer_link.html">bracer_link</a> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/game/objects/items/tools/synth_bracer/abilities/UI/bracer_ui.dm#L9"><img src="git.png" width="16" height="16" title="code/game/objects/items/tools/synth_bracer/abilities/UI/bracer_ui.dm 9"></a></h1><p>Embedded Apollo interface subtype used exclusively inside the synth bracer.</p>
+<ul>
+<li>req_one_access cleared: the bracer biometric login gates access; the
+Apollo interface still enforces ARES access via get_ares_access() at login time.</li>
+<li>ui_state -&gt; always_state: the device lives two levels deep in the user's
+inventory (inside the bracer), so inventory_state fails its direct-contents
+check. always_state is safe here because the bracer is the security boundary.</li>
+</ul></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

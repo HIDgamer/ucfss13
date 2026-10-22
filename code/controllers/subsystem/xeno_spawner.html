@@ -1,0 +1,56 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>code/controllers/subsystem/xeno_spawner.dm - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>code/controllers/subsystem/xeno_spawner.dm <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_spawner.dm"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_spawner.dm"></a></h1><table class="summary" cellspacing="0"><tr><th>/var/<a href="global.html#var/SSxeno_spawner">SSxeno_spawner</a></th><td>&quot;I want all commanding and spawning features removed and replaced with a simple Spawner.
+It spawns AI all over the map based on the amount of players awake and parameters given
+like difficulty, and so on.&quot; Replaces the old Hive Population Director (per-hive economy
+datum, instant/organic spawn styles, a persistent threat-score/siege-escalation system,
+admin-issued manual hive commands) entirely - this is a flat, stateless subsystem with no
+per-hive datum, since none of that economy/threat state exists to own any more.</td></tr><tr><th>/proc/<a href="global.html#proc/get_active_lz_turf">get_active_lz_turf</a></th><td>Turf of the primary LZ command has designated (game_mode.dm's active_lz, set by cm_process.dm's &quot;designated as the primary landing zone&quot; order) - the real, stable &quot;attack marker&quot; update_hive_phase() should march the assault on, not a live read of wherever marines currently happen to be standing. Null before command designates one. Shared with xeno_ai_controller.dm's get_lz_turf() (queen.dm's LZ-siege response, attempt_ambush_hide()) so there's one source of truth for &quot;where's the LZ.&quot;</td></tr><tr><th>/proc/<a href="global.html#proc/get_all_marine_lz_turfs">get_all_marine_lz_turfs</a></th><td>Every known ground marine LZ, keyed by dock id (DROPSHIP_LZ1/DROPSHIP_LZ2) - unlike get_active_lz_turf() above, not tied to whichever one command designated. Lets a Hive Leader/Queen aim the &quot;Attack the LZ&quot; order (xeno_command_console.dm) at whichever LZ marines actually landed at, even if it differs from the designated one.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_marine_mass_turf">spawner_marine_mass_turf</a></th><td>The turf of the living ground-side marine closest to all living
+ground-side marines' average position - i.e. where the marine force
+actually is, snapped to a real reachable marine rather than an arbitrary
+midpoint that could land inside a wall or between two split squads.
+update_hive_phase()'s fallback for the (normally brief) window before
+command has designated a primary LZ at all - get_active_lz_turf() is
+strongly preferred whenever it's available.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_maintain_population">spawner_maintain_population</a></th><td>Core per-hive maintenance pass. No per-hive datum, no per-hive state beyond what
+hive_status already tracks (has_structure(), living_xeno_queen, next_queen_spawn_attempt) -
+everything else is computed fresh every call.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_max_out_carrier_eggs">spawner_max_out_carrier_eggs</a></th><td>&quot;Carrier should spawn with eggs maxed out for AI only&quot; - a player Carrier earns her egg
+stockpile over the round (attempt_carry_egg()'s idle restocking, carrier.dm), which makes
+sense for a piloted mob but would leave an AI-spawned one with nothing to actually throw for
+a long stretch after spawning. AI-only and deliberately placed after
+spawner_maybe_assign_strain() above, not in attach_xeno_ai() (xeno_ai_lifecycle.dm) - so if
+she rolled the Eggsac strain (which raises eggs_max from 8 to 12, strains/castes/carrier/
+eggsac.dm), eggs_cur gets maxed against the already-updated cap, not the pre-strain one.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_maybe_assign_strain">spawner_maybe_assign_strain</a></th><td>&quot;Special AI per strains for each alien&quot; (Phase 2) needs some AI-spawned xenos to actually
+carry a strain first - xeno.strain (Xenomorph.dm) is otherwise only ever set by the
+player-facing purchase_strain() verb, so an AI-spawned xeno never got one before this.
+Calls /datum/xeno_strain/proc/_add_to_xeno() directly - the same plain callable proc the
+player verb uses after its own UI/confirmation steps, none of which apply to a xeno the
+instant it's spawned at full health with no strain yet.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_ensure_queen">spawner_ensure_queen</a></th><td>Bootstraps the very first Queen for a hive that never got a player one (no Core exists yet -
+round start, or a catastrophic collapse), OR - once the Core already stands - kicks off a slow
+drone-to-Queen ascension (hive_status.dm's start_queen_evolution()) instead of conjuring a
+fresh Queen from nothing. &quot;When the queen dies a drone has to evolve to the queen, not just a
+new queen spawning in - it's a slow process&quot;: the instant spawn below is now reserved for the
+genuine bootstrap/no-Drone-left case; a hive that still has an AI Drone to ascend always takes
+the slow path instead. Never double-spawns: add_xeno() (hive_status.dm) already guards
+set_living_xeno_queen() behind if(!living_xeno_queen), and BYOND's single-threaded execution
+means there's no window for a second call to run before hive.living_xeno_queen is already
+populated by this same synchronous spawn.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_target_population">spawner_target_population</a></th><td>&quot;Players awake&quot; - GLOB.get_active_player_count() is the existing, idiomatic primitive for
+this across the codebase; alive + not-afk + marine-faction is &quot;living, non-AFK marines
+right now.&quot; Reuses GLOB.ai_difficulty_multiplier (the existing admin difficulty slider) as
+the one and only difficulty knob rather than adding a second, competing setting.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_pick_caste">spawner_pick_caste</a></th><td>Flat weighted-random caste pick against GLOB.xeno_spawner_caste_weights, skipping any caste
+already at its admin-set per-caste cap (GLOB.ai_xeno_max_per_caste, untouched/orthogonal to this
+Spawner) - and now also skipping tier-3 castes once the hive's tier-3 population share is
+already at the same 20% ratio cap can_evolve() (Evolution.dm) enforces on normal player
+evolution. Without this the Spawner could freely field a tier-3-heavy hive (~15% combined
+weight applies unconditionally, even round-start) that the real economy would never allow.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_sample_fallback_ground_turfs">spawner_sample_fallback_ground_turfs</a></th><td>Fallback for spawner_build_spawn_candidates() when the map has no xeno_spawn landmarks. Samples random ground-level turfs, rejecting anything dense, not fully weedable, or outside a resin-allowed area. area_type restricts candidates to that area (and subtypes) when given, e.g. Whiskey Outpost's caves - not the whole map.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_build_spawn_candidates">spawner_build_spawn_candidates</a></th><td>Builds the &quot;which landmark is near which marine&quot; table spawner_pick_spawn_turf() picks
+from. Split out from that proc so a batch of several spawns in the same
+spawner_maintain_population() call can share one scan instead of each repeating the same
+O(spawns x marines) work - marine positions don't move mid-batch, so nothing after the
+first scan can change the answer anyway. Returns an assoc list: &quot;all&quot; = every candidate
+turf, &quot;dists&quot; = assoc turf -&gt; nearest living marine distance (only for turfs past
+XENO_SPAWNER_PLACEMENT_MIN_MARINE_DIST), &quot;any_marines&quot; = whether a living marine exists at all.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_pick_spawn_turf">spawner_pick_spawn_turf</a></th><td>&quot;Weighted near marines&quot; placement (user decision) - directly addresses &quot;there seems to be
+a radius to the AI advancing from the hive&quot;: spawning far from the actual fight just
+recreates that problem with more spawn points, since each spawn's own return_distance
+leash then locks it out of relevance for the rest of the round. Picks randomly among
+whichever candidates are closest to the nearest marine (same &quot;pick among the near-tied
+best, not always the single nearest&quot; pattern xeno_ai_movement.dm's find_cover_turf()
+already uses, so it doesn't always land on the exact same landmark). Falls back to a plain
+random landmark if no marines are alive anywhere (round hasn't started fighting yet, or all
+marines are down) - ambient map-wide presence rather than nothing spawning at all.</td></tr></table></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

@@ -1,0 +1,33 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/xeno_ai_controller/larva - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/xeno_ai_controller/larva.html#proc">Proc Details</a></header><main><h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/larva.html">larva</a> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm#L16"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm 16"></a></h1><p>Larva AI - &quot;larva needs to hide, and just in general be scared since they
+are fragile.&quot; Unlike every other caste's controller, spotting a living
+hostile at all is the flee trigger here, not taking damage - a larva has
+no attack worth using and dies in one or two hits, so the generic
+approach-and-attack default (inherited from the base controller before
+this file existed) was actively suicidal. should_flee() is completely
+overridden rather than just tuning get_flee_threshold() higher, since the
+base version's health/ally-count/target-condition reasoning (&quot;finish it
+off,&quot; &quot;not fighting alone&quot;) all assume a xeno that can actually win a
+fight - none of that applies to her. She never enters AI_STATE_ATTACKING
+at all: the base tick()'s flee-check runs before movement/attack logic
+every tick, so an unconditional should_flee() intercepts her before she'd
+ever close distance on a target.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/xeno_ai_controller/larva.html#proc/get_desperate_threshold">get_desperate_threshold</a></th><td>Never - she has no attack worth turning around for, cornered or not. Always keep running/hiding instead of return_to_anchor()'s generic desperate-stand fallback.</td></tr><tr><th><a href="datum/xeno_ai_controller/larva.html#proc/patrol">patrol</a></th><td>&quot;They need to stay on weeds&quot; - a larva's whole job is sitting on hive
+weeds (that's where she matures and heals), so instead of the generic
+anchor-radius wander, her idle destination IS the nearest own-hive weed
+tile. Once on weeds she stays put; the base wander()'s rest logic handles
+the rest.</td></tr><tr><th><a href="datum/xeno_ai_controller/larva.html#proc/should_flee">should_flee</a></th><td>Spotting any valid living hostile is reason enough to run - no health/
+ally/target-condition exceptions, she can't win a fight regardless of the
+numbers.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/get_desperate_threshold"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/get_desperate_threshold">↑</a></aside>get_desperate_threshold<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm#L40"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm 40"></a></aside></h3><p>Never - she has no attack worth turning around for, cornered or not. Always keep running/hiding instead of return_to_anchor()'s generic desperate-stand fallback.</p><h3 id="proc/patrol"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/patrol">↑</a></aside>patrol<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm#L50"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm 50"></a></aside></h3><p>&quot;They need to stay on weeds&quot; - a larva's whole job is sitting on hive
+weeds (that's where she matures and heals), so instead of the generic
+anchor-radius wander, her idle destination IS the nearest own-hive weed
+tile. Once on weeds she stays put; the base wander()'s rest logic handles
+the rest.</p><h3 id="proc/should_flee">should_flee<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm#L32"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/larva.dm 32"></a></aside></h3><p>Spotting any valid living hostile is reason enough to run - no health/
+ally/target-condition exceptions, she can't win a fight regardless of the
+numbers.</p>
+<p>&quot;The larva returns into the core as soon as they spawn&quot; - an organic-
+growth larva's anchor_turf IS the Hive Core (spawn_organic() spawns her
+there with no anchor_override), so return_to_anchor()'s destination is
+that same tile - fleeing &quot;home&quot; while already standing on it just reads
+as never having left at all. She's not in any more danger standing still
+there than she would be after &quot;fleeing&quot; a single tile back to the exact
+spot she's already on, so skip the whole flee cycle while already this
+close to anchor instead of visibly panicking in place.</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

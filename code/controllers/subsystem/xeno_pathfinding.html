@@ -1,0 +1,8 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>code/controllers/subsystem/xeno_pathfinding.dm - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>code/controllers/subsystem/xeno_pathfinding.dm <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_pathfinding.dm"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_pathfinding.dm"></a></h1><table class="summary" cellspacing="0"><tr><th>/var/<a href="global.html#var/SSxeno_pathfinding">SSxeno_pathfinding</a></th><td>Owns the native pathfinder's persistent full-map walkability grid
+(tools/rust/xeno_pathfind - see code/__DEFINES/__xeno_pathfind.dm for the
+FFI wrappers). Bulk-loads every z-level's turf walkability once at round
+start, then keeps the native grid in sync through a batched delta pipeline
+fed by the two places tile passability actually changes at runtime:
+ChangeTurf() (walls built/destroyed, resin placed/melted - the single
+canonical funnel for all turf type changes, hooked at its tail) and door
+density flips (door.dm's finish_open()/close()/Destroy()).</td></tr></table></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

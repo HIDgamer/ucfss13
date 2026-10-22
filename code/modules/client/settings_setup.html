@@ -1,0 +1,10 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>code/modules/client/settings_setup.dm - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>code/modules/client/settings_setup.dm <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/client/settings_setup.dm"><img src="git.png" width="16" height="16" title="code/modules/client/settings_setup.dm"></a></h1><table class="summary" cellspacing="0"><tr><th><a href="datum/settings_setup.html">/datum/settings_setup</a></th><td>tgui replacement for the legacy MENU_SETTINGS/MENU_SPECIAL panels
+(code/modules/client/preferences.dm:593-691). MENU_SETTINGS is almost entirely uniform bitflag
+toggles across 4 different bitfield vars (toggle_prefs/toggles_chat/toggles_sound/
+toggles_langchat) — the frontend only ever sends a named field (&quot;ooc_flag&quot;, &quot;ert_leader&quot;, etc,
+never a raw bit value), and toggle_bitflag() below resolves that name to the right var + bit
+internally via .vars[] dynamic access, so the tgui layer never needs to know any DM #define
+values. The handful of proc-call buttons (set_eye_blur_type() etc, already tgui_alert()-based)
+are called directly as plain proc calls, same as the legacy &quot;action=proccall&quot; hrefs did.
+MENU_SPECIAL (ERT toggles) uses the same named-action/toggle_bitflag() pattern against
+toggles_ert.</td></tr></table></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

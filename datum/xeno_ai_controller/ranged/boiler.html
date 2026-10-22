@@ -1,0 +1,88 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/xeno_ai_controller/ranged/boiler - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/xeno_ai_controller/ranged/boiler.html#proc">Proc Details</a></header><main><h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/ranged.html">ranged</a>/<a href="datum/xeno_ai_controller/ranged/boiler.html">boiler</a> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm#L17"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm 17"></a></h1><p>Boiler AI - &quot;should only use ranged attacks, and only attack if enemies
+get too close, otherwise attack ranged, hide, then come out to attack
+again once the ability has recharged.&quot; Bombard has a genuine 60s cooldown
+(general_abilities.dm's base xeno_spit, which bombard inherits unchanged)</p>
+<ul>
+<li>the ranged base's own melee fallback (ranged.dm's process_attack(), used
+whenever nothing's off cooldown) would have her closing to melee for most
+of that minute, exactly the opposite of &quot;only use ranged attacks.&quot; Fully
+overrides both process_attack() and process_movement() instead of
+inheriting the shared kiting policy: rotates Bombard/Spray Acid (10s
+cooldown - the old code never actually looked at this second ability, so
+there was nothing to fall back on but melee) when either is up, actively
+retreats out to a safe distance whenever both are on cooldown instead of
+holding the kiting band and waiting to get pounced on, and only ever
+swings in melee once something is already adjacent.</li>
+</ul><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/boiler.html#proc/attempt_acid_shroud_retreat">attempt_acid_shroud_retreat</a></th><td>&quot;Cover the retreat instead of a plain visible walk-away&quot; (§1.7's
+gap-close/escape theme). Acid Shroud drops a blinding gas cloud on
+herself - firing it right as she turns to hide buys the same moment of
+cover a smoke grenade would, instead of it sitting unused as a button the
+AI never otherwise reaches for. Health-gated to AI_BOILER_FLEE_HEALTH_PERCENT
+so it's spent when the retreat is actually urgent, not on every routine
+cooldown-hide cycle.</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/boiler.html#proc/attempt_boiler_trap">attempt_boiler_trap</a></th><td>Trapper-strain-only. Deviates from the Phase 2 plan's original &quot;idle
+patrol()-driven placement&quot; wording - Boiler Trap needs a real, visible
+atom to aim at (can_see()-gated), and she has no target reference while
+genuinely idle. Firing it at current_target while still closing lays it
+directly in the path of the thing she's actually fighting instead of a
+blind guess at nothing while wandering.</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/boiler.html#proc/attempt_shift_spits">attempt_shift_spits</a></th><td>&quot;Different gas types, Boiler doesn't switch between them on demand&quot; -
+shift_spits/boiler is a plain toggle between neurotoxin gas
+(boiler_gas - crowd-control smoke, stun/knockdown/DAZE) and acid gas
+(boiler_gas/acid - straight damage-over-time smoke, xeno.dm's two ammo
+types), granted to base Boiler only (Trapper removes it - get_ability()
+already no-ops this for her). Same compare-desired-against-current-then-
+toggle-only-if-different pattern as queen.dm's select_spit_type(): neuro
+gas when the target isn't alone (crowd control is worth more against a
+group), acid gas otherwise (straight damage against a lone/tanky target).</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/boiler.html#proc/get_ranged_ability">get_ranged_ability</a></th><td>Trapper strain removes bombard/spray_acid entirely (get_ability() already
+no-ops the base chain below for her), so her own ranged kit - Acid Mine
+(the strain's real cooldown-gated hitter) then Acid Shotgun (always-there
+filler, same &quot;return it regardless of cooldown, let the caller check&quot;
+shape the base spray_acid fallback already uses) - is checked first.</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/boiler.html#proc/process_movement">process_movement</a></th><td>&quot;Attack ranged, hide, then come out to attack again once the ability has
+recharged&quot; - retreats to a wider, safer distance whenever nothing's off
+cooldown, instead of holding the plain ranged kiting band and waiting
+around to get closed on. Once something's ready again, closes back in to
+the normal preferred band so process_attack() can actually use it.
+should_hold_and_fight() (ranged.dm) is checked first though - a target
+already beaten or genuinely alone isn't worth spending a hide cycle on,
+cover discipline is for real threats, not mopping up.</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/boiler.html#proc/use_caste_ability">use_caste_ability</a></th><td>Same &quot;granted but never called&quot; gap as Spitter/Sentinel (see ranged.dm/
+sentinel.dm) - tail_stab/boiler applies a molecular acid DoT or a
+neurotoxin duration bump depending on her current ammo type (Boiler.dm's
+use_ability() override), but nothing ever fired it; the cornered case fell
+straight to plain melee. Worth trying even for an artillery caste that
+should rarely be adjacent at all in a healthy fight - it's still the
+better option than plain claws on the rare occasion she is.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_acid_shroud_retreat"><aside class="declaration">proc </aside>attempt_acid_shroud_retreat<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm#L200"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm 200"></a></aside></h3><p>&quot;Cover the retreat instead of a plain visible walk-away&quot; (§1.7's
+gap-close/escape theme). Acid Shroud drops a blinding gas cloud on
+herself - firing it right as she turns to hide buys the same moment of
+cover a smoke grenade would, instead of it sitting unused as a button the
+AI never otherwise reaches for. Health-gated to AI_BOILER_FLEE_HEALTH_PERCENT
+so it's spent when the retreat is actually urgent, not on every routine
+cooldown-hide cycle.</p><h3 id="proc/attempt_boiler_trap"><aside class="declaration">proc </aside>attempt_boiler_trap<aside>(/<a href="atom.html">atom</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm#L180"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm 180"></a></aside></h3><p>Trapper-strain-only. Deviates from the Phase 2 plan's original &quot;idle
+patrol()-driven placement&quot; wording - Boiler Trap needs a real, visible
+atom to aim at (can_see()-gated), and she has no target reference while
+genuinely idle. Firing it at current_target while still closing lays it
+directly in the path of the thing she's actually fighting instead of a
+blind guess at nothing while wandering.</p><h3 id="proc/attempt_shift_spits"><aside class="declaration">proc </aside>attempt_shift_spits<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm#L68"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm 68"></a></aside></h3><p>&quot;Different gas types, Boiler doesn't switch between them on demand&quot; -
+shift_spits/boiler is a plain toggle between neurotoxin gas
+(boiler_gas - crowd-control smoke, stun/knockdown/DAZE) and acid gas
+(boiler_gas/acid - straight damage-over-time smoke, xeno.dm's two ammo
+types), granted to base Boiler only (Trapper removes it - get_ability()
+already no-ops this for her). Same compare-desired-against-current-then-
+toggle-only-if-different pattern as queen.dm's select_spit_type(): neuro
+gas when the target isn't alone (crowd control is worth more against a
+group), acid gas otherwise (straight damage against a lone/tanky target).</p><h3 id="proc/get_ranged_ability"><aside class="parent"><a title="/datum/xeno_ai_controller/ranged" href="datum/xeno_ai_controller/ranged.html#proc/get_ranged_ability">↑</a></aside>get_ranged_ability<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm#L45"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm 45"></a></aside></h3><p>Trapper strain removes bombard/spray_acid entirely (get_ability() already
+no-ops the base chain below for her), so her own ranged kit - Acid Mine
+(the strain's real cooldown-gated hitter) then Acid Shotgun (always-there
+filler, same &quot;return it regardless of cooldown, let the caller check&quot;
+shape the base spray_acid fallback already uses) - is checked first.</p><h3 id="proc/process_movement"><aside class="parent"><a title="/datum/xeno_ai_controller/ranged" href="datum/xeno_ai_controller/ranged.html#proc/process_movement">↑</a></aside>process_movement<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm#L127"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm 127"></a></aside></h3><p>&quot;Attack ranged, hide, then come out to attack again once the ability has
+recharged&quot; - retreats to a wider, safer distance whenever nothing's off
+cooldown, instead of holding the plain ranged kiting band and waiting
+around to get closed on. Once something's ready again, closes back in to
+the normal preferred band so process_attack() can actually use it.
+should_hold_and_fight() (ranged.dm) is checked first though - a target
+already beaten or genuinely alone isn't worth spending a hide cycle on,
+cover discipline is for real threats, not mopping up.</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">↑</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm#L35"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/boiler.dm 35"></a></aside></h3><p>Same &quot;granted but never called&quot; gap as Spitter/Sentinel (see ranged.dm/
+sentinel.dm) - tail_stab/boiler applies a molecular acid DoT or a
+neurotoxin duration bump depending on her current ammo type (Boiler.dm's
+use_ability() override), but nothing ever fired it; the cornered case fell
+straight to plain melee. Worth trying even for an artillery caste that
+should rarely be adjacent at all in a healthy fight - it's still the
+better option than plain claws on the rare occasion she is.</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

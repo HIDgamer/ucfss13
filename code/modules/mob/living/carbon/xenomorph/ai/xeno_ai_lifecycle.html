@@ -1,0 +1,30 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../../../../"><link rel="stylesheet" href="dmdoc.css"><title>code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_lifecycle.dm - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_lifecycle.dm <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_lifecycle.dm"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/xeno_ai_lifecycle.dm"></a></h1><table class="summary" cellspacing="0"><tr><th>/proc/<a href="global.html#proc/spawn_ai_xeno">spawn_ai_xeno</a></th><td>Spawns a real, hive-linked xenomorph of the given caste and immediately attaches
+AI control to it. Returns the new mob, or null if the spawn was refused (unknown
+caste, no spawn turf, or the caste's own per-caste cap is full).</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_apply_young_reinforcement_debuff">spawner_apply_young_reinforcement_debuff</a></th><td>Applies a temporary, proportional health/damage debuff to a freshly-spawned reinforcement that
+wears off after a short maturation window - she starts noticeably weaker and visibly &quot;grows up&quot;
+into full strength, instead of being combat-ready the instant she appears.</td></tr><tr><th>/proc/<a href="global.html#proc/spawner_clear_young_reinforcement_debuff">spawner_clear_young_reinforcement_debuff</a></th><td>Reverses spawner_apply_young_reinforcement_debuff() by the exact amount it originally subtracted, rather than recomputing from caste values a second time - safe even if the mob's caste/stats changed (evolved, strain applied) in the meantime.</td></tr><tr><th>/proc/<a href="global.html#proc/attach_xeno_ai">attach_xeno_ai</a></th><td>Composes a fresh AI controller onto an existing, clientless xenomorph and starts
+its decision loop. Returns FALSE (no-op) if the mob already has a client or an
+AI controller.</td></tr><tr><th>/proc/<a href="global.html#proc/detach_xeno_ai">detach_xeno_ai</a></th><td>Tears down AI control on a xenomorph, either because a client just attached
+(ghost takeover - see login.dm's Login() hook) or because it's dying/being
+deleted. Leaves the mob itself untouched.</td></tr><tr><th>/proc/<a href="global.html#proc/reattach_xeno_ai_on_disconnect">reattach_xeno_ai_on_disconnect</a></th><td>Re-attaches AI control after a player who was piloting a formerly-AI-spawned
+xeno disconnects, so waves/objectives don't go permanently quiet just because a
+ghost left. Anchors to the mob's current position, not its original spawn point,
+so it doesn't unrealistically walk back across the map. Only fires for mobs that
+were originally AI-spawned (was_ai_spawned) - ordinary players disconnecting
+behave exactly as today.</td></tr><tr><th>/proc/<a href="global.html#proc/ai_evolve_xeno">ai_evolve_xeno</a></th><td>AI-safe evolution - mirrors do_evolve()'s actual mob-creation mechanics
+(Evolution.dm) but skips every usr/client-dependent step (the radial/
+tgui caste picker, do_after windup, chat messages) since an AI-piloted
+xeno has neither. Reuses the real evolve_checks()/can_evolve() gates
+so an AI xeno is bound by exactly the same full-health/restrained/
+hardcore/hive-slot-capacity/minimum_evolve_time rules a player would be -
+this only replaces the player-input layer, not the actual eligibility
+rules. Returns the new mob on success (with a fresh AI controller
+already attached) or null if nothing was eligible yet - the old mob is
+left completely untouched on failure.</td></tr><tr><th>/proc/<a href="global.html#proc/replace_ai_xeno_mob">replace_ai_xeno_mob</a></th><td>Shared mob-replacement mechanics for turning one AI-piloted xenomorph into another
+caste in place - qdels the old mob, constructs the new one, carries over tier
+bookkeeping/health-fraction/plasma-fraction/built structures, and re-attaches AI
+control.</td></tr><tr><th>/proc/<a href="global.html#proc/count_active_ai_xenos_of_caste">count_active_ai_xenos_of_caste</a></th><td>Count of currently AI-piloted xenos of one specific caste - backs the optional per-caste caps in GLOB.ai_xeno_max_per_caste. A plain scan is fine here rather than maintaining a second set of per-caste counters.</td></tr><tr><th>/proc/<a href="global.html#proc/get_ai_controller_type_for_caste">get_ai_controller_type_for_caste</a></th><td>Per-caste controller dispatch table (see code/modules/mob/living/carbon/xenomorph/ai/castes/
+for the concrete subtypes). Every caste not listed here still gets a
+fully-functional xeno, just with the generic Stage 1 melee/patrol
+controller rather than a specialized one - this list only needs entries
+for castes whose behavior genuinely differs, not every caste in the game.</td></tr></table></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

@@ -1,0 +1,13 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/character_setup - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>Character Setup Hub <aside>/<a href="datum.html">datum</a>/<a href="datum/character_setup.html">character_setup</a></aside> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/client/character_setup.dm#L19"><img src="git.png" width="16" height="16" title="code/modules/client/character_setup.dm 19"></a></h1><p>The tgui entry point for character preferences, replacing
+<code>/datum/preferences/proc/ShowChoices()</code> (the legacy browse() popup, code/modules/client/
+preferences.dm) as the &quot;Setup Character&quot; destination. Thin router only — reuses the same
+<code>/datum/preferences</code> vars and validation helpers the legacy menu already used
+(reject_bad_name(), AGE_MIN/AGE_MAX, GLOB.ethnicities_list), and opens each picker/sub-setup
+datum (hair_picker.dm/color_picker.dm's body_picker/traits_picker.dm/loadout_picker.dm/
+job_preferences.dm/job_slots_setup.dm/background_setup.dm/whitelist_roles_setup.dm/
+settings_setup.dm) directly rather than reimplementing their logic.</p>
+<p>Profile fields (name/age/gender/ethnicity) and a static composited preview
+(preferences.dm's preview_icon_b64, see preferences_setup.dm's update_preview_icon()) live
+directly on this hub; everything else is a launcher to its own picker/sub-setup window.
+ShowChoices() is left in place and still reachable via the &quot;open_legacy&quot; action for anything
+not yet covered by a tgui equivalent.</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

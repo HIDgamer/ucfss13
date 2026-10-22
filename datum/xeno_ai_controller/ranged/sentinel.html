@@ -1,0 +1,38 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/xeno_ai_controller/ranged/sentinel - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/xeno_ai_controller/ranged/sentinel.html#proc">Proc Details</a></header><main><h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/ranged.html">ranged</a>/<a href="datum/xeno_ai_controller/ranged/sentinel.html">sentinel</a> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm#L11"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm 11"></a></h1><p>Sentinel AI - &quot;modify the sentinel and queen AI to only use ranged, and
+to use melee if unable to escape or enemies are too close.&quot; Overrides
+process_attack() so melee is only ever the explicit cornered case, never
+incidental, and delegates actual positioning to the shared
+maintain_kiting_distance() helper (xeno_ai_movement.dm) so she actually
+keeps her distance instead of holding still once in range. Still arms
+Paralyzing Slash (primes the next melee swing to knock down) whenever
+it's off cooldown, for whenever that cornered case actually happens.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/sentinel.html#proc/get_flee_threshold">get_flee_threshold</a></th><td>Ranged glass cannon, no armor investment - should disengage sooner than a melee caste rather than sharing the population default.</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/sentinel.html#proc/get_ranged_ability">get_ranged_ability</a></th><td>Slowing Spit first to slow a target that isn't slowed yet, Scattered Spit (knockdown) once it is and within its range.</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/sentinel.html#proc/process_movement">process_movement</a></th><td>&quot;Too predictable, walking in the same 3 tiles over and over&quot; - the old
+version held the same tight kiting band regardless of whether Slowing
+Spit was actually up, so for most of its cooldown she just sat in melee-
+adjacent-plus-five getting shot with nothing to answer with. Now matches
+boiler.dm's already-correct pattern: falls back to AI_XENO_RANGED_HIDE_DISTANCE
+while the ability's on cooldown, only holding the tight band once it's
+actually ready to fire again. should_hold_and_fight() (ranged.dm) is
+checked first though - a target already beaten or genuinely alone isn't
+worth spending a hide cycle on, cover discipline is for real threats.</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/sentinel.html#proc/use_caste_ability">use_caste_ability</a></th><td>xeno_ai_attack.dm's attempt_tail_stab() doc comment already lists Sentinel
+among its users, but this always returned FALSE unconditionally, so the
+cornered case (the only time this caste ever melees at all) fell straight
+to plain melee every time. Tail Stab has a genuine 2-tile stab_range
+(general_abilities.dm) - worth trying before plain melee even while
+cornered, not just a wasted ability. Paralyzing Slash is still armed
+unconditionally first regardless of whether Tail Stab lands this tick - it
+buffs whichever swing actually connects next, plain or stab.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/get_flee_threshold"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/get_flee_threshold">↑</a></aside>get_flee_threshold<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm#L14"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm 14"></a></aside></h3><p>Ranged glass cannon, no armor investment - should disengage sooner than a melee caste rather than sharing the population default.</p><h3 id="proc/get_ranged_ability"><aside class="parent"><a title="/datum/xeno_ai_controller/ranged" href="datum/xeno_ai_controller/ranged.html#proc/get_ranged_ability">↑</a></aside>get_ranged_ability<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm#L18"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm 18"></a></aside></h3><p>Slowing Spit first to slow a target that isn't slowed yet, Scattered Spit (knockdown) once it is and within its range.</p><h3 id="proc/process_movement"><aside class="parent"><a title="/datum/xeno_ai_controller/ranged" href="datum/xeno_ai_controller/ranged.html#proc/process_movement">↑</a></aside>process_movement<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm#L64"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm 64"></a></aside></h3><p>&quot;Too predictable, walking in the same 3 tiles over and over&quot; - the old
+version held the same tight kiting band regardless of whether Slowing
+Spit was actually up, so for most of its cooldown she just sat in melee-
+adjacent-plus-five getting shot with nothing to answer with. Now matches
+boiler.dm's already-correct pattern: falls back to AI_XENO_RANGED_HIDE_DISTANCE
+while the ability's on cooldown, only holding the tight band once it's
+actually ready to fire again. should_hold_and_fight() (ranged.dm) is
+checked first though - a target already beaten or genuinely alone isn't
+worth spending a hide cycle on, cover discipline is for real threats.</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">↑</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm#L104"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/sentinel.dm 104"></a></aside></h3><p>xeno_ai_attack.dm's attempt_tail_stab() doc comment already lists Sentinel
+among its users, but this always returned FALSE unconditionally, so the
+cornered case (the only time this caste ever melees at all) fell straight
+to plain melee every time. Tail Stab has a genuine 2-tile stab_range
+(general_abilities.dm) - worth trying before plain melee even while
+cornered, not just a wasted ability. Paralyzing Slash is still armed
+unconditionally first regardless of whether Tail Stab lands this tick - it
+buffs whichever swing actually connects next, plain or stab.</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

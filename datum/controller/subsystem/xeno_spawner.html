@@ -1,0 +1,69 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/controller/subsystem/xeno_spawner - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/controller/subsystem/xeno_spawner.html#var">Var Details</a> - <a href="datum/controller/subsystem/xeno_spawner.html#proc">Proc Details</a></header><main><h1>Xeno Spawner <aside>/<a href="datum.html">datum</a>/<a href="datum/controller/subsystem.html">controller/subsystem</a>/<a href="datum/controller/subsystem/xeno_spawner.html">xeno_spawner</a></aside> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_spawner.dm#L21"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_spawner.dm 21"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/controller/subsystem/xeno_spawner.html#var/hive_phase">hive_phase</a></th><td>Current pressure-rhythm phase (HIVE_PHASE_BUILDUP/ASSAULT/LULL) - buildup fills population normally, assault broadcasts a hive-wide push at the marines and spawns faster, lull pauses reinforcement entirely. See update_hive_phase().</td></tr><tr><th><a href="datum/controller/subsystem/xeno_spawner.html#var/phase_ends_at">phase_ends_at</a></th><td>world.time the current phase rolls over into the next one.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/controller/subsystem/xeno_spawner.html#proc/attempt_bank_frontier_advance">attempt_bank_frontier_advance</a></th><td>&quot;The goal is always to take over the colony, and weed it all and secure
+it, not just staying in their spawn positions waiting&quot; - called exactly
+once, at the moment an assault phase rolls to LULL. If the hive's LZ push
+actually held (no living hostile marine still contesting the ground),
+banks that turf as hive.frontier_turf - a permanent signal, distinct from
+assault_alert_turf (which goes stale/reverts every phase cycle) - so the
+hive's footprint genuinely advances over the course of a round instead of
+fully reverting once the phase timer moves on. If marines are still
+fighting for it, the push isn't over yet - don't bank a contested tile.</td></tr><tr><th><a href="datum/controller/subsystem/xeno_spawner.html#proc/attempt_rollback_frontier">attempt_rollback_frontier</a></th><td>Counterweight to attempt_bank_frontier_advance() above. Checked at the start of each new assault
+cycle: if marines are now actively holding the banked frontier_turf again, the hive has lost that
+ground, so it's cleared and future reinforcements anchor back at their plain spawn points.</td></tr><tr><th><a href="datum/controller/subsystem/xeno_spawner.html#proc/fire">fire</a></th><td>Targets exactly one hive, GLOB.xeno_spawner_hive (admin-selectable, see
+event_tab.dm's set_spawner_hive) rather than every entry in GLOB.hive_datum
+(13 hive numbers, mobs.dm's XENO_HIVE_* list, ALL unconditionally
+instantiated at global-var init regardless of whether they're actually in
+play a given round - global_lists.dm) - null means no hive selected, spawn
+nothing.</td></tr><tr><th><a href="datum/controller/subsystem/xeno_spawner.html#proc/force_hive_phase">force_hive_phase</a></th><td>Admin override (AdminAIDifficulty UI): jump straight to a phase; the normal rhythm resumes from there.</td></tr><tr><th><a href="datum/controller/subsystem/xeno_spawner.html#proc/update_hive_phase">update_hive_phase</a></th><td>Advances the buildup -&gt; assault -&gt; lull rhythm and, while assaulting,
+keeps the hive-wide attack broadcast fresh. The assault reuses the
+existing queen_alert_turf/respond_to_hive_alert() infrastructure - idle
+xenos already know how to converge on a hive alert, this just points one
+at the marines' center of mass on a rhythm instead of only when the AI
+Queen personally spots a target. Durations scale with the difficulty
+multiplier: harder = shorter buildups/lulls, longer assaults.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/hive_phase"><aside class="declaration">var </aside>hive_phase <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_spawner.dm#L28"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_spawner.dm 28"></a></h3><p>Current pressure-rhythm phase (HIVE_PHASE_BUILDUP/ASSAULT/LULL) - buildup fills population normally, assault broadcasts a hive-wide push at the marines and spawns faster, lull pauses reinforcement entirely. See update_hive_phase().</p><h3 id="var/phase_ends_at"><aside class="declaration">var </aside>phase_ends_at <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_spawner.dm#L30"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_spawner.dm 30"></a></h3><p>world.time the current phase rolls over into the next one.</p><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_bank_frontier_advance"><aside class="declaration">proc </aside>attempt_bank_frontier_advance<aside>(/<a href="datum.html">datum</a>/<a href="datum/hive_status.html">hive_status</a>/hive)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_spawner.dm#L135"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_spawner.dm 135"></a></aside></h3><p>&quot;The goal is always to take over the colony, and weed it all and secure
+it, not just staying in their spawn positions waiting&quot; - called exactly
+once, at the moment an assault phase rolls to LULL. If the hive's LZ push
+actually held (no living hostile marine still contesting the ground),
+banks that turf as hive.frontier_turf - a permanent signal, distinct from
+assault_alert_turf (which goes stale/reverts every phase cycle) - so the
+hive's footprint genuinely advances over the course of a round instead of
+fully reverting once the phase timer moves on. If marines are still
+fighting for it, the push isn't over yet - don't bank a contested tile.</p><h3 id="proc/attempt_rollback_frontier"><aside class="declaration">proc </aside>attempt_rollback_frontier<aside>(/<a href="datum.html">datum</a>/<a href="datum/hive_status.html">hive_status</a>/hive)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_spawner.dm#L154"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_spawner.dm 154"></a></aside></h3><p>Counterweight to attempt_bank_frontier_advance() above. Checked at the start of each new assault
+cycle: if marines are now actively holding the banked frontier_turf again, the hive has lost that
+ground, so it's cleared and future reinforcements anchor back at their plain spawn points.</p><h3 id="proc/fire"><aside class="parent"><a title="/datum/controller/subsystem" href="datum/controller/subsystem.html#proc/fire">↑</a></aside>fire<aside>(resumed)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_spawner.dm#L40"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_spawner.dm 40"></a></aside></h3><p>Targets exactly one hive, GLOB.xeno_spawner_hive (admin-selectable, see
+event_tab.dm's set_spawner_hive) rather than every entry in GLOB.hive_datum
+(13 hive numbers, mobs.dm's XENO_HIVE_* list, ALL unconditionally
+instantiated at global-var init regardless of whether they're actually in
+play a given round - global_lists.dm) - null means no hive selected, spawn
+nothing.</p><h3 id="proc/force_hive_phase"><aside class="declaration">proc </aside>force_hive_phase<aside>(new_phase)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_spawner.dm#L168"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_spawner.dm 168"></a></aside></h3><p>Admin override (AdminAIDifficulty UI): jump straight to a phase; the normal rhythm resumes from there.</p><h3 id="proc/update_hive_phase"><aside class="declaration">proc </aside>update_hive_phase<aside>(/<a href="datum.html">datum</a>/<a href="datum/hive_status.html">hive_status</a>/hive)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_spawner.dm#L89"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_spawner.dm 89"></a></aside></h3><p>Advances the buildup -&gt; assault -&gt; lull rhythm and, while assaulting,
+keeps the hive-wide attack broadcast fresh. The assault reuses the
+existing queen_alert_turf/respond_to_hive_alert() infrastructure - idle
+xenos already know how to converge on a hive alert, this just points one
+at the marines' center of mass on a rhythm instead of only when the AI
+Queen personally spots a target. Durations scale with the difficulty
+multiplier: harder = shorter buildups/lulls, longer assaults.</p>
+<p>&quot;Many xenos start walking back and forth when switching to assault&quot; -
+live-reported. Root cause was actually twofold. First, and most direct per
+explicit user correction: this was reading the wrong signal entirely -
+&quot;assault phase was meant to mark the primary landing zone chosen by the
+players as the attack marker, not actual humans... the hive begins
+marching to the fob or primary LZ.&quot; The marine-mass computation
+(spawner_marine_mass_turf()) tracks live human positions, which is
+exactly what it shouldn't be doing here - get_active_lz_turf() (command's
+actual designated primary LZ, a real player decision, stable until
+re-designated) is the correct target and now tried first; the mass-turf
+fallback only covers the window before any LZ has been designated yet.
+Second, compounding the wrong-signal problem: spawner_marine_mass_turf()
+itself picks whichever living marine is currently closest to the group's
+average position, which is genuinely unstable when two marines sit
+near-equally close to that average - ordinary movement can flip which one
+&quot;wins&quot; from one 20-second recheck to the next, jumping the picked turf
+between two different locations. Every idle xeno hive-wide shares this one
+queen_alert_turf (respond_to_hive_alert()), so an unconditional overwrite
+here meant the whole hive reversed direction together on the same rhythm
+the flip happened on - a correlated, hive-wide oscillation, not the
+per-mob pathfinding issue fixed earlier. Kept as a genuine improvement
+even now that it's just the fallback, and applies equally to the LZ (a
+no-op once it's already correctly set - the drift is 0). queen_alert_time
+still refreshes every fire regardless (keeps the assault alive for its
+full duration even while the target genuinely hasn't moved) - only the
+turf itself is gated behind a real minimum drift.</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

@@ -1,0 +1,31 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../../../"><link rel="stylesheet" href="dmdoc.css"><title>/obj/effect/alien/resin/special/nest/human_cap - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="obj/effect/alien/resin/special/nest/human_cap.html#proc">Proc Details</a></header><main><h1>hive wall cap <aside>/<a href="obj.html">obj</a>/<a href="obj/effect/alien/resin/special.html">effect/alien/resin/special</a>/<a href="obj/effect/alien/resin/special/nest/human_cap.html">nest/human_cap</a></aside> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/cm_aliens/structures/special/human_cap.dm#L19"><img src="git.png" width="16" height="16" title="code/modules/cm_aliens/structures/special/human_cap.dm 19"></a></h1><p>&quot;Capturing of humans, dragged to the hive and captured to a wall as a cap
+for the hive which should increase the hive's total numbers by 1 for as
+long as that cap lives.&quot; Subclasses the existing Predator-nest structure
+pair (pred_nest.dm) wholesale rather than writing new capture/buckle logic</p>
+<ul>
+<li>/obj/effect/alien/resin/special/nest already spawns a companion
+/obj/structure/bed/nest/structure at the same tile to do the actual
+buckling (buckle_mob()/do_buckle()/TRAIT_NESTED/COMSIG_MOB_NESTED,
+xeno_nest.dm), and already handles every release path (welder/sharp-item
+cutting, structure destruction, victim death) - none of that needed to be
+reinvented, just retargeted at humans instead of Predators.</li>
+</ul>
+<p>Built by Drone/Hivelord (attempt_build_human_cap(), xeno_ai_controller.dm)
+as an occasional idle build action, then filled by whichever AI xeno drags
+a downed human home (attempt_cap_drag_victim(), same file) - a downed
+marine isolated by a Runner/Burrower now ends in a real capture instead of
+just being released once towed far enough.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="obj/effect/alien/resin/special/nest/human_cap.html#proc/Initialize">Initialize</a></th><td>Registers into hive.human_cap_structures (hive_status.dm) so
+attempt_cap_drag_victim() can find an existing empty cap to deliver a
+victim to, and count_active_human_caps() can tell whether one currently
+holds a live captive - see that proc's doc comment for why the population
+bonus is read live off this list rather than a separately maintained
+counter (avoids drift against every existing release path, several of
+which have nothing to do with AI code at all - a marine cutting a
+captive free, a welder burn, the structure itself being destroyed).</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/Initialize">Initialize<aside>(mapload, /<a href="datum.html">datum</a>/<a href="datum/hive_status.html">hive_status</a>/hive_ref)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/cm_aliens/structures/special/human_cap.dm#L40"><img src="git.png" width="16" height="16" title="code/modules/cm_aliens/structures/special/human_cap.dm 40"></a></aside></h3><p>Registers into hive.human_cap_structures (hive_status.dm) so
+attempt_cap_drag_victim() can find an existing empty cap to deliver a
+victim to, and count_active_human_caps() can tell whether one currently
+holds a live captive - see that proc's doc comment for why the population
+bonus is read live off this list rather than a separately maintained
+counter (avoids drift against every existing release path, several of
+which have nothing to do with AI code at all - a marine cutting a
+captive free, a welder burn, the structure itself being destroyed).</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../../../../../"><link rel="stylesheet" href="dmdoc.css"><title>code/modules/mob/living/carbon/human/zombie_ai/zombie_ai_lifecycle.dm - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>code/modules/mob/living/carbon/human/zombie_ai/zombie_ai_lifecycle.dm <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/human/zombie_ai/zombie_ai_lifecycle.dm"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/human/zombie_ai/zombie_ai_lifecycle.dm"></a></h1><table class="summary" cellspacing="0"><tr><th>/proc/<a href="global.html#proc/attach_zombie_ai">attach_zombie_ai</a></th><td>Composes a fresh AI controller onto an existing, clientless zombie and
+starts its decision loop. Returns FALSE (no-op) if the mob already has a
+client, already has an AI controller, isn't actually a zombie, or the
+population cap (GLOB.ai_zombie_max_pop) is already met.</td></tr><tr><th>/proc/<a href="global.html#proc/detach_zombie_ai">detach_zombie_ai</a></th><td>Tears down AI control on a zombie, either because a client just attached
+(ghost takeover) or because it's dying/being deleted. Leaves the mob itself
+untouched.</td></tr><tr><th>/proc/<a href="global.html#proc/schedule_zombie_ai_grace_period">schedule_zombie_ai_grace_period</a></th><td>Real Phase 5 attachment trigger - called from black_goo.dm's
+zombie_transform() and zombie.dm's revive_from_death(), immediately after
+each pings any attached ghost via handle_alert_ghost(). Attaches AI right
+away if nobody's already piloting the body. A ghost that reenters at ANY
+point afterward is unaffected either way - reentering runs through
+Login(), which detaches AI immediately (zombie.dm's
+handle_login_special()) regardless of whether AI ever took over here.</td></tr><tr><th>/proc/<a href="global.html#proc/reattach_zombie_ai_on_disconnect">reattach_zombie_ai_on_disconnect</a></th><td>Re-attaches AI control after a player who was piloting a formerly-AI-spawned
+zombie disconnects, so the body doesn't go permanently idle just because its
+ghost pilot left. Anchors to the mob's current position, not wherever it
+originally turned/revived, so it doesn't unrealistically walk back across
+the map. Only fires for bodies that were originally AI-spawned
+(was_zombie_ai_spawned) - an ordinary player playing a zombie (e.g. an
+antag round) disconnecting behaves exactly as today. Mirrors xeno's
+reattach_xeno_ai_on_disconnect() (xeno_ai_lifecycle.dm) exactly.</td></tr></table></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

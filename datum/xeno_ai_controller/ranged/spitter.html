@@ -1,0 +1,37 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/xeno_ai_controller/ranged/spitter - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/xeno_ai_controller/ranged/spitter.html#proc">Proc Details</a></header><main><h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/ranged.html">ranged</a>/<a href="datum/xeno_ai_controller/ranged/spitter.html">spitter</a> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm#L157"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm 157"></a></h1><p>Spitter - &quot;doesn't have an AI fight preset, they just death charge&quot; was a
+real bug, not a design gap: this queried /xeno_spit/spitter, a cosmetic
+subtype Spitter.dm's own base_actions never actually grants (it grants
+the plain /xeno_spit base type instead) - get_ability()'s locate() only
+matches a held instance that IS the queried type or a stricter subtype of
+it, never the other way around, so this always returned null and every
+Spitter fell straight into ranged.dm's melee fallback, permanently. Fixed
+to query the type actually granted. That ability still has a genuine 60s
+cooldown though (general_abilities.dm), so on its own she'd still spend
+most of a fight in the melee fallback - falls back to Spray Acid (8s
+cooldown, a real ranged line attack) instead of closing to melee whenever
+the big spit isn't up, so she stays a ranged threat continuously rather
+than only once a minute.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/spitter.html#proc/attempt_charge_spit">attempt_charge_spit</a></th><td>Only worth firing while still closing - the speed buff is wasted once she's already holding her kiting band.</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/spitter.html#proc/get_flee_threshold">get_flee_threshold</a></th><td>Ranged glass cannon, no armor investment - should disengage sooner than a melee caste rather than sharing the population default.</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/spitter.html#proc/process_movement">process_movement</a></th><td>Charge Spit was granted but never called - its own file literally
+comments its armor/speed buff as &quot;so they can close the distance,&quot; the
+exact gap-close niche every other caste's process_movement() already
+fills with a dash. It's a one-shot self-buff (not a toggle) that also
+empowers her next spit, so it's tried once while still outside her
+preferred kiting band, before falling through to the base ranged
+movement policy.</td></tr><tr><th><a href="datum/xeno_ai_controller/ranged/spitter.html#proc/use_caste_ability">use_caste_ability</a></th><td>Her base_actions grants tail_stab/spitter specifically (a subtype that
+adds a molecular acid DoT on hit, Spitter.dm), not the plain base type -
+the same &quot;granted but never called&quot; gap as Charge Spit above meant the
+cornered case fell straight to plain melee unconditionally.
+get_ability()'s subtype-matching (see attempt_tail_stab()'s own doc
+comment) finds the /spitter variant fine even though the shared helper
+only ever queries the plain base type.</td></tr></table><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_charge_spit"><aside class="declaration">proc </aside>attempt_charge_spit<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm#L200"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm 200"></a></aside></h3><p>Only worth firing while still closing - the speed buff is wasted once she's already holding her kiting band.</p><h3 id="proc/get_flee_threshold"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/get_flee_threshold">↑</a></aside>get_flee_threshold<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm#L160"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm 160"></a></aside></h3><p>Ranged glass cannon, no armor investment - should disengage sooner than a melee caste rather than sharing the population default.</p><h3 id="proc/process_movement"><aside class="parent"><a title="/datum/xeno_ai_controller/ranged" href="datum/xeno_ai_controller/ranged.html#proc/process_movement">↑</a></aside>process_movement<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm#L178"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm 178"></a></aside></h3><p>Charge Spit was granted but never called - its own file literally
+comments its armor/speed buff as &quot;so they can close the distance,&quot; the
+exact gap-close niche every other caste's process_movement() already
+fills with a dash. It's a one-shot self-buff (not a toggle) that also
+empowers her next spit, so it's tried once while still outside her
+preferred kiting band, before falling through to the base ranged
+movement policy.</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">↑</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm#L196"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/ranged.dm 196"></a></aside></h3><p>Her base_actions grants tail_stab/spitter specifically (a subtype that
+adds a molecular acid DoT on hit, Spitter.dm), not the plain base type -
+the same &quot;granted but never called&quot; gap as Charge Spit above meant the
+cornered case fell straight to plain melee unconditionally.
+get_ability()'s subtype-matching (see attempt_tail_stab()'s own doc
+comment) finds the /spitter variant fine even though the shared helper
+only ever queries the plain base type.</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

@@ -1,0 +1,11 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/game_mode/colonialmarines/pve_hive - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a></header><main><h1>PVE Hive <aside>/<a href="datum.html">datum</a>/<a href="datum/game_mode.html">game_mode</a>/<a href="datum/game_mode/colonialmarines.html">colonialmarines</a>/<a href="datum/game_mode/colonialmarines/pve_hive.html">pve_hive</a></aside> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/game/gamemodes/colonialmarines/pve_hive.dm#L15"><img src="git.png" width="16" height="16" title="code/game/gamemodes/colonialmarines/pve_hive.dm 15"></a></h1><p>PVE Hive - the standard Distress Signal marine-vs-hive fight, but the only gamemode where the
+AI Xeno Spawner (SSxeno_spawner, code/controllers/subsystem/xeno_spawner.dm) runs
+automatically. Subclasses colonialmarines.dm wholesale rather than duplicating any of its
+marine setup/spawn/win-condition logic - the only thing PVE Hive changes is forcing the AI
+hive economy on, since the AI system already supports live xeno players freely coexisting
+with (and taking over) AI-piloted xenos via the existing ghost-claim mechanism
+(attach_xeno_ai()'s free_for_ghosts() call, xeno_ai_lifecycle.dm) - nothing about the roles
+list or role gating needs to differ from the base mode.</p>
+<p>Every other gamemode keeps the Spawner off by default (game_mode.dm's base pre_setup() resets
+GLOB.xeno_spawner_enabled to FALSE before any mode's own setup runs) - this file only owns
+turning it back on for itself.</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

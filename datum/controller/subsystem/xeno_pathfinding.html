@@ -1,0 +1,66 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/controller/subsystem/xeno_pathfinding - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/controller/subsystem/xeno_pathfinding.html#var">Var Details</a> - <a href="datum/controller/subsystem/xeno_pathfinding.html#proc">Proc Details</a></header><main><h1>Xeno Pathfinding <aside>/<a href="datum.html">datum</a>/<a href="datum/controller/subsystem.html">controller/subsystem</a>/<a href="datum/controller/subsystem/xeno_pathfinding.html">xeno_pathfinding</a></aside> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_pathfinding.dm#L15"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_pathfinding.dm 15"></a></h1><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/controller/subsystem/xeno_pathfinding.html#var/available">available</a></th><td>TRUE once every z-level loaded into the native grid successfully - the AI only routes globally while this holds.</td></tr><tr><th><a href="datum/controller/subsystem/xeno_pathfinding.html#var/decay_counter">decay_counter</a></th><td>fire() counter driving the periodic threat decay (see Rust-side xeno_pathfind_decay()).</td></tr><tr><th><a href="datum/controller/subsystem/xeno_pathfinding.html#var/pending_deltas">pending_deltas</a></th><td>Pending &quot;z,x,y,c&quot; delta strings, flushed to the native side each fire() or the moment the batch grows past XENO_PATHFIND_DELTA_FLUSH_AT.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/controller/subsystem/xeno_pathfinding.html#proc/load_z_level">load_z_level</a></th><td>Packs one z-level's turf walkability row-major from (1,1) and bulk-loads it into the native grid. Returns whether the native side accepted it.</td></tr><tr><th><a href="datum/controller/subsystem/xeno_pathfinding.html#proc/push_delta">push_delta</a></th><td>Re-reads one turf's walkability and queues the delta for the native grid.
+Called from ChangeTurf()'s tail (every turf type change funnels through
+it) and from door.dm's density-flip sites. Cheap enough to call
+redundantly - a delta that doesn't actually change the cell is harmless
+on the native side.</td></tr><tr><th><a href="datum/controller/subsystem/xeno_pathfinding.html#proc/refresh_turret_threat">refresh_turret_threat</a></th><td>Re-injects threat at every currently-active sentry's tile, same threat
+layer as on_xeno_death() above and the same live-check is_valid_target()
+already uses to decide a sentry is a real threat. Re-injects every decay
+cycle rather than firing once, so a destroyed/turned-off turret's
+contribution simply stops being added and decays away naturally over the
+next couple of cycles - no explicit removal call needed.</td></tr><tr><th><a href="datum/controller/subsystem/xeno_pathfinding.html#proc/turf_cell_code">turf_cell_code</a></th><td>The native cell code for a turf's current state: '1' dense turf (wall, or a dense structure
+the AI can genuinely never get through - see <code>unslashable</code> below), '2' walkable turf with a
+dense, forceable door on it, '3' walkable turf with some other dense, non-climbable, forceable
+structure (window, girder - priced far above a door so routes only smash through glass as a
+last resort, never as a shortcut), '4' walkable turf with a CLIMBABLE structure (table, rack,
+platform, barricade) - priced modestly above open ground rather than skipped outright, since a
+full-tile cost can't represent &quot;quick vault, not actually free&quot; exactly (the per-step climb
+handling still does the real work on contact) but leaving these completely invisible to route
+planning - as CELL_OPEN, the same as bare floor - let long routes get planned straight
+through/across clusters of them with zero accounting for the real crossing cost, which is what
+actually produced the &quot;going insane near platforms&quot; reports: the router's plan and the
+per-step reality disagreed about whether a tile was free. '0' open.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/available"><aside class="declaration">var </aside>available <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_pathfinding.dm#L22"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_pathfinding.dm 22"></a></h3><p>TRUE once every z-level loaded into the native grid successfully - the AI only routes globally while this holds.</p><h3 id="var/decay_counter"><aside class="declaration">var </aside>decay_counter <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_pathfinding.dm#L26"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_pathfinding.dm 26"></a></h3><p>fire() counter driving the periodic threat decay (see Rust-side xeno_pathfind_decay()).</p><h3 id="var/pending_deltas"><aside class="declaration">var </aside>pending_deltas <aside>– /list</aside> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_pathfinding.dm#L24"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_pathfinding.dm 24"></a></h3><p>Pending &quot;z,x,y,c&quot; delta strings, flushed to the native side each fire() or the moment the batch grows past XENO_PATHFIND_DELTA_FLUSH_AT.</p><h2 id="proc">Proc Details</h2><h3 id="proc/load_z_level"><aside class="declaration">proc </aside>load_z_level<aside>(z)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_pathfinding.dm#L80"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_pathfinding.dm 80"></a></aside></h3><p>Packs one z-level's turf walkability row-major from (1,1) and bulk-loads it into the native grid. Returns whether the native side accepted it.</p><h3 id="proc/push_delta"><aside class="declaration">proc </aside>push_delta<aside>(/<a href="turf.html">turf</a>/changed)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_pathfinding.dm#L187"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_pathfinding.dm 187"></a></aside></h3><p>Re-reads one turf's walkability and queues the delta for the native grid.
+Called from ChangeTurf()'s tail (every turf type change funnels through
+it) and from door.dm's density-flip sites. Cheap enough to call
+redundantly - a delta that doesn't actually change the cell is harmless
+on the native side.</p>
+<p>turf_cell_code() can return &quot;3&quot; (a breakable obstacle - window/girder) or
+&quot;4&quot; (an ON_BORDER structure - platform/barricade/flipped table), matching
+the Rust side's own CELL_OBSTACLE/CELL_BORDER codes - the mapping below
+must produce both, or a structure placed or revealed mid-round (e.g. a
+wall demolished down to a girder, or a barricade dropped) syncs into the
+native grid as a zero-cost open tile instead of its intended cost,
+degrading route quality without erroring.</p><h3 id="proc/refresh_turret_threat"><aside class="declaration">proc </aside>refresh_turret_threat<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_pathfinding.dm#L71"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_pathfinding.dm 71"></a></aside></h3><p>Re-injects threat at every currently-active sentry's tile, same threat
+layer as on_xeno_death() above and the same live-check is_valid_target()
+already uses to decide a sentry is a real threat. Re-injects every decay
+cycle rather than firing once, so a destroyed/turned-off turret's
+contribution simply stops being added and decays away naturally over the
+next couple of cycles - no explicit removal call needed.</p><h3 id="proc/turf_cell_code"><aside class="declaration">proc </aside>turf_cell_code<aside>(/<a href="turf.html">turf</a>/scanned)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/controllers/subsystem/xeno_pathfinding.dm#L151"><img src="git.png" width="16" height="16" title="code/controllers/subsystem/xeno_pathfinding.dm 151"></a></aside></h3><p>The native cell code for a turf's current state: '1' dense turf (wall, or a dense structure
+the AI can genuinely never get through - see <code>unslashable</code> below), '2' walkable turf with a
+dense, forceable door on it, '3' walkable turf with some other dense, non-climbable, forceable
+structure (window, girder - priced far above a door so routes only smash through glass as a
+last resort, never as a shortcut), '4' walkable turf with a CLIMBABLE structure (table, rack,
+platform, barricade) - priced modestly above open ground rather than skipped outright, since a
+full-tile cost can't represent &quot;quick vault, not actually free&quot; exactly (the per-step climb
+handling still does the real work on contact) but leaving these completely invisible to route
+planning - as CELL_OPEN, the same as bare floor - let long routes get planned straight
+through/across clusters of them with zero accounting for the real crossing cost, which is what
+actually produced the &quot;going insane near platforms&quot; reports: the router's plan and the
+per-step reality disagreed about whether a tile was free. '0' open.</p>
+<p><code>climbable</code> (not the ON_BORDER flag) is what actually decides '3' vs '4'. Checking ON_BORDER
+first and unconditionally short-circuiting to the cheap '4' tier would silently catch windows
+too (window.dm sets ON_BORDER) even though STEP_COST_OBSTACLE's own doc comment
+(xeno_pathfind.rs) explicitly names &quot;window&quot; as what the real obstacle tier is for - the router
+would then have zero reason to ever prefer even a short detour over smashing straight through
+one. Every other ON_BORDER structure in the codebase (platforms, barricades, crates, flipped
+tables, deconstructed window frames) is also climbable; an intact window is the one ON_BORDER
+structure that isn't, so <code>climbable</code> alone is the correct, simpler gate.</p>
+<p><code>unslashable</code> structures (blast doors/shutters, and any other structure flagged that way) are
+priced as a hard block ('1'), not their normal type cost - get_blocking_obstacle()
+(xeno_ai_movement.dm) excludes any unslashable blocker from obstacle-forcing entirely (nothing
+to smash, nothing to climb - unless it's ALSO climbable, checked first, since climbing doesn't
+care whether a structure can be damaged), so the AI can never actually force through one no
+matter what a route assumed. Pricing an unslashable door the same as a normal forceable one
+(its old behavior) planned routes straight at permanently shut security doors with a real path
+around through other open doors - live-diagnosed as &quot;AI stuck running back and forth against
+an impassible shutter, ignoring a valid path a few tiles over.&quot; Checked before the door type
+check below since an unslashable door is a door, but the AI must treat it like a wall instead.</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

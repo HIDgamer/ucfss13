@@ -1,0 +1,115 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/xeno_ai_controller/crusher - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/xeno_ai_controller/crusher.html#var">Var Details</a> - <a href="datum/xeno_ai_controller/crusher.html#proc">Proc Details</a></header><main><h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/crusher.html">crusher</a> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L33"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 33"></a></h1><p>Crusher AI - the hive's frontline tank: a slow, heavily-armored charger
+built to soak damage and punch a hole in whatever's in front of it,
+matching the user's &quot;head-on scary&quot; caste design (as opposed to
+Ravager's hit-and-reposition style - see ravager.dm). Patrol/search
+behavior is entirely inherited from the base controller - the three
+overrides below are what make a Crusher feel different to fight:</p>
+<ul>
+<li>While closing on a target still out of melee range, fires its Charge
+ability (a long dash that knocks down and hits hard on landing)
+instead of plodding over on foot - a Crusher is XENO_SPEED_TIER_2
+(the slowest AI caste built so far), so without this it would take
+noticeably longer than every other caste to actually reach a target.</li>
+<li>Stomps (a self-centered AoE) instead of a plain melee swing whenever
+more than one valid target is already in range, so a Crusher wading
+into a cluster of marines hits all of them, not just whichever one
+it happens to be facing.</li>
+<li>Flees at a much lower health fraction than the default - a Crusher
+is meant to be the wall the hive leans on, not a caste that breaks
+off at the first sign of trouble like a squishier one would.</li>
+</ul>
+<p>Also proactively pops its defensive Shield (explosion immunity + a
+per-hit damage cap) once actually taking a beating (below half health)
+but not yet at the much lower flee threshold - &quot;hurt but still fighting,&quot;
+not a panic button held in reserve forever.</p>
+<p>Phase 3 audit note: deliberately has no post-attack reposition/dodge
+logic (unlike Ravager/Warrior/etc's damage-reactive circle-step) - she's
+the wall the hive leans on, standing and tanking IS her identity, not an
+oversight. Base kit (Charge/Stomp/Shield) confirmed fully used and
+sensibly gated; don't &quot;fix&quot; the missing dodge without re-reading this.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#var/charge_lane_end">charge_lane_end</a></th><td>Charger strain: far end of the current momentum-lane pass (see check_charger_lane()) - null when not mid-pass.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/attempt_charge">attempt_charge</a></th><td>Fires Charge at target if it's off cooldown and within its reach; returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/pathfinding chain.</td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/attempt_charger_charge">attempt_charger_charge</a></th><td>Charger-strain-only (Charge replaces base Crusher's pounce-based dash entirely, so
+attempt_charge() above already no-ops for her via get_ability() returning null). Charge is
+a persistent toggle (crusher_powers.dm's onclick/charger_charge/use_ability()) that builds
+momentum automatically off her own movement once active, not a one-shot dash aimed at a
+target - turning it on once and leaving it on for the walk-in gets the momentum/knockdown
+payoff for free through the normal approach chain process_movement() already falls through
+to below.</td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/attempt_charger_fling">attempt_charger_fling</a></th><td>Charger-strain-only. Fling (shared with Warrior, granted here as
+activable/fling/charger) needs an adjacent target - useful as a quick shove right as she
+closes in on an isolated target, distinct from Stomp's AoE role below (checked first here
+so a single target gets shoved rather than always eating the AoE).</td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/attempt_shield">attempt_shield</a></th><td>Pops Shield once actually taking a beating (below half health) but above the much lower flee threshold - &quot;hurt but still fighting.&quot;</td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/attempt_tumble_retreat">attempt_tumble_retreat</a></th><td>Charger-strain-only - a baseline Crusher has no Tumble action at all, so
+get_ability() returning null here IS the strain check, no separate lookup
+needed. Tumble's use_ability() (crusher_powers.dm) needs a real atom to
+compute which perpendicular direction to dodge toward - by the time
+return_to_anchor() runs, tick()'s flee transition has already called
+drop_target() and nulled current_target, so last_threat_turf (set at that
+same transition, xeno_ai_controller.dm) stands in for the threat she's
+putting distance from.</td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/check_charger_lane">check_charger_lane</a></th><td>Charger-strain &quot;moving train&quot; pattern: momentum builds off sustained
+straight-line movement (charger_charge, crusher_powers.dm), so instead of
+pathing tightly to the target like everyone else - constant turns, zero
+momentum - she picks a straight open LANE through the target's row/column,
+runs it end to end (clipping whatever's in the path), then turns around
+and picks the next pass. Needs open ground: no lane long enough means
+cramped interior fighting, where she falls through to base Crusher
+behavior instead. Returns TRUE while running a pass.</td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/find_charge_lane">find_charge_lane</a></th><td>A straight, fully-open cardinal lane from the pilot through the target's
+row/column plus a few tiles of overrun - the space a real charge pass
+needs. Null when the ground is too cramped for the play at all.</td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/process_movement">process_movement</a></th><td>Duplicates the base controller's adjacency-to-attacking transition and
+obstacle-handling tail (see xeno_ai_movement.dm's process_movement())
+rather than sharing it, since the trigger condition for &quot;close in&quot; is
+fundamentally different here - a real shared-helper refactor is a
+reasonable follow-up, not done here to avoid touching the
+already-verified base melee path (same tradeoff ranged.dm already
+made for the same reason).</td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/return_to_anchor">return_to_anchor</a></th><td>&quot;Instead of approaching, xenos should consider using abilities to close the
+gap... not just to get to the enemy faster but escape it faster too&quot; - a
+Crusher is XENO_SPEED_TIER_2, the slowest AI caste built so far, so a plain
+walk home is exactly the scenario this theme is meant to fix. Tries once
+per return_to_anchor() tick before falling through to the normal walk, same
+shape as attempt_charge()'s gap-close call in process_movement().</td></tr><tr><th><a href="datum/xeno_ai_controller/crusher.html#proc/use_caste_ability">use_caste_ability</a></th><td>&quot;Crusher never uses their stomping ability when near enemies&quot; - Stomp
+isn't just a self-centered AoE, it also knocks down everything it hits
+(crusher_powers.dm's create_stomp()/get_xeno_stun_duration()), so it was
+wrong to treat it as &quot;strictly worse than a normal attack&quot; against a lone
+target and gate it behind 2+ nearby marines - a single-target knockdown
+is still a big win, and 2+ marines standing that close together is the
+less common case in practice, which is exactly why it read as &quot;never&quot;
+firing. Now fires on anything valid in range, no minimum headcount.</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/charge_lane_end"><aside class="declaration">var </aside>charge_lane_end <aside>– /<a href="turf.html">turf</a></aside> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L35"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 35"></a></h3><p>Charger strain: far end of the current momentum-lane pass (see check_charger_lane()) - null when not mid-pass.</p><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_charge"><aside class="declaration">proc </aside>attempt_charge<aside>(/<a href="atom.html">atom</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L149"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 149"></a></aside></h3><p>Fires Charge at target if it's off cooldown and within its reach; returns FALSE (and does nothing else) otherwise, so the caller falls back to the inherited approach/pathfinding chain.</p><h3 id="proc/attempt_charger_charge"><aside class="declaration">proc </aside>attempt_charger_charge<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L169"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 169"></a></aside></h3><p>Charger-strain-only (Charge replaces base Crusher's pounce-based dash entirely, so
+attempt_charge() above already no-ops for her via get_ability() returning null). Charge is
+a persistent toggle (crusher_powers.dm's onclick/charger_charge/use_ability()) that builds
+momentum automatically off her own movement once active, not a one-shot dash aimed at a
+target - turning it on once and leaving it on for the walk-in gets the momentum/knockdown
+payoff for free through the normal approach chain process_movement() already falls through
+to below.</p><h3 id="proc/attempt_charger_fling"><aside class="declaration">proc </aside>attempt_charger_fling<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L219"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 219"></a></aside></h3><p>Charger-strain-only. Fling (shared with Warrior, granted here as
+activable/fling/charger) needs an adjacent target - useful as a quick shove right as she
+closes in on an isolated target, distinct from Stomp's AoE role below (checked first here
+so a single target gets shoved rather than always eating the AoE).</p><h3 id="proc/attempt_shield"><aside class="declaration">proc </aside>attempt_shield<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L231"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 231"></a></aside></h3><p>Pops Shield once actually taking a beating (below half health) but above the much lower flee threshold - &quot;hurt but still fighting.&quot;</p><h3 id="proc/attempt_tumble_retreat"><aside class="declaration">proc </aside>attempt_tumble_retreat<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L262"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 262"></a></aside></h3><p>Charger-strain-only - a baseline Crusher has no Tumble action at all, so
+get_ability() returning null here IS the strain check, no separate lookup
+needed. Tumble's use_ability() (crusher_powers.dm) needs a real atom to
+compute which perpendicular direction to dodge toward - by the time
+return_to_anchor() runs, tick()'s flee transition has already called
+drop_target() and nulled current_target, so last_threat_turf (set at that
+same transition, xeno_ai_controller.dm) stands in for the threat she's
+putting distance from.</p><h3 id="proc/check_charger_lane"><aside class="declaration">proc </aside>check_charger_lane<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L85"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 85"></a></aside></h3><p>Charger-strain &quot;moving train&quot; pattern: momentum builds off sustained
+straight-line movement (charger_charge, crusher_powers.dm), so instead of
+pathing tightly to the target like everyone else - constant turns, zero
+momentum - she picks a straight open LANE through the target's row/column,
+runs it end to end (clipping whatever's in the path), then turns around
+and picks the next pass. Needs open ground: no lane long enough means
+cramped interior fighting, where she falls through to base Crusher
+behavior instead. Returns TRUE while running a pass.</p><h3 id="proc/find_charge_lane"><aside class="declaration">proc </aside>find_charge_lane<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L108"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 108"></a></aside></h3><p>A straight, fully-open cardinal lane from the pilot through the target's
+row/column plus a few tiles of overrun - the space a real charge pass
+needs. Null when the ground is too cramped for the play at all.</p><h3 id="proc/process_movement">process_movement<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L49"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 49"></a></aside></h3><p>Duplicates the base controller's adjacency-to-attacking transition and
+obstacle-handling tail (see xeno_ai_movement.dm's process_movement())
+rather than sharing it, since the trigger condition for &quot;close in&quot; is
+fundamentally different here - a real shared-helper refactor is a
+reasonable follow-up, not done here to avoid touching the
+already-verified base melee path (same tradeoff ranged.dm already
+made for the same reason).</p><h3 id="proc/return_to_anchor">return_to_anchor<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L248"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 248"></a></aside></h3><p>&quot;Instead of approaching, xenos should consider using abilities to close the
+gap... not just to get to the enemy faster but escape it faster too&quot; - a
+Crusher is XENO_SPEED_TIER_2, the slowest AI caste built so far, so a plain
+walk home is exactly the scenario this theme is meant to fix. Tries once
+per return_to_anchor() tick before falling through to the normal walk, same
+shape as attempt_charge()'s gap-close call in process_movement().</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">↑</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm#L189"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/crusher.dm 189"></a></aside></h3><p>&quot;Crusher never uses their stomping ability when near enemies&quot; - Stomp
+isn't just a self-centered AoE, it also knocks down everything it hits
+(crusher_powers.dm's create_stomp()/get_xeno_stun_duration()), so it was
+wrong to treat it as &quot;strictly worse than a normal attack&quot; against a lone
+target and gate it behind 2+ nearby marines - a single-target knockdown
+is still a big win, and 2+ marines standing that close together is the
+less common case in practice, which is exactly why it read as &quot;never&quot;
+firing. Now fires on anything valid in range, no minimum headcount.</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>

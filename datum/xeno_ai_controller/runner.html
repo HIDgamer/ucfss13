@@ -1,0 +1,101 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><base href="../../"><link rel="stylesheet" href="dmdoc.css"><title>/datum/xeno_ai_controller/runner - byond</title></head><body><header><a href="index.html">byond</a> - <a href="index.html#modules">Modules</a> - <a href="index.html#types">Types</a> — <a href="datum/xeno_ai_controller/runner.html#var">Var Details</a> - <a href="datum/xeno_ai_controller/runner.html#proc">Proc Details</a></header><main><h1>/<a href="datum.html">datum</a>/<a href="datum/xeno_ai_controller.html">xeno_ai_controller</a>/<a href="datum/xeno_ai_controller/runner.html">runner</a> <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L38"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 38"></a></h1><p>Runner AI - a fast, fragile harasser: dash in with Pounce, land a hit,
+then keep moving instead of trading blows toe-to-toe like a Warrior
+would. Patrol/search behavior is entirely inherited from the base
+controller.</p>
+<ul>
+<li>Fires Pounce to close distance the same way Crusher/Ravager use their
+own dashes - Runner's has a much shorter cooldown (3s vs their 14s) and
+shorter range (6 tiles, the pounce base default), matching its role as
+a constant, low-commitment opener rather than an occasional finisher.</li>
+<li>Flees at a much higher health fraction than the default - she's the
+hive's glass cannon (lowest HP, no armor - XENO_HEALTH_RUNNER/
+XENO_NO_ARMOR), meant to hit and run, not to trade hits and die trying.</li>
+<li>&quot;Too insane, completely spinning around like a feral dog - they should
+circle the battlefield attacking and dodging, very fast but very weak
+and small.&quot; Stepping straight away after every attack (the old
+behavior) reads exactly like that: pounce in, back straight out, get
+pulled straight back in by the base approach chain, repeat every ~1-2
+ticks - a jittery in-out twitch, not motion. Now sidesteps to a
+flanking tile instead, same shape as Ravager's own circling
+(circle_dir below - one consistent rotational direction, not a
+re-rolled left-right wobble).</li>
+</ul>
+<p>&quot;Runners are way too difficult, able to attack 2 people alone and win the
+fight... calmer to give players a chance.&quot; Her raw stats are actually
+undertuned relative to a normal melee caste (lowest HP/no armor in the
+roster, tier-1 damage, the same flat plain-melee cadence every caste
+gets) - the overtuning was entirely in the AI's decision-making: Pounce
+(an essentially free, 3s-cooldown knockdown) fired unconditionally the
+instant it was off cooldown, and the flanking sidestep below fired
+unconditionally after every single attack with no gate at all, unlike
+Ravager's damage-reactive-plus-baseline-roll pattern. Both are now gated
+(see attempt_pounce()/process_attack()) - the ability's own numbers
+(plasma cost/cooldown/knockdown) are untouched, since those are shared
+with human-played Runners and nerfing them would be a PvP balance change
+beyond what was asked.</p><table class="summary" cellspacing="0"><tr><td colspan="2"><h2>Vars</h2></td></tr><tr><th><a href="datum/xeno_ai_controller/runner.html#var/circle_dir">circle_dir</a></th><td>Rotational direction (90 or -90) this Runner always circles toward - see Ravager's identical var for why this is picked once instead of re-rolled.</td></tr><tr><th><a href="datum/xeno_ai_controller/runner.html#var/detonation_committed">detonation_committed</a></th><td>Acider: TRUE once committed to the detonation run - attempt_for_the_hive() fires on reaching the target regardless of own health.</td></tr><tr><th><a href="datum/xeno_ai_controller/runner.html#var/detonation_hold_until">detonation_hold_until</a></th><td>Acider: world.time the pre-detonation hold ends - the player pattern of waiting a few tiles out for the right moment before running in to explode. 0 when not holding.</td></tr><tr><th><a href="datum/xeno_ai_controller/runner.html#var/last_known_health">last_known_health</a></th><td>pilot.health as of the last process_attack() call - lets the sidestep tell &quot;just got hit, this is a reactive dodge&quot; from &quot;nothing happened, this is just the baseline roll,&quot; same pattern as ravager.dm.</td></tr><tr><td colspan="2"><h2>Procs</h2></td></tr><tr><th><a href="datum/xeno_ai_controller/runner.html#proc/attempt_for_the_hive">attempt_for_the_hive</a></th><td>Fires the self-destruct on either of two triggers: (a) a committed
+detonation run reaching its target (see check_detonation_run() - the
+player pattern, charged acid walked deliberately into a group), or (b)
+the original last stand - too hurt to matter AND cornered adjacent, where
+exploding beats dying for nothing. Kills the caster outright (respawning
+her as larva, acid.dm's do_caboom()); the ability's own acid_amount check
+(runner_powers.dm) silently rejects a call without enough acid stored.</td></tr><tr><th><a href="datum/xeno_ai_controller/runner.html#proc/attempt_pounce">attempt_pounce</a></th><td>Fires Pounce at target if it's off cooldown and within its reach; returns
+FALSE (and does nothing else) otherwise, so the caller falls back to the
+inherited approach/pathfinding chain. &quot;Calmer&quot; pass: even once all the
+real checks pass, only actually commits AI_RUNNER_POUNCE_CHANCE% of the
+time - the rest of the time she just walks in normally, giving the target
+a reaction window before the knockdown lands instead of eating it the
+instant the ability comes off cooldown every single approach.</td></tr><tr><th><a href="datum/xeno_ai_controller/runner.html#proc/check_detonation_run">check_detonation_run</a></th><td>Acider-strain-only: the player detonation pattern - with a charged acid
+tank, hold a few tiles out from the fight, then commit and run in to
+explode, tanking whatever lands during the approach (the low-health bail
+that governs everyone else deliberately doesn't apply once committed;
+dying on the way just wastes the run, dying ON them is the whole point).
+Commit triggers: a sister engages the target (their attention is split),
+taking fire during the hold (standing still is worse), or the hold timer
+lapsing. Returns TRUE while holding (no other movement this tick).</td></tr><tr><th><a href="datum/xeno_ai_controller/runner.html#proc/process_attack">process_attack</a></th><td>Sidesteps to a flanking tile after landing an attack instead of either
+standing adjacent or backing straight out - keeps her circling the
+battlefield while attacking and dodging. Tries the preferred rotational
+side first, then the opposite side if that's blocked, so a single
+obstruction doesn't cancel the movement outright.</td></tr><tr><th><a href="datum/xeno_ai_controller/runner.html#proc/process_movement">process_movement</a></th><td>Same duplication tradeoff as crusher.dm/ravager.dm - attempting the dash
+before falling through to the inherited approach chain is different
+enough from the base melee policy to warrant a full override rather than
+a shared helper.</td></tr><tr><th><a href="datum/xeno_ai_controller/runner.html#proc/use_caste_ability">use_caste_ability</a></th><td>Acider-strain-only. attempt_pounce() above already no-ops for her -
+Pounce is removed by the strain (actions_to_remove, acid.dm) - so no
+separate branch is needed to skip it; she just fights in plain melee,
+building acid passively off her own slashes (acid.dm's own mechanics,
+nothing the AI needs to drive).</td></tr></table><h2 id="var">Var Details</h2><h3 id="var/circle_dir"><aside class="declaration">var </aside>circle_dir <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L40"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 40"></a></h3><p>Rotational direction (90 or -90) this Runner always circles toward - see Ravager's identical var for why this is picked once instead of re-rolled.</p><h3 id="var/detonation_committed"><aside class="declaration">var </aside>detonation_committed <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L46"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 46"></a></h3><p>Acider: TRUE once committed to the detonation run - attempt_for_the_hive() fires on reaching the target regardless of own health.</p><h3 id="var/detonation_hold_until"><aside class="declaration">var </aside>detonation_hold_until <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L44"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 44"></a></h3><p>Acider: world.time the pre-detonation hold ends - the player pattern of waiting a few tiles out for the right moment before running in to explode. 0 when not holding.</p><h3 id="var/last_known_health"><aside class="declaration">var </aside>last_known_health <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L42"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 42"></a></h3><p>pilot.health as of the last process_attack() call - lets the sidestep tell &quot;just got hit, this is a reactive dodge&quot; from &quot;nothing happened, this is just the baseline roll,&quot; same pattern as ravager.dm.</p><h2 id="proc">Proc Details</h2><h3 id="proc/attempt_for_the_hive"><aside class="declaration">proc </aside>attempt_for_the_hive<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L197"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 197"></a></aside></h3><p>Fires the self-destruct on either of two triggers: (a) a committed
+detonation run reaching its target (see check_detonation_run() - the
+player pattern, charged acid walked deliberately into a group), or (b)
+the original last stand - too hurt to matter AND cornered adjacent, where
+exploding beats dying for nothing. Kills the caster outright (respawning
+her as larva, acid.dm's do_caboom()); the ability's own acid_amount check
+(runner_powers.dm) silently rejects a call without enough acid stored.</p><h3 id="proc/attempt_pounce"><aside class="declaration">proc </aside>attempt_pounce<aside>(/<a href="atom.html">atom</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L131"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 131"></a></aside></h3><p>Fires Pounce at target if it's off cooldown and within its reach; returns
+FALSE (and does nothing else) otherwise, so the caller falls back to the
+inherited approach/pathfinding chain. &quot;Calmer&quot; pass: even once all the
+real checks pass, only actually commits AI_RUNNER_POUNCE_CHANCE% of the
+time - the rest of the time she just walks in normally, giving the target
+a reaction window before the knockdown lands instead of eating it the
+instant the ability comes off cooldown every single approach.</p><h3 id="proc/check_detonation_run"><aside class="declaration">proc </aside>check_detonation_run<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L95"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 95"></a></aside></h3><p>Acider-strain-only: the player detonation pattern - with a charged acid
+tank, hold a few tiles out from the fight, then commit and run in to
+explode, tanking whatever lands during the approach (the low-health bail
+that governs everyone else deliberately doesn't apply once committed;
+dying on the way just wastes the run, dying ON them is the whole point).
+Commit triggers: a sister engages the target (their attention is split),
+taking fire during the hold (standing still is worse), or the hold timer
+lapsing. Returns TRUE while holding (no other movement this tick).</p><h3 id="proc/process_attack"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/process_attack">↑</a></aside>process_attack<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L158"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 158"></a></aside></h3><p>Sidesteps to a flanking tile after landing an attack instead of either
+standing adjacent or backing straight out - keeps her circling the
+battlefield while attacking and dodging. Tries the preferred rotational
+side first, then the opposite side if that's blocked, so a single
+obstruction doesn't cancel the movement outright.</p>
+<p>Matches ravager.dm's own reposition gate: a reactive dodge is guaranteed
+the instant she's actually taken damage since her last attack, otherwise
+it's a AI_RUNNER_REPOSITION_CHANCE% baseline roll, not a certainty - she
+still reads as constantly circling in a real fight (she's getting hit
+plenty), just not literally every single tick regardless of whether
+anything's happening.</p><h3 id="proc/process_movement">process_movement<aside>()  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L61"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 61"></a></aside></h3><p>Same duplication tradeoff as crusher.dm/ravager.dm - attempting the dash
+before falling through to the inherited approach chain is different
+enough from the base melee policy to warrant a full override rather than
+a shared helper.</p><h3 id="proc/use_caste_ability"><aside class="parent"><a title="/datum/xeno_ai_controller" href="datum/xeno_ai_controller.html#proc/use_caste_ability">↑</a></aside>use_caste_ability<aside>(/<a href="mob.html">mob</a>/<a href="mob/living.html">living</a>/target)  <a href="https://github.com/V-A-C-U-M-E/ucfss13/blob/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5/code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm#L185"><img src="git.png" width="16" height="16" title="code/modules/mob/living/carbon/xenomorph/ai/castes/runner.dm 185"></a></aside></h3><p>Acider-strain-only. attempt_pounce() above already no-ops for her -
+Pounce is removed by the strain (actions_to_remove, acid.dm) - so no
+separate branch is needed to skip it; she just fights in plain melee,
+building acid passively off her own slashes (acid.dm's own mechanics,
+nothing the AI needs to drive).</p></main><footer>colonialmarines.dme <a href="https://github.com/V-A-C-U-M-E/ucfss13/tree/6912e379fcd3fcec3ab556c45f7b0ed2c05408c5">6912e37</a> (UCFSS13) — <a href="https://github.com/SpaceManiac/SpacemanDMM/blob/master/crates/dmdoc/README.md">dmdoc 1.12.0</a></footer></body></html>
