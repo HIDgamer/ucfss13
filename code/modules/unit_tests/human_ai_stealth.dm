@@ -452,6 +452,48 @@
 /datum/unit_test/human_ai_gear_lamps/proc/any_light_on(datum/human_ai_brain/brain)
 	return !!brain.lamp_lit(brain.lamp_sources())
 
+/// A unit with no lamp in the dark lights a flare and sets it down, and then leaves the place lit for the next one
+/datum/unit_test/human_ai_gear_flares
+
+/datum/unit_test/human_ai_gear_flares/Run()
+	var/datum/human_ai_arena/field = new(list("##########", "#........#", "#........#", "##########"), run_loc_floor_bottom_left)
+	var/mob/living/carbon/human/soldier = make_soldier(locate(field.origin_x + 2, field.origin_y + 1, field.z), FACTION_MARINE, FALSE)
+	var/datum/human_ai_brain/brain = soldier.ai_brain
+	lookout_pool(brain)
+	var/obj/item/device/flashlight/flare/first = new(soldier)
+	var/obj/item/device/flashlight/flare/second = new(soldier)
+	TEST_ASSERT(!length(brain.lamp_sources()), "The unit has a lamp, the test is of one that has none")
+
+	// Lit, it does nothing; dark, it wants a flare
+	brain.light_override = 1
+	TEST_ASSERT_NULL(brain.plan_gear(), "A unit in the light wanted to do something about its gear")
+	brain.light_override = 0
+	var/list/job = brain.plan_gear()
+	TEST_ASSERT_NOTNULL(job, "A unit in the dark with flares in its pockets did not want one")
+	TEST_ASSERT_EQUAL(job[1], "flare", "It wanted [job[1]]")
+	TEST_ASSERT(brain.do_gear_job(job), "The flare would not light")
+	var/obj/item/device/flashlight/flare/lit = job[2]
+	TEST_ASSERT(lit.on, "The flare is not burning")
+	TEST_ASSERT_EQUAL(lit.loc, soldier.loc, "The flare was not set down where the unit stands")
+	TEST_ASSERT(lit.loc != soldier, "The unit is still holding the burning flare")
+
+	// With one burning close by, the other stays in the pocket even though the place still reads as dark
+	TEST_ASSERT_NULL(brain.plan_gear(), "A unit lit a second flare with one burning at its feet")
+
+	// Out of the light of it, a unit that has been told to stay dark, does
+	brain.light_override = 0
+	for(var/obj/item/device/flashlight/flare/burning in range(HAI_FLARE_SPACING, soldier))
+		burning.turn_off()
+	brain.lights_out = TRUE
+	TEST_ASSERT_NULL(brain.plan_gear(), "A unit told to keep its lights off lit a flare")
+	brain.lights_out = FALSE
+
+	// A flare that has burnt out is not lit again, and one that is not on is
+	for(var/obj/item/device/flashlight/flare/spent in soldier.get_contents())
+		spent.burnt_out = TRUE
+	TEST_ASSERT_NULL(brain.plan_gear(), "A unit tried to light a flare that had burnt out")
+	TEST_ASSERT(first.loc == soldier.loc || second.loc == soldier.loc || first.loc == soldier || second.loc == soldier, "A flare was lost")
+
 /// Night vision goggles are used instead of a lamp, on in the dark and off in the light
 /datum/unit_test/human_ai_gear_night_vision
 

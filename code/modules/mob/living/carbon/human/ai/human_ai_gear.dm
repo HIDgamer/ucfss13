@@ -206,7 +206,7 @@ GLOBAL_LIST_EMPTY(human_ai_lit_lamps)
 			return list("nvg", goggles, wanted)
 		return null
 	if(!length(lamps))
-		return null
+		return plan_flare()
 	var/wanted = lamp_wanted(lit)
 	if(wanted && !lit)
 		return list("lamp", lamps[1], TRUE)
@@ -224,6 +224,8 @@ GLOBAL_LIST_EMPTY(human_ai_lit_lamps)
 			return set_weld_gear(thing, job[3])
 		if("lamp")
 			return switch_lamp(thing, job[3])
+		if("flare")
+			return light_flare(thing)
 		if("nvg")
 			var/obj/item/clothing/glasses/goggles = thing
 			if(goggles.active == job[3])
@@ -236,6 +238,39 @@ GLOBAL_LIST_EMPTY(human_ai_lit_lamps)
 			log_decision("[job[3] ? "switched on" : "switched off"] [goggles]")
 			return TRUE
 	return FALSE
+
+/**
+ * A unit with no lamp and no goggles in a place that is too dark lights a flare it carries, once, and leaves it where it stands so the light stays with the place. It does
+ * not light one with another burning close by, nor when told to keep its lights off, nor a covert unit that has nothing to hunt.
+ */
+/datum/human_ai_brain/proc/plan_flare()
+	if(lights_out || !ambient_dark() || length(GLOB.human_ai_lit_lamps) >= HAI_LAMP_CAP)
+		return null
+	if(role?.covert && intent != HAI_INTENT_INVESTIGATE && intent != HAI_INTENT_ENGAGE)
+		return null
+	for(var/obj/item/device/flashlight/flare/burning in range(HAI_FLARE_SPACING, get_turf(body)))
+		if(burning.on)
+			return null
+	for(var/obj/item/device/flashlight/flare/flare in body.get_contents())
+		if(!flare.on && !flare.burnt_out && flare.fuel > 0)
+			return list("flare", flare, TRUE)
+	return null
+
+/// Pulls the cord of the flare and sets it down at the unit's feet, true when it is burning afterwards
+/datum/human_ai_brain/proc/light_flare(obj/item/device/flashlight/flare/flare)
+	if(QDELETED(flare) || flare.on)
+		return FALSE
+	take_out_of_holder(flare)
+	if(flare.loc != body.loc)
+		flare.forceMove(body.loc)
+	flare.attack_self(body)
+	if(body.throw_mode)
+		body.toggle_throw_mode(THROW_MODE_OFF)
+	if(!flare.on)
+		return FALSE
+	gear_toggles++
+	log_decision("lit [flare] and set it down")
+	return TRUE
 
 /datum/human_ai_action/use_gear
 	id = "use_gear"

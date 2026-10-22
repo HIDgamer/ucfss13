@@ -458,6 +458,59 @@
 	TEST_ASSERT(hurt_count >= 1, "The grenade hurt none of the enemies")
 	detach_human_ai(thrower)
 
+/// A live grenade that lands at the unit's feet with fuse left is picked up and thrown back at the enemy, one with too little fuse left is run from
+/datum/unit_test/human_ai_throw_back
+
+/datum/unit_test/human_ai_throw_back/proc/returned(datum/human_ai_brain/brain)
+	return brain.grenades_returned > 0
+
+/datum/unit_test/human_ai_throw_back/Run()
+	var/datum/human_ai_arena/yard = new(list(
+		"####################",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"#..................#",
+		"####################",
+	), run_loc_floor_bottom_left)
+	var/obj/item/explosive/grenade/high_explosive/unlit = allocate(/obj/item/explosive/grenade/high_explosive)
+	TEST_ASSERT_NULL(human_ai_fuse_left(unlit), "A grenade that is not lit has a fuse")
+	TEST_ASSERT(human_ai_grenade_hurts(unlit), "A high explosive grenade does not hurt")
+	var/obj/item/explosive/grenade/smokebomb/smoke = allocate(/obj/item/explosive/grenade/smokebomb)
+	TEST_ASSERT(!human_ai_grenade_hurts(smoke), "A smoke grenade was said to hurt")
+
+	// A live grenade lands next to the soldier with the fuse still long
+	var/mob/living/carbon/human/soldier = make_soldier(locate(yard.origin_x + 4, yard.origin_y + 3, yard.z), FACTION_MARINE, TRUE)
+	var/datum/human_ai_brain/brain = soldier.ai_brain
+	var/mob/living/carbon/xenomorph/drone/enemy = make_target_dummy(locate(yard.origin_x + 11, yard.origin_y + 3, yard.z))
+	var/obj/item/explosive/grenade/high_explosive/live = new(locate(yard.origin_x + 5, yard.origin_y + 3, yard.z))
+	live.activate()
+	var/fuse = human_ai_fuse_left(live)
+	TEST_ASSERT(fuse >= 30 && fuse <= 46, "A grenade that was just lit has a fuse of [fuse]")
+	TEST_ASSERT(ai_wait(CALLBACK(src, PROC_REF(returned), brain), 3), "The grenade at the soldier's feet was not thrown back, intent [brain.intent], log [brain.decision_log.Join(" | ")]")
+	sleep(0.5 SECONDS)
+	TEST_ASSERT(live.loc != soldier, "The grenade is still in the soldier's hand")
+	TEST_ASSERT(get_dist(soldier, live) >= 3, "The grenade did not leave the soldier, it is [get_dist(soldier, live)] tiles away")
+	// It goes off where it was thrown and not where it was
+	sleep(6 SECONDS)
+	TEST_ASSERT(soldier.getBruteLoss() < 10, "The soldier was hurt by the grenade that was thrown back, [soldier.getBruteLoss()] brute")
+	TEST_ASSERT(enemy.health < enemy.maxHealth, "The grenade that was thrown back did not hurt the enemy")
+	TEST_ASSERT_EQUAL(brain.error_total, 0, "The brain threw errors")
+	detach_human_ai(soldier)
+
+	// With the fuse nearly gone there is no time for a pickup, so the soldier keeps the grenade where it is and gets away from it
+	var/mob/living/carbon/human/runner = make_soldier(locate(yard.origin_x + 4, yard.origin_y + 2, yard.z), FACTION_MARINE, TRUE)
+	var/obj/item/explosive/grenade/high_explosive/short = new(locate(yard.origin_x + 5, yard.origin_y + 2, yard.z))
+	short.activate()
+	short.primed_at = world.time - short.det_time + 3
+	TEST_ASSERT_EQUAL(human_ai_fuse_left(short), 3, "The fuse of the test grenade is not the one that was set")
+	sleep(1 SECONDS)
+	TEST_ASSERT_EQUAL(runner.ai_brain.grenades_returned, 0, "A grenade with three decisecond of fuse was picked up")
+	TEST_ASSERT(short.loc != runner, "The grenade with the short fuse is in the soldier's hand")
+	detach_human_ai(runner)
+	sleep(5 SECONDS)
+
 /// With the gun dry a brain draws a blade, shoves what stands in reach and rolls to put out flames
 /datum/unit_test/human_ai_melee
 

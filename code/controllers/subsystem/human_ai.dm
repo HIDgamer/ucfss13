@@ -28,6 +28,8 @@ SUBSYSTEM_DEF(human_ai)
 	var/squad_cost_ms = 0
 	/// Window the talk caps count in, what was said in it, and a log of what was said kept only while record_talk is on
 	var/talk_window_end = 0
+	/// When the shared lists of the AI are next cleared of what can no longer matter
+	var/next_prune_time = 0
 	var/talk_count = 0
 	var/list/area_talk = list()
 	var/total_barks = 0
@@ -79,6 +81,9 @@ SUBSYSTEM_DEF(human_ai)
 		if(world.time >= next_arbiter_time)
 			next_arbiter_time = world.time + HAI_ARBITER_INTERVAL
 			arbitrate()
+		if(world.time >= next_prune_time)
+			next_prune_time = world.time + HAI_PRUNE_INTERVAL
+			human_ai_prune_globals()
 		plan_squads()
 
 	while(length(currentrun))

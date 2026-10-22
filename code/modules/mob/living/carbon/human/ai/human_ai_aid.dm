@@ -10,6 +10,18 @@ GLOBAL_LIST_INIT(human_ai_splint_zones, list("l_arm", "r_arm", "l_leg", "r_leg",
 /// The times each body was shocked back to life by an AI medic, by reference text to list(how many times, when it was last)
 GLOBAL_LIST_EMPTY(human_ai_revive_log)
 
+/// Takes what can no longer matter out of the lists the AI shares: a claim on a patient that ran out or that its claimant let go of, and the shock count of a body that has had its window
+/proc/human_ai_prune_globals()
+	for(var/key in GLOB.human_ai_patient_claims)
+		var/list/claim = GLOB.human_ai_patient_claims[key]
+		var/datum/claimant = islist(claim) ? claim[1] : null
+		if(QDELETED(claimant) || claim[2] < world.time)
+			GLOB.human_ai_patient_claims -= key
+	for(var/key in GLOB.human_ai_revive_log)
+		var/list/log = GLOB.human_ai_revive_log[key]
+		if(!islist(log) || world.time >= log[2] + HAI_REVIVE_WINDOW)
+			GLOB.human_ai_revive_log -= key
+
 /// Whether any bone is broken and not splinted, which is asked every think of every brain and so stops at the first one it finds
 /datum/human_ai_brain/proc/has_broken_limb()
 	for(var/obj/limb/limb as anything in body.limbs)

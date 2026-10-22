@@ -29,6 +29,8 @@
 /datum/xeno_command_console
 	var/mob/owner
 	var/datum/hive_status/hive
+	/// The NPC command panel that hosts the window, this console only ever refreshes it.
+	var/datum/weakref/panel_ref
 	/// TRUE for the admin-ghost entry point (permission-checked via R_SPAWN instead of IS_XENO_LEADER, hive picked manually instead of read off the owner).
 	var/is_admin_session = FALSE
 	var/datum/xeno_command_selection/selection
@@ -44,35 +46,52 @@
 	var/list/turf/marquee_highlighted_turfs
 
 /datum/xeno_command_console/New(mob/user, datum/hive_status/target_hive, admin_session = FALSE)
-	owner = user
+	set_owner(user)
 	hive = target_hive
 	is_admin_session = admin_session
 	selection = new
 
 /datum/xeno_command_console/Destroy()
-	if(owner?.client?.click_intercept == src)
-		owner.client.click_intercept = null
+	release_intercept()
+	set_owner(null)
 	SStgui.close_uis(src)
-	owner = null
 	hive = null
-	selection = null
+	panel_ref = null
+	marquee_start_turf = null
+	marquee_highlighted_turfs = null
+	QDEL_NULL(selection)
 	return ..()
 
-/datum/xeno_command_console/tgui_interact(mob/user, datum/tgui/ui)
-	ui = SStgui.try_update_ui(user, src, ui)
-	if(!ui)
-		ui = new(user, src, "XenoCommandConsole", "Hive Command")
-		ui.open()
+/// Whose console it is, who is not kept from being freed by owning a console, and a leader's console is kept on the leader.
+/datum/xeno_command_console/proc/set_owner(mob/new_owner)
+	if(owner == new_owner)
+		return
+	if(owner)
+		UnregisterSignal(owner, COMSIG_PARENT_QDELETING)
+	owner = new_owner
+	if(owner)
+		RegisterSignal(owner, COMSIG_PARENT_QDELETING, PROC_REF(on_owner_deleted))
+
+/datum/xeno_command_console/proc/on_owner_deleted(datum/source)
+	SIGNAL_HANDLER
+	owner = null
+
+/// What the window is bound to: the panel when there is one.
+/datum/xeno_command_console/proc/window_host()
+	return panel_ref?.resolve() || src
+
+/datum/xeno_command_console/proc/refresh()
+	SStgui.update_uis(window_host())
 
 /// Closing the window (not just losing leader status) left an armed intercept forever since nothing else cleared it - same discipline admin_spawn_terminal already needs for the same reason.
 /datum/xeno_command_console/ui_close(mob/user)
 	. = ..()
-	if(user?.client?.click_intercept == src)
-		user.client.click_intercept = null
+	release_intercept()
 	armed_order_type = null
 
-/datum/xeno_command_console/ui_state(mob/user)
-	return GLOB.always_state
+/datum/xeno_command_console/proc/release_intercept()
+	if(owner?.client?.click_intercept == src)
+		owner.client.click_intercept = null
 
 /datum/xeno_command_console/ui_data(mob/user)
 	var/list/data = list()
@@ -172,13 +191,12 @@
 		data["ai_castes"] = castes
 	return data
 
-/datum/xeno_command_console/ui_act(action, list/params, datum/tgui/ui, datum/ui_state/state)
-	. = ..()
-	if(.)
-		return
-	var/mob/user = ui.user
+/// Every control on the panel comes through here, the rights are checked again on each one.
+/datum/xeno_command_console/proc/handle_action(mob/user, action, list/params)
 	if(!can_command(user))
-		return
+		return FALSE
+	if(!islist(params))
+		params = list()
 
 	switch(action)
 		if("toggle_select")
@@ -399,7 +417,7 @@
 		// cancel" convention admin_spawn_terminal's own InterceptClickOn uses.
 		if(length(selection.selected))
 			selection.clear()
-			SStgui.update_uis(src)
+			refresh()
 			return TRUE
 		return FALSE
 
@@ -495,43 +513,5 @@
 		return
 	if(!xeno.hive_command_console)
 		xeno.hive_command_console = new(xeno, xeno.hive, FALSE)
-	xeno.hive_command_console.tgui_interact(xeno)
+	open_npc_panel_for(xeno, NPC_PANEL_XENOS)
 
-/**
- * Admin-ghost entry point - out-of-character GM/testing access to the same
- * console, permission-gated by R_SPAWN (checked in ui_act()'s can_command(),
- * same double-gate pattern admin_spawn_terminal/admin_ai_difficulty already use)
- * rather than IS_XENO_LEADER, since an admin-ghost has no hive membership of
- * its own to check - the hive is picked manually instead, same as the
- * existing Xeno Spawner hive picker (event_tab.dm's "set_spawner_hive").
- * Deliberately no rights check at the verb level itself, matching
- * create_xenos()/ai_difficulty()'s own pattern - any admin can open the
- * picker, but every actual action inside is individually gated.
- */
-/datum/admins/proc/xeno_command_console(mob/user)
-	var/list/hive_options = list()
-	for(var/hivenumber in GLOB.hive_datum)
-		var/datum/hive_status/hive_option = GLOB.hive_datum[hivenumber]
-		hive_options["[hive_option.name]"] = hivenumber
-	var/choice = tgui_input_list(user, "Which hive do you want to command?", "Hive Command Console", hive_options)
-	if(isnull(choice))
-		return
-	// tgui_input_list() returns the selected KEY (the display name string),
-	// not the associated value - hive_options[choice] looks the hivenumber
-	// back up, the same two-step resolution set_spawner_hive() (event_tab.dm)
-	// already uses for this exact list shape. Indexing GLOB.hive_datum with
-	// the raw string choice directly (the original bug here) silently found
-	// nothing and returned early with no feedback - "clicking a hive does
-	// nothing, menu closes."
-	var/hivenumber = hive_options[choice]
-	var/datum/hive_status/target_hive = GLOB.hive_datum[hivenumber]
-	if(!target_hive)
-		return
-	var/datum/xeno_command_console/console = new(user, target_hive, TRUE)
-	console.tgui_interact(user)
-
-/client/proc/xeno_command_console()
-	set name = "Hive Command Console"
-	set category = "Admin.Events"
-	if(admin_holder)
-		admin_holder.xeno_command_console(usr)

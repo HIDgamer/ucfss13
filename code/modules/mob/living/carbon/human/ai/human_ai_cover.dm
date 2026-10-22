@@ -226,7 +226,7 @@
 	next_hazard_check = world.time + HAI_HAZARD_CHECK_INTERVAL
 	hazard_turf = null
 	for(var/obj/item/explosive/grenade/grenade in range(HAI_HAZARD_RADIUS, here))
-		if(grenade.active && !QDELETED(grenade) && (initial(grenade.dangerous) || istype(grenade, /obj/item/explosive/grenade/high_explosive) || istype(grenade, /obj/item/explosive/grenade/incendiary)))
+		if(grenade.active && !QDELETED(grenade) && human_ai_grenade_hurts(grenade))
 			hazard_turf = get_turf(grenade)
 			break
 	return hazard_turf

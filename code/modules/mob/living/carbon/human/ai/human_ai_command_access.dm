@@ -1,7 +1,7 @@
 /// Console actions that only an admin may use: they reach beyond the units the panel's user commands
 GLOBAL_LIST_INIT(npc_command_admin_actions, list(
 	"jump", "observe", "claim", "delete", "inspect",
-	"apply_personality", "set_relation", "set_faction_roe", "arm_spawn", "arm_assign", "release_ai", "set_difficulty",
+	"apply_personality", "set_relation", "set_faction_roe", "arm_spawn", "arm_template", "release_ai", "set_difficulty",
 	"set_population_enabled", "set_group_enabled", "populate_group", "set_hook_enabled", "set_hook_forced", "clear_population", "check_population",
 	"toggle_debug", "set_paused",
 ))
@@ -56,7 +56,7 @@ GLOBAL_LIST_INIT(npc_command_staff_jobs, list(JOB_CO, JOB_XO, JOB_SO, JOB_AUXILI
 	if(!human_ai_command_faction(src))
 		to_chat(src, SPAN_WARNING("You do not command anyone."))
 		return
-	open_npc_command_console(src)
+	open_npc_panel_for(src, NPC_PANEL_HUMANS)
 
 /// Gives the verb to a human whose job makes them senior staff and takes it from anyone else
 /mob/living/carbon/human/proc/update_npc_command_verb()

@@ -238,6 +238,8 @@
 	var/obj/item/explosive/grenade/high_explosive/live = new(locate(runner_man.x + 1, runner_man.y, yard.z))
 	live.det_time = 50
 	live.activate(runner_man, FALSE)
+	// A fuse the unit cannot read is not one to pick up and throw back, it gets clear of it; the throw back has its own test
+	live.primed_at = null
 	sleep(4 SECONDS)
 	TEST_ASSERT(get_dist(runner_man, live) > HAI_HAZARD_RADIUS - 1 || QDELETED(live), "The brain stood next to a live grenade, [get_dist(runner_man, live)] tiles away")
 	TEST_ASSERT(runner_man.ai_brain.hazard_dodges >= 1, "The brain never ran from the grenade")
